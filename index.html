@@ -1,0 +1,801 @@
+<!doctype html>
+<html lang="uk">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="description"
+    content="Веб-додаток для управління проектами за допомогою діаграм Ганта та фінансових інструментів аналізу" />
+  <meta name="theme-color" content="#1e50c8" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Plan Master" />
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%232563eb' width='32' height='32' rx='7'/><rect fill='white' x='5' y='7.5' width='13' height='4' rx='2'/><rect fill='rgba(255,255,255,.5)' x='5' y='14' width='20' height='4' rx='2'/><rect fill='white' x='11' y='20.5' width='16' height='4' rx='2'/></svg>" />
+  <link rel="apple-touch-icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%232563eb' width='32' height='32' rx='7'/><rect fill='white' x='5' y='7.5' width='13' height='4' rx='2'/><rect fill='rgba(255,255,255,.5)' x='5' y='14' width='20' height='4' rx='2'/><rect fill='white' x='11' y='20.5' width='16' height='4' rx='2'/></svg>" />
+  <title>Plan Master</title>
+
+  <link rel="stylesheet" href="./css/variables.css" />
+  <link rel="stylesheet" href="./css/layout.css" />
+  <link rel="stylesheet" href="./css/gantt.css" />
+  <link rel="stylesheet" href="./css/finance.css" />
+  <link rel="stylesheet" href="./css/charts.css" />
+  <link rel="stylesheet" href="./css/modal.css" />
+  <link rel="stylesheet" href="./css/print.css" />
+  <link rel="stylesheet" href="./css/theme.css" />
+  <link rel="stylesheet" href="./css/features.css" />
+  <link rel="stylesheet" href="./css/costs.css" />
+  <link rel="stylesheet" href="./css/contractors.css?v=19" />
+  <link rel="stylesheet" href="./css/controls.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+</head>
+
+<body>
+  <!-- APP HEADER -->
+  <div class="app-head">
+    <div class="proj-block">
+      <select class="proj-sel" id="proj-sel" onchange="switchProject(this.value)"></select>
+      <button class="btn btn-icon" onclick="openProjManager()" title="Управління проєктами">
+        <i data-lucide="folder"></i>
+      </button>
+      <button class="btn btn-icon" onclick="openProj()" title="Налаштування проєкту">
+        <i data-lucide="settings"></i>
+      </button>
+      <span class="proj-dates" id="head-dates"></span>
+    </div>
+    <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" title="Змінити тему">
+      <span class="theme-icon"><i data-lucide="moon"></i></span>
+      <span class="theme-label">Темна</span>
+    </button>
+    <div class="tools-menu" id="tools-menu">
+      <button class="btn btn-icon tools-trigger" onclick="toggleToolsMenu()" title="Друк та експорт">
+        <i data-lucide="more-horizontal"></i>
+      </button>
+      <div class="tools-dropdown" id="tools-dropdown">
+        <button class="tools-item" onclick="openPrintDialog();closeToolsMenu()">
+          <i data-lucide="printer"></i> Друк / PDF
+        </button>
+        <div class="tools-sep"></div>
+        <button class="tools-item" onclick="exportXLSX();closeToolsMenu()">
+          <i data-lucide="table-2"></i> Експорт Excel
+        </button>
+        <button class="tools-item" onclick="exportJSON();closeToolsMenu()">
+          <i data-lucide="file-json"></i> Експорт JSON
+        </button>
+        <label class="tools-item">
+          <i data-lucide="file-input"></i> Імпорт JSON
+          <input type="file" accept=".json" style="display:none" onchange="importJSON(event);closeToolsMenu()" />
+        </label>
+      </div>
+    </div>
+    <button id="user-btn" class="user-btn" onclick="openUserModal()" title="Кабінет користувача">
+      <div class="user-avatar">К</div>
+      <span>Профіль</span>
+    </button>
+    <button id="share-btn" class="btn btn-sm" style="display: none" onclick="openShareModal()"
+      title="Керувати доступом до проєкту">
+      <i data-lucide="users"></i> Доступ
+    </button>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('gantt', this)"><i data-lucide="gantt-chart"></i> Графік</div>
+    <div class="tab" onclick="switchTab('finance', this)"><i data-lucide="wallet"></i> Фінанси</div>
+    <div class="tab" onclick="switchTab('contractors', this)"><i data-lucide="users-round"></i> Контрагенти</div>
+    <div class="tab" onclick="switchTab('charts', this)"><i data-lucide="bar-chart-2"></i> Аналітика</div>
+  </div>
+
+  <!-- LEGEND / CATEGORY FILTER BAR -->
+  <div class="legend-bar">
+    <div id="legend"></div>
+  </div>
+
+  <!-- GANTT PANE -->
+  <div id="pane-gantt" class="pane active">
+    <div id="readonly-banner">
+      <i data-lucide="eye"></i> <b>Режим перегляду</b> - у вас немає прав на редагування цього проєкту
+    </div>
+    <div id="overdue-banner" class="overdue-banner"></div>
+    <div id="gantt-toolbar" class="gantt-toolbar"></div>
+    <div class="gantt-scroll">
+      <div id="gtbl-wrap"></div>
+    </div>
+  </div>
+
+  <!-- FINANCE PANE -->
+  <div id="pane-finance" class="pane">
+    <div class="fin-filters" id="fin-filters"></div>
+    <div id="fin-pane-overview" class="fin-subpane active">
+      <div class="fin-summary" id="fin-summary"></div>
+      <div class="scurve-section" id="scurve-section">
+        <div class="scurve-header">
+          <span class="scurve-title"><i data-lucide="trending-up"></i> S-крива освоєння бюджету (кумулятивна)</span>
+          <div class="scurve-actions">
+            <button class="scurve-toggle" id="scurve-weekly-toggle" onclick="toggleWeeklyCostBars()" type="button">
+              Витрати/тижд.
+            </button>
+            <button class="scurve-icon-btn" onclick="adjustFinanceChartHeight(-40)" type="button"
+              title="Зменшити висоту">
+              -
+            </button>
+            <button class="scurve-icon-btn" onclick="adjustFinanceChartHeight(40)" type="button"
+              title="Збільшити висоту">
+              +
+            </button>
+          </div>
+        </div>
+        <div class="finance-chart-wrap scurve-chart-wrap">
+          <canvas id="scurve-canvas"></canvas>
+        </div>
+        <div class="weekly-cost-section" id="weekly-cost-section">
+          <div class="weekly-cost-title">Витрати за тиждень</div>
+          <div class="finance-chart-wrap weekly-chart-wrap">
+            <canvas id="weekly-cost-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="fin-pane-table" class="fin-subpane">
+      <div class="fin-table-wrap">
+        <table class="fin-tbl" id="fin-tbl"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTRACTORS PANE -->
+  <div id="pane-contractors" class="pane">
+    <div class="contractor-page">
+      <div class="contractor-toolbar">
+        <div class="contractor-search-wrap">
+          <i data-lucide="search"></i>
+          <input id="contractor-search" type="text" placeholder="Пошук контрагента, роботи, платежу..."
+            oninput="onContractorSearch(this.value)" onkeydown="if(event.key==='Escape'){clearContractorSearch()}" />
+          <button type="button" id="contractor-search-clear" class="contractor-search-clear"
+            onclick="clearContractorSearch()" title="Очистити пошук">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div id="contractor-status-filter"></div>
+        <div id="contractor-type-filter"></div>
+        <div id="contractor-cat-filter"></div>
+        <span id="contractor-reset-filter"></span>
+        <div id="contractor-selection-actions"></div>
+        <span class="contractor-toolbar-spacer"></span>
+        <button class="btn btn-sm btn-acc" onclick="openContractorEntryModal()">
+          <i data-lucide="plus"></i> Контрагент
+        </button>
+        <div class="tools-menu contractor-tools-menu" id="contractor-tools-menu">
+          <button class="btn btn-icon tools-trigger" onclick="toggleContractorToolsMenu()" title="Імпорт та реєстри">
+            <i data-lucide="more-horizontal"></i>
+          </button>
+          <div class="tools-dropdown" id="contractor-tools-dropdown">
+            <button class="tools-item" onclick="exportContractorImportTemplate();closeContractorToolsMenu()">
+              <i data-lucide="upload"></i> Шаблон
+            </button>
+            <label class="tools-item contractor-import-btn">
+              <i data-lucide="download"></i> Імпорт оплат
+              <input type="file" accept=".xlsx,.xls,.csv" style="display:none"
+                onchange="importContractorTable(event);closeContractorToolsMenu()" />
+            </label>
+            <div class="tools-sep"></div>
+            <button class="tools-item" onclick="deleteSelectedContractors();closeContractorToolsMenu()">
+              <i data-lucide="trash-2"></i> Видалити вибраних
+            </button>
+            <button class="tools-item" onclick="deleteVisibleContractors();closeContractorToolsMenu()">
+              <i data-lucide="trash"></i> Видалити всіх за фільтром
+            </button>
+            <div class="tools-sep"></div>
+            <button class="tools-item" onclick="openPaymentRegisterModal();closeContractorToolsMenu()">
+              <i data-lucide="file-spreadsheet"></i> Реєстри
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="contractor-summary" id="contractor-summary"></div>
+      <div class="contractor-table-wrap">
+        <table class="contractor-tbl" id="contractor-tbl"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PAYMENT REGISTERS -->
+  <div class="overlay" id="payment-register-modal" style="display: none"
+    onclick="if (event.target === this) closePaymentRegisterModal();">
+    <div class="modal payment-register-modal">
+      <div class="modal-header">
+        <h3><i data-lucide="file-spreadsheet"></i> Реєстри платежів</h3>
+        <button class="btn btn-sm" onclick="closePaymentRegisterModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="payment-register-actions">
+        <button class="btn btn-acc" onclick="createPaymentRegisterFromFilters()">
+          <i data-lucide="plus"></i> Сформувати з поточного фільтра
+        </button>
+        <button class="btn btn-sm" onclick="exportCurrentPaymentRegister('xlsx')">
+          <i data-lucide="file-spreadsheet"></i> Поточний XLSX
+        </button>
+        <button class="btn btn-sm" onclick="exportCurrentPaymentRegister('csv')">
+          <i data-lucide="file-text"></i> Поточний CSV
+        </button>
+        <button class="btn btn-sm" onclick="printCurrentPaymentRegister()">
+          <i data-lucide="printer"></i> Друк поточного
+        </button>
+      </div>
+      <div id="payment-register-current" class="payment-register-current"></div>
+      <div id="payment-register-list" class="payment-register-list"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONTRACTOR ENTRY -->
+  <div class="overlay" id="contractor-entry-modal" style="display: none"
+    onclick="if (event.target === this) closeContractorEntryModal();">
+    <div class="modal contractor-entry-modal">
+      <div class="modal-header">
+        <h3><i data-lucide="receipt-text"></i> Контрагент</h3>
+        <button class="btn btn-sm" onclick="closeContractorEntryModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="contractor-entry-grid contractor-contract-manager">
+        <div class="fg contractor-entry-span">
+          <label>Контрагент</label>
+          <input id="ce-supplier" placeholder="Назва контрагента" />
+        </div>
+        <div class="contractor-contract-list contractor-entry-span" id="ce-contract-list"></div>
+        <div class="contractor-entry-span">
+          <button type="button" class="btn btn-sm" onclick="addContractorContractRow()">
+            <i data-lucide="plus"></i> Додати договір
+          </button>
+        </div>
+      </div>
+      <div class="m-btns m-btns-sep">
+        <button class="btn" onclick="closeContractorEntryModal()">Скасувати</button>
+        <button class="btn btn-acc" onclick="saveContractorEntry()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS PANE -->
+  <div id="pane-charts" class="pane">
+    <div class="chart-builder">
+      <h4>Власний графік</h4>
+      <div class="cb-row">
+        <div class="cb-group">
+          <label>Тип</label>
+          <select id="cb-type">
+            <option value="bar">Bar</option>
+            <option value="horizontalBar">Bar (горизонт.)</option>
+            <option value="line">Line</option>
+            <option value="pie">Pie</option>
+            <option value="doughnut">Doughnut</option>
+          </select>
+        </div>
+        <div class="cb-group">
+          <label>Вісь X / групування</label>
+          <select id="cb-x">
+            <option value="cat">Категорія</option>
+            <option value="contr">Підрядник</option>
+            <option value="status">Статус</option>
+            <option value="month">Місяць</option>
+            <option value="task">Робота (топ 15)</option>
+          </select>
+        </div>
+        <div class="cb-group">
+          <label>Показник Y</label>
+          <select id="cb-y">
+            <option value="count">Кількість робіт</option>
+            <option value="budget">Бюджет (грн)</option>
+            <option value="spent">Витрачено (грн)</option>
+            <option value="rest">Залишок (грн)</option>
+            <option value="prog">Середнє виконання (%)</option>
+            <option value="dur">Тривалість (тиж.)</option>
+          </select>
+        </div>
+        <div class="cb-group">
+          <label>Категорія</label>
+          <select id="cb-fcat">
+            <option value="">Усі</option>
+          </select>
+        </div>
+        <div class="cb-group">
+          <label>Статус</label>
+          <select id="cb-fstat">
+            <option value="">Усі</option>
+            <option value="done">Завершено</option>
+            <option value="active">В роботі</option>
+            <option value="pending">Не розпочато</option>
+          </select>
+        </div>
+        <button class="btn btn-acc btn-align-end" onclick="addCustomChart()">
+          + Побудувати
+        </button>
+      </div>
+    </div>
+    <div class="chart-grid" id="chart-grid"></div>
+  </div>
+
+  <!-- MODAL: TASK -->
+  <div class="overlay" id="modal" style="display: none" onclick="if (event.target === this) closeModal();">
+    <div class="modal task-modal-wide">
+      <div class="task-modal-header">
+        <h3 id="m-title">Нова робота</h3>
+        <div class="task-tabs">
+          <div class="task-tab active" id="ttab-general" onclick="switchTaskTab('general')">
+            <i data-lucide="clipboard-list"></i> Загальне
+          </div>
+          <div class="task-tab" id="ttab-costs" onclick="switchTaskTab('costs')">
+            <i data-lucide="wallet"></i> Кошторис
+          </div>
+        </div>
+      </div>
+
+      <div id="task-pane-general" class="task-pane">
+        <div class="task-modal-cols">
+          <!-- Ліва колонка: назва, категорія, фази -->
+          <div class="task-modal-col">
+            <div class="fg">
+              <label>Назва</label><input id="f-name" placeholder="Введіть назву..." />
+            </div>
+            <div class="fg">
+              <label>Категорія</label>
+              <div class="cat-chips" id="cat-chips"></div>
+            </div>
+            <div class="fg">
+              <div class="modal-section-header">
+                <label>Фази та терміни</label>
+                <button class="btn btn-sm" onclick="modalAddPhase()" type="button">+ Фаза</button>
+              </div>
+              <div id="modal-phases"></div>
+            </div>
+          </div>
+          <!-- Права колонка: залежності, вартість -->
+          <div class="task-modal-col">
+            <div class="fg">
+              <label>Залежить від</label>
+              <div class="dep-tag-panel" id="dep-tag-panel">
+                <div class="dep-tags" id="dep-tags"></div>
+                <div class="dep-search-row">
+                  <div class="dep-search-wrap">
+                    <i data-lucide="search" class="dep-search-icon"></i>
+                    <input type="text" id="dep-search" placeholder="Знайти та додати залежність..." autocomplete="off"
+                      oninput="filterDepSearch(this.value)" onfocus="showDepDropdown()" />
+                  </div>
+                </div>
+                <div class="dep-dropdown" id="dep-dropdown"></div>
+              </div>
+              <div class="dep-type-editor" id="dep-type-editor"></div>
+            </div>
+            <div class="warn-box" id="dep-warn"></div>
+            <div class="row2">
+              <div class="fg">
+                <label>Вартість (грн)
+                  <span id="budget-auto-badge" class="auto-badge">авто</span>
+                </label>
+                <div class="num-wrap">
+                  <button class="num-btn" type="button" onclick="adjNum('f-budget',-1000)">−</button>
+                  <input id="f-budget" type="number" min="0" step="1000" placeholder="0" oninput="updCalc()" />
+                  <button class="num-btn" type="button" onclick="adjNum('f-budget',1000)">+</button>
+                </div>
+                <label class="calc-toggle">
+                  <input id="f-contracts-override-budget" type="checkbox" onchange="updCalc()" />
+                  Договори формують суму роботи
+                </label>
+              </div>
+              <div class="fg">
+                <label>Витрачено (грн)
+                  <span id="spent-auto-badge" class="auto-badge">авто</span>
+                </label>
+                <div class="num-wrap">
+                  <button class="num-btn" type="button" onclick="adjNum('f-spent',-1000)">−</button>
+                  <input id="f-spent" type="number" min="0" step="1000" placeholder="0" oninput="updCalc()" />
+                  <button class="num-btn" type="button" onclick="adjNum('f-spent',1000)">+</button>
+                </div>
+              </div>
+            </div>
+            <div class="calc-row" id="calc-info">Заповніть вартість для розрахунку</div>
+          </div>
+        </div>
+        <!-- Граф залежностей (видно якщо є зв'язки) -->
+        <div id="modal-net-section" style="display:none">
+          <div class="modal-net-header">
+            <label>Граф залежностей</label>
+            <span class="modal-net-legend">
+              <span class="mln-item"><span class="mln-dot" style="background:#2563eb"></span>FS</span>
+              <span class="mln-item"><span class="mln-dot" style="background:#d97706"></span>SS</span>
+              <span class="mln-item"><span class="mln-dot" style="background:#6b7280"></span>FF</span>
+            </span>
+          </div>
+          <div id="modal-net-graph" class="modal-net-graph"></div>
+        </div>
+      </div>
+
+      <div id="task-pane-costs" class="task-pane">
+        <div class="cost-toolbar">
+          <button class="btn btn-sm" onclick="addCostItem('material')">
+            <i data-lucide="layers"></i> Матеріали
+          </button>
+          <button class="btn btn-sm" onclick="addCostItem('work')">
+            <i data-lucide="hard-hat"></i> Роботи
+          </button>
+          <button class="btn btn-sm" onclick="addCostItem('equipment')">
+            <i data-lucide="wrench"></i> Техніка
+          </button>
+          <button class="btn btn-sm" onclick="addCostItem('service')">
+            <i data-lucide="handshake"></i> Послуги
+          </button>
+          <button class="btn btn-sm" onclick="addCostItem('other')">
+            <i data-lucide="box"></i> Інше
+          </button>
+        </div>
+        <div class="cost-table-wrap">
+          <table class="cost-tbl">
+            <colgroup>
+              <col class="col-type" />
+              <col class="col-name" />
+              <col class="col-sup" />
+              <col class="col-price" />
+              <col class="col-note" />
+              <col class="col-total" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Тип</th>
+                <th>Номер договору</th>
+                <th>Контрагент</th>
+                <th class="th-r">Вартість договору</th>
+                <th>Примітки</th>
+                <th class="th-r">Сума / дії</th>
+              </tr>
+            </thead>
+            <tbody id="cost-tbody"></tbody>
+          </table>
+        </div>
+        <div class="cost-footer" id="cost-footer"></div>
+      </div>
+
+      <div class="m-btns m-btns-sep">
+        <button class="btn" onclick="closeModal()">Скасувати</button>
+        <button class="btn btn-acc" onclick="saveTask()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DEP LIST -->
+  <div class="overlay" id="dep-list-modal" style="display:none" onclick="if(event.target===this)closeDepList()">
+    <div class="modal dl-modal">
+      <div class="modal-header">
+        <div class="dl-modal-title">
+          <h3>Залежності проєкту</h3>
+          <span class="dl-count-badge" id="dl-count"></span>
+        </div>
+        <div class="dl-filters">
+          <button class="dl-filter-btn on" data-f="all" onclick="setDepListFilter('all')">Всі</button>
+          <button class="dl-filter-btn" data-f="FS" onclick="setDepListFilter('FS')">FS</button>
+          <button class="dl-filter-btn" data-f="SS" onclick="setDepListFilter('SS')">SS</button>
+          <button class="dl-filter-btn" data-f="FF" onclick="setDepListFilter('FF')">FF</button>
+        </div>
+      </div>
+      <div class="dl-wrap" id="dl-body"></div>
+      <div class="m-btns m-btns-sep">
+        <button class="btn" onclick="closeDepList()">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROJECT SETTINGS -->
+  <div class="overlay" id="proj-modal" style="display: none" onclick="if (event.target === this) closeProjModal();">
+    <div class="modal">
+      <h3>Налаштування проєкту</h3>
+      <div class="fg"><label>Назва</label><input id="p-name" /></div>
+      <div class="row3">
+        <div class="fg">
+          <label>Початок місяць</label><select id="p-sm"></select>
+        </div>
+        <div class="fg">
+          <label>Рік</label>
+          <div class="num-wrap">
+            <button type="button" class="num-btn" onclick="numStep('p-sy',-1)">−</button>
+            <input id="p-sy" type="number" min="2020" max="2035" />
+            <button type="button" class="num-btn" onclick="numStep('p-sy',1)">+</button>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Тривалість (міс.)</label>
+          <div class="num-wrap">
+            <button type="button" class="num-btn" onclick="numStep('p-nm',-1)">−</button>
+            <input id="p-nm" type="number" min="3" max="120" />
+            <button type="button" class="num-btn" onclick="numStep('p-nm',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="proj-modal-cats">
+        <button class="btn btn-full" onclick="closeProjModal();openCatEditor()">
+          <i data-lucide="palette"></i> Редагувати категорії
+        </button>
+      </div>
+      <div class="m-btns">
+        <button class="btn" onclick="closeProjModal()">Скасувати</button>
+        <button class="btn btn-acc" onclick="saveProjSettings()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CATEGORY EDITOR -->
+  <div class="overlay" id="cat-modal" style="display: none" onclick="if (event.target === this) closeCatModal();">
+    <div class="modal">
+      <h3>Редагування категорій</h3>
+      <div class="cat-editor-list" id="cat-editor-list"></div>
+      <button class="btn btn-acc btn-full" onclick="addCat()">+ Додати категорію</button>
+      <div class="m-btns">
+        <button class="btn" onclick="closeCatModal()">Скасувати</button>
+        <button class="btn btn-acc" onclick="saveCats()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PROJECT MANAGER -->
+  <div class="overlay" id="projmgr-modal" style="display: none" onclick="if (event.target === this) closeProjMgr();">
+    <div class="modal">
+      <h3>Управління проєктами</h3>
+      <div class="proj-list" id="proj-list-el"></div>
+      <button class="btn btn-acc btn-full" onclick="createProject()">+ Новий проєкт</button>
+      <button class="btn btn-full" onclick="loadDemoProject()">
+        <i data-lucide="clipboard-list"></i> Завантажити демо-проєкт
+      </button>
+      <div class="m-btns">
+        <button class="btn btn-acc" onclick="closeProjMgr()">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHART EDIT -->
+  <div class="overlay" id="chart-edit-modal" style="display: none"
+    onclick="if (event.target === this) closeChartEdit();">
+    <div class="modal">
+      <h3>Редагувати графік</h3>
+      <input type="hidden" id="ce-id" />
+      <div class="row2">
+        <div class="fg">
+          <label>Тип</label>
+          <select id="ce-type">
+            <option value="bar">Bar</option>
+            <option value="horizontalBar">Bar (горизонт.)</option>
+            <option value="line">Line</option>
+            <option value="pie">Pie</option>
+            <option value="doughnut">Doughnut</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Вісь X / групування</label>
+          <select id="ce-x">
+            <option value="cat">Категорія</option>
+            <option value="contr">Підрядник</option>
+            <option value="status">Статус</option>
+            <option value="month">Місяць</option>
+            <option value="task">Робота (топ 15)</option>
+            <option value="count">Кількість робіт</option>
+            <option value="budget">Бюджет (грн)</option>
+            <option value="spent">Витрачено (грн)</option>
+            <option value="rest">Залишок (грн)</option>
+            <option value="prog">Виконання (%)</option>
+            <option value="dur">Тривалість (тижд.)</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="fg">
+          <label>Показник Y</label>
+          <select id="ce-y">
+            <option value="cat">Категорія</option>
+            <option value="contr">Підрядник</option>
+            <option value="status">Статус</option>
+            <option value="month">Місяць</option>
+            <option value="task">Робота (топ 15)</option>
+            <option value="count">Кількість робіт</option>
+            <option value="budget">Бюджет (грн)</option>
+            <option value="spent">Витрачено (грн)</option>
+            <option value="rest">Залишок (грн)</option>
+            <option value="prog">Виконання (%)</option>
+            <option value="dur">Тривалість (тижд.)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Категорія</label><select id="ce-fcat">
+            <option value="">Усі</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Статус</label>
+        <select id="ce-fstat">
+          <option value="">Усі</option>
+          <option value="done">Завершено</option>
+          <option value="active">В роботі</option>
+          <option value="pending">Не розпочато</option>
+        </select>
+      </div>
+      <div class="m-btns">
+        <button class="btn" onclick="closeChartEdit()">Скасувати</button>
+        <button class="btn btn-acc" onclick="applyChartEdit()">Оновити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PRINT / PDF -->
+  <div class="overlay" id="print-modal" style="display: none" onclick="if (event.target === this) closePrintDialog();">
+    <div class="modal modal-w860 print-modal-box">
+      <div class="print-modal-layout">
+        <div class="print-preview-panel">
+          <div class="print-preview-head">
+            <button class="btn btn-sm btn-icon" id="print-prev-page" onclick="changePrintPreviewPage(-1)"
+              title="Попередня сторінка">&lsaquo;</button>
+            <span id="print-preview-meta" class="print-preview-meta"></span>
+            <button class="btn btn-sm btn-icon" id="print-next-page" onclick="changePrintPreviewPage(1)"
+              title="Наступна сторінка">&rsaquo;</button>
+          </div>
+          <div class="print-preview-shell">
+            <div id="print-preview" class="print-preview"></div>
+          </div>
+        </div>
+        <div class="print-options-panel">
+          <h3><i data-lucide="printer"></i> Друк та експорт PDF</h3>
+          <div class="settings-section-title">Що включити</div>
+          <div class="print-section-grid">
+            <div class="print-section-card">
+              <label><input type="checkbox" id="print-gantt" checked /> <i data-lucide="gantt-chart"></i> Діаграма
+                Ганта</label>
+              <div class="ps-desc">Таблиця з барами</div>
+            </div>
+            <div class="print-section-card">
+              <label><input type="checkbox" id="print-finance" /> <i data-lucide="wallet"></i> Фінанси</label>
+              <div class="ps-desc">Зведення + таблиця задач</div>
+            </div>
+            <div class="print-section-card full-col">
+              <label><input type="checkbox" id="print-charts" onchange="
+                  document.getElementById('print-chart-picker').style.display =
+                    this.checked ? 'block' : 'none'
+                " />
+                <i data-lucide="bar-chart-2"></i> Графіки аналітики</label>
+              <div class="ps-desc">Вибрати конкретні графіки нижче</div>
+            </div>
+          </div>
+          <div id="print-chart-picker">
+            <div class="print-chart-picker-label">Які графіки включити</div>
+            <div class="print-chart-scroll" id="print-chart-list"></div>
+          </div>
+          <div class="settings-section-title">
+            &#1053;&#1072;&#1083;&#1072;&#1096;&#1090;&#1091;&#1074;&#1072;&#1085;&#1085;&#1103;
+            &#1089;&#1090;&#1086;&#1088;&#1110;&#1085;&#1082;&#1080;</div>
+          <div class="print-settings-grid">
+            <label class="print-setting">
+              <span>&#1060;&#1086;&#1088;&#1084;&#1072;&#1090;</span>
+              <select id="print-paper">
+                <option value="a3" selected>A3</option>
+                <option value="a4">A4</option>
+                <option value="letter">Letter</option>
+              </select>
+            </label>
+            <label class="print-setting">
+              <span>&#1054;&#1088;&#1110;&#1108;&#1085;&#1090;&#1072;&#1094;&#1110;&#1103;</span>
+              <select id="print-orientation">
+                <option value="landscape" selected>&#1040;&#1083;&#1100;&#1073;&#1086;&#1084;&#1085;&#1072;</option>
+                <option value="portrait">&#1050;&#1085;&#1080;&#1078;&#1082;&#1086;&#1074;&#1072;</option>
+              </select>
+            </label>
+            <label class="print-setting">
+              <span>&#1052;&#1072;&#1089;&#1096;&#1090;&#1072;&#1073;</span>
+              <select id="print-scale">
+                <option value="1" selected>100%</option>
+                <option value="0.9">90%</option>
+                <option value="0.75">75%</option>
+                <option value="0.5">50%</option>
+              </select>
+            </label>
+            <label class="print-setting">
+              <span>&#1042;&#1084;&#1110;&#1097;&#1077;&#1085;&#1085;&#1103;</span>
+              <select id="print-fit">
+                <option value="paginate" selected>&#1057;&#1090;&#1086;&#1088;&#1110;&#1085;&#1082;&#1072;&#1084;&#1080;
+                </option>
+                <option value="width">&#1042;&#1089;&#1103; &#1096;&#1080;&#1088;&#1080;&#1085;&#1072;</option>
+                <option value="height">&#1042;&#1089;&#1103; &#1074;&#1080;&#1089;&#1086;&#1090;&#1072;</option>
+                <option value="page">&#1042;&#1089;&#1103; &#1076;&#1110;&#1072;&#1075;&#1088;&#1072;&#1084;&#1072;
+                </option>
+              </select>
+            </label>
+            <label class="print-setting">
+              <span>&#1055;&#1086;&#1083;&#1103;</span>
+              <select id="print-margin">
+                <option value="5" selected>5 mm</option>
+                <option value="8">8 mm</option>
+                <option value="12">12 mm</option>
+              </select>
+            </label>
+            <label class="print-setting">
+              <span>&#1071;&#1082;&#1110;&#1089;&#1090;&#1100; PDF</span>
+              <select id="print-quality">
+                <option value="1" selected>&#1057;&#1090;&#1072;&#1085;&#1076;&#1072;&#1088;&#1090;&#1085;&#1072;
+                </option>
+                <option value="1.5">&#1042;&#1080;&#1097;&#1072;</option>
+                <option value="2">&#1052;&#1072;&#1082;&#1089;&#1080;&#1084;&#1072;&#1083;&#1100;&#1085;&#1072;</option>
+              </select>
+            </label>
+          </div>
+          <div class="print-actions">
+            <button class="btn" onclick="closePrintDialog()">Скасувати</button>
+            <button class="btn" onclick="doPrint()"><i data-lucide="printer"></i> Друк</button>
+            <button class="btn btn-acc" onclick="doExportPDF()">
+              <i data-lucide="file-text"></i> Зберегти PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: NOTES -->
+  <div class="overlay" id="notes-modal" style="display: none" onclick="if (event.target === this) closeNotesModal();">
+    <div class="modal modal-w460">
+      <div class="modal-header">
+        <h3><i data-lucide="message-square"></i> <span id="notes-modal-title">Нотатки</span></h3>
+        <button class="btn btn-sm" onclick="closeNotesModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="notes-list" id="notes-list"></div>
+      <div class="notes-add-row">
+        <textarea id="note-input" placeholder="Додати нотатку..."></textarea>
+        <button class="btn btn-acc" onclick="addNote()">+</button>
+      </div>
+      <div class="m-btns">
+        <button class="btn btn-acc" onclick="closeNotesModal()">Закрити</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: USER CABINET -->
+  <div class="overlay" id="user-modal" style="display: none" onclick="if (event.target === this) closeUserModal();">
+    <div class="modal um-modal">
+      <div class="modal-header modal-header-lg">
+        <h3><i data-lucide="user-circle"></i> Кабінет користувача</h3>
+        <button class="btn btn-sm" onclick="closeUserModal()"><i data-lucide="x"></i></button>
+      </div>
+      <div class="user-modal-body" id="user-modal-body"></div>
+      <div class="m-btns m-btns-sep">
+        <button class="btn" onclick="closeUserModal()">Скасувати</button>
+        <button class="btn btn-acc" onclick="saveUserProfile()">Зберегти</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts (load order matters) -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/constants.js"></script>
+  <script src="./js/state.js"></script>
+  <script src="./js/utils.js"></script>
+  <script src="./js/storage.js"></script>
+  <script src="./js/user.js"></script>
+  <script src="./js/critical.js"></script>
+  <script src="./js/dep-arrows.js"></script>
+  <script src="./js/baseline.js"></script>
+  <script src="./js/render.js"></script>
+  <script src="./js/drag.js"></script>
+  <script src="./js/finance.js"></script>
+  <script src="./js/charts.js"></script>
+  <script src="./js/costs.js"></script>
+  <script src="./js/contractors.js?v=19"></script>
+  <script src="./js/modal.js"></script>
+  <script src="./js/print.js"></script>
+  <script src="./js/app.js"></script>
+  <!-- <script src="./js/api.js"></script> -->
+  <script src="./js/supabase-api.js"></script>
+  <script src="./js/guard.js"></script>
+  <script>lucide.createIcons();</script>
+</body>
+
+</html>

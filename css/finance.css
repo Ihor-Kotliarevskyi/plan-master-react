@@ -1,0 +1,480 @@
+/* Finance */
+.tabs {
+  position: sticky;
+  top: 45px;
+  z-index: 260;
+}
+
+.legend-bar {
+  position: sticky;
+  top: 80px;
+  z-index: 250;
+}
+
+#pane-finance {
+  padding-bottom: 12px;
+}
+
+.fin-tabs {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.fin-tab {
+  border: 1px solid var(--bord2);
+  background: var(--surf);
+  color: var(--txt2);
+  border-radius: 5px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.fin-tab:hover {
+  background: var(--surf2);
+  color: var(--txt);
+}
+
+.fin-tab.active {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
+}
+
+.fin-filter-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 10px;
+  margin-right: 2px;
+  border-right: 1px solid var(--bord);
+}
+
+.fin-search-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 180px;
+  flex: 0 0 210px;
+}
+
+.fin-search-icon {
+  position: absolute;
+  left: 8px;
+  width: 14px;
+  height: 14px;
+  color: var(--txt3);
+  pointer-events: none;
+}
+
+.fin-search-inp {
+  width: 100%;
+  height: 28px;
+  font-size: 12px;
+  padding: 4px 27px 4px 27px;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  background: var(--surf);
+  color: var(--txt);
+  outline: none;
+  font-family: inherit;
+}
+
+.fin-search-inp:focus {
+  border-color: var(--acc);
+}
+
+.fin-search-clear {
+  position: absolute;
+  right: 5px;
+  width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  padding: 0;
+  background: transparent;
+  color: var(--txt3);
+  opacity: 0;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.fin-search-clear svg {
+  width: 12px;
+  height: 12px;
+}
+
+.fin-search-wrap:hover .fin-search-clear.show,
+.fin-search-clear.show:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.fin-search-clear:hover {
+  color: #c42b2b;
+  background: rgba(196, 43, 43, 0.1);
+}
+
+.fin-filters {
+  position: sticky;
+  top: 118px;
+  z-index: 230;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  display: flex;
+  gap: 7px;
+  flex-wrap: nowrap;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+body.finance-active .fin-filters {
+  top: 82px;
+}
+
+@media (max-width: 760px) {
+  .fin-filters {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .fin-search-wrap {
+    flex: 1 1 100%;
+  }
+}
+
+.ff-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.ff-group label {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.ff-group select,
+.ff-group input {
+  height: 27px;
+  font-size: 11px;
+  padding: 3px 6px;
+  border: 1px solid var(--bord2);
+  border-radius: 4px;
+  background: var(--surf);
+  color: var(--txt);
+  min-width: 86px;
+}
+
+.ff-group-actions {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.ff-checkbox {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  color: var(--txt2) !important;
+  text-transform: none !important;
+  letter-spacing: 0 !important;
+  white-space: nowrap;
+  font-size: 11px !important;
+}
+
+.fin-subpane {
+  display: none;
+}
+
+.fin-subpane.active {
+  display: block;
+}
+
+.fin-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.finance-chart-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.scurve-chart-wrap {
+  height: var(--finance-chart-h, 260px);
+}
+
+.weekly-chart-wrap {
+  height: var(--weekly-chart-h, 190px);
+}
+
+#scurve-canvas,
+#weekly-cost-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fc {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 0;
+  background: var(--surf);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.fc .lbl {
+  font-size: 12px;
+  color: var(--txt2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+.fc .val {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--txt);
+  white-space: nowrap;
+}
+
+.fc .sub {
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fin-table-wrap {
+  width: 100%;
+  max-height: calc(100vh - 185px);
+  overflow: auto;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--surf);
+}
+
+.fin-tbl {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: var(--surf);
+  font-size: 16px;
+}
+
+.fin-tbl th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--surf2);
+  padding: 6px 18px 6px 9px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--txt2);
+  border-right: 1px solid var(--bord);
+  border-bottom: 1px solid var(--bord);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.fin-tbl th:last-child,
+.fin-tbl td:last-child {
+  border-right: none;
+}
+
+.fin-tbl th:hover {
+  background: var(--bord);
+}
+
+.fin-tbl th .sa::after {
+  content: "↕";
+  opacity: 0.35;
+  margin-left: 3px;
+}
+
+.fin-tbl th.asc .sa::after {
+  content: "↑";
+  opacity: 1;
+}
+
+.fin-tbl th.desc .sa::after {
+  content: "↓";
+  opacity: 1;
+}
+
+.fin-col-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 7px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.fin-col-resizer:hover {
+  background: color-mix(in srgb, var(--acc) 18%, transparent);
+}
+
+.fin-tbl td {
+  padding: 4px 8px;
+  border-right: 1px solid var(--bord);
+  border-bottom: 1px solid var(--bord);
+  vertical-align: middle;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fin-tbl tbody tr:nth-child(even):not(.ttl) td {
+  background: var(--surf2);
+}
+
+.fin-tbl tr:hover td {
+  background: color-mix(in srgb, var(--acc) 5%, var(--surf2));
+}
+
+.fin-tbl tr.ttl td {
+  background: var(--surf2);
+  font-weight: 600;
+  border-top: 2px solid var(--bord2);
+}
+
+.fin-cell-link {
+  cursor: pointer;
+}
+
+.fin-cell-link:hover {
+  color: var(--acc);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.fin-cat-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 5px;
+}
+
+.fin-bar {
+  width: 100%;
+  height: 24px;
+  display: inline-block;
+  position: relative;
+  border-radius: 8px;
+  border: 1px solid var(--bord2);
+  overflow: hidden;
+  padding: 0;
+  vertical-align: middle;
+  cursor: pointer;
+  background: var(--surf2);
+}
+
+.fin-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+}
+
+.fin-bar-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--txt);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.fin-bar-pending {
+  border-color: #df2222;
+  background: rgba(185, 28, 28, 0.08);
+  color: #ce2424;
+}
+
+.fin-bar-pending .fin-bar-fill {
+  background: transparent;
+}
+
+.fin-bar-active {
+  border-color: #e99606;
+  background: rgba(192, 120, 0, 0.14);
+  color: #6d4000;
+}
+
+.fin-bar-active .fin-bar-fill {
+  background: #e99606;
+}
+
+.fin-bar-active .fin-bar-label {
+  color: #211300;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 3px rgba(255, 255, 255, 0.35);
+}
+
+.fin-bar-done {
+  border-color: #20b958;
+  background: #16803c;
+  color: #fff;
+}
+
+.fin-bar-done .fin-bar-fill {
+  background: #20b958;
+}
+
+[data-theme="dark"] .fin-bar-label {
+  color: #f3f5fb;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+}
+
+[data-theme="dark"] .fin-bar-active .fin-bar-label {
+  color: #fff4d6;
+  text-shadow:
+    0 1px 1px rgba(0, 0, 0, 0.55),
+    0 0 4px rgba(0, 0, 0, 0.35);
+}
+
+.fin-warn-ic {
+  color: var(--warn);
+  margin-left: 3px;
+}
+
+.fin-empty {
+  color: var(--txt3);
+  text-align: center !important;
+  padding: 18px !important;
+}

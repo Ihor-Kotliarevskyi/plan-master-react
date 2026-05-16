@@ -1,0 +1,79 @@
+{
+    "name": "Plan Master - Управління проектами",
+    "short_name": "Plan Master",
+    "description": "Веб-додаток для управління проектами за допомогою діаграм Ганта з офлайн-доступом",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "orientation": "portrait-primary",
+    "background_color": "#f3f0eb",
+    "theme_color": "#2563eb",
+    "screenshots": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23f3f0eb' width='192' height='192'/><text x='50%' y='50%' text-anchor='middle' dy='.3em' font-size='20' fill='%232563eb' font-weight='bold'>Plan Master</text></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "form_factor": "narrow"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%23f3f0eb' width='512' height='512'/><text x='50%' y='50%' text-anchor='middle' dy='.3em' font-size='52' fill='%232563eb' font-weight='bold'>Plan Master</text></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "form_factor": "wide"
+        }
+    ],
+    "categories": [
+        "productivity",
+        "business"
+    ],
+    "icons": [
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect fill='%232563eb' width='32' height='32' rx='7'/><rect fill='white' x='5' y='7.5' width='13' height='4' rx='2'/><rect fill='rgba(255,255,255,.5)' x='5' y='14' width='20' height='4' rx='2'/><rect fill='white' x='11' y='20.5' width='16' height='4' rx='2'/></svg>",
+            "sizes": "32x32",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%232563eb' width='192' height='192' rx='40'/><rect fill='white' x='30' y='45' width='80' height='24' rx='12'/><rect fill='rgba(255,255,255,.5)' x='30' y='84' width='120' height='24' rx='12'/><rect fill='white' x='66' y='123' width='96' height='24' rx='12'/></svg>",
+            "sizes": "192x192",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        },
+        {
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect fill='%232563eb' width='512' height='512' rx='100'/><rect fill='white' x='80' y='120' width='210' height='64' rx='32'/><rect fill='rgba(255,255,255,.5)' x='80' y='224' width='320' height='64' rx='32'/><rect fill='white' x='176' y='328' width='256' height='64' rx='32'/></svg>",
+            "sizes": "512x512",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "Нова робота",
+            "short_name": "Нова робота",
+            "description": "Швидко додати нову роботу до графіка",
+            "url": "./index.html?action=new-task",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 96 96'><rect fill='%232563eb' width='96' height='96' rx='20'/><text x='50%' y='50%' text-anchor='middle' dy='.3em' font-size='50' fill='white'>+</text></svg>",
+                    "sizes": "96x96",
+                    "type": "image/svg+xml"
+                }
+            ]
+        }
+    ],
+    "share_target": {
+        "action": "./index.html",
+        "method": "POST",
+        "enctype": "multipart/form-data",
+        "params": {
+            "files": [
+                {
+                    "name": "file",
+                    "accept": [
+                        "application/json"
+                    ]
+                }
+            ]
+        }
+    }
+}

@@ -1,0 +1,1185 @@
+/* Unified controls: buttons, inputs, selects, compact toolbars */
+:root {
+  --ctrl-bg: var(--surf);
+  --ctrl-bg-muted: var(--surf2);
+  --ctrl-bg-hover: color-mix(in srgb, var(--acc) 6%, var(--surf2));
+  --ctrl-border: var(--bord2);
+  --ctrl-border-hover: color-mix(in srgb, var(--acc) 55%, var(--bord2));
+  --ctrl-focus: rgba(37, 99, 235, 0.18);
+  --ctrl-danger-bg: rgba(220, 38, 38, 0.09);
+  --ctrl-danger-border: rgba(220, 38, 38, 0.28);
+  --ctrl-radius: 6px;
+  --ctrl-h: 30px;
+  --ctrl-h-sm: 26px;
+}
+
+[data-theme="dark"] {
+  --ctrl-bg-hover: color-mix(in srgb, var(--acc) 14%, var(--surf2));
+  --ctrl-focus: rgba(78, 127, 239, 0.28);
+  --ctrl-danger-bg: rgba(248, 113, 113, 0.12);
+  --ctrl-danger-border: rgba(248, 113, 113, 0.32);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+input,
+select,
+textarea {
+  box-sizing: border-box;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+select,
+textarea {
+  min-width: 0;
+}
+
+button,
+select,
+label:has(input[type="file"]) {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn,
+.theme-toggle,
+.tools-item,
+.user-btn,
+.fin-tab,
+.scurve-toggle,
+.scurve-icon-btn,
+.contractor-expand-btn,
+.contractor-row-action,
+.cost-act-btn,
+.chart-act-btn,
+.dl-filter-btn,
+.dep-type-btn,
+.dep-thr-btn,
+.note-act-btn,
+.note-hist-btn,
+.row-act-btn,
+.ob-show-more,
+.auth-tab,
+.avatar-upload-btn,
+.avatar-clear-btn,
+.cat-chip-reset,
+.btn-add-task,
+.btn-hidepast {
+  border-radius: var(--ctrl-radius);
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease,
+    box-shadow 0.14s ease,
+    opacity 0.14s ease,
+    filter 0.14s ease;
+}
+
+.btn,
+.theme-toggle,
+.fin-tab,
+.scurve-toggle,
+.scurve-icon-btn,
+.contractor-expand-btn,
+.contractor-row-action,
+.cost-act-btn,
+.chart-act-btn,
+.dl-filter-btn,
+.dep-type-btn,
+.note-act-btn,
+.note-hist-btn,
+.row-act-btn,
+.btn-hidepast {
+  background: var(--ctrl-bg);
+  border-color: var(--ctrl-border);
+  color: var(--txt2);
+}
+
+.btn,
+.theme-toggle,
+.fin-tab,
+.scurve-toggle,
+.contractor-expand-btn,
+.contractor-row-action,
+.cost-act-btn,
+.chart-act-btn,
+.dl-filter-btn,
+.dep-type-btn,
+.note-act-btn,
+.row-act-btn {
+  min-height: var(--ctrl-h-sm);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  line-height: 1.2;
+}
+
+.btn-sm,
+.btn-icon,
+.contractor-row-action,
+.scurve-icon-btn,
+.cost-act-btn,
+.chart-act-btn,
+.note-act-btn,
+.row-act-btn,
+.dl-filter-btn {
+  min-height: var(--ctrl-h-sm);
+}
+
+.btn:hover,
+.theme-toggle:hover,
+.user-btn:hover,
+.tools-item:hover,
+.fin-tab:hover,
+.scurve-toggle:hover,
+.scurve-icon-btn:hover,
+.contractor-expand-btn:hover,
+.contractor-row-action:hover,
+.cost-act-btn:hover,
+.chart-act-btn:hover,
+.dl-filter-btn:hover,
+.dep-type-btn:hover,
+.dep-thr-btn:hover,
+.note-act-btn:hover,
+.note-hist-btn:hover,
+.row-act-btn:hover,
+.ob-show-more:hover,
+.auth-tab:hover:not(.active),
+.avatar-upload-btn:hover,
+.cat-chip-reset:hover,
+.btn-add-task:hover,
+.btn-hidepast:hover {
+  background: var(--ctrl-bg-hover);
+  border-color: var(--ctrl-border-hover);
+  color: var(--txt);
+}
+
+.btn-acc,
+.btn-tog.on,
+.fin-tab.active,
+.scurve-toggle.active,
+.cost-act-btn.active,
+.dl-filter-btn.on,
+.dep-type-btn.active,
+.row-act-btn.active:hover,
+.auth-tab.active,
+.btn-add-task {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
+}
+
+.btn-acc:hover,
+.btn-tog.on:hover,
+.fin-tab.active:hover,
+.scurve-toggle.active:hover,
+.cost-act-btn.active:hover,
+.dl-filter-btn.on:hover,
+.dep-type-btn.active:hover,
+.auth-tab.active:hover,
+.btn-add-task:hover {
+  background: var(--acc2);
+  border-color: var(--acc2);
+  color: #fff;
+  filter: none;
+}
+
+.btn.btn-danger,
+.contractor-row-action.danger:hover,
+.cost-act-btn.del:hover,
+.chart-act-btn.del:hover,
+.note-act-btn.del:hover,
+.note-act-btn.del:hover,
+.avatar-clear-btn:hover,
+.cat-del:hover,
+.pj-del:hover,
+.phase-del:hover,
+.holiday-del:hover {
+  background: var(--ctrl-danger-bg);
+  border-color: var(--ctrl-danger-border);
+  color: var(--err);
+}
+
+.btn:disabled,
+.btn.disabled,
+button:disabled,
+select:disabled,
+input:disabled,
+textarea:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+}
+
+.btn:focus-visible,
+.theme-toggle:focus-visible,
+.user-btn:focus-visible,
+.tools-item:focus-visible,
+.fin-tab:focus-visible,
+.scurve-toggle:focus-visible,
+.scurve-icon-btn:focus-visible,
+.contractor-expand-btn:focus-visible,
+.contractor-row-action:focus-visible,
+.cost-act-btn:focus-visible,
+.chart-act-btn:focus-visible,
+.dl-filter-btn:focus-visible,
+.dep-type-btn:focus-visible,
+.dep-thr-btn:focus-visible,
+.note-act-btn:focus-visible,
+.note-hist-btn:focus-visible,
+.row-act-btn:focus-visible,
+.auth-tab:focus-visible,
+.cat-chip:focus-visible,
+.cat-chip-reset:focus-visible,
+.btn-add-task:focus-visible,
+.btn-hidepast:focus-visible {
+  outline: none;
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--ctrl-focus);
+}
+
+.proj-sel,
+.fg input,
+.fg select,
+.setting-row select,
+.setting-row input[type="number"],
+.cb-group select,
+.ff-group select,
+.ff-group input,
+.contractor-search-wrap,
+.contractor-toolbar select,
+.contractor-edit-row input,
+.contractor-edit-row select,
+.contractor-contract-row input,
+.contractor-contract-row select,
+.contractor-entry-grid .fg input,
+.contractor-entry-grid .fg select,
+.swal-form-grid .swal2-input,
+.swal-form-grid .swal2-select,
+.contractor-edit-main .swal2-input,
+.swal2-input,
+.swal2-select,
+.swal2-textarea,
+.cost-inp,
+.cost-sel,
+.pay-type-sel,
+.notes-add-row textarea,
+.note-edit-ta,
+.holiday-add-row input,
+.dep-search-row input,
+.dep-type-sel,
+.dep-thr-inp,
+.dep-threshold-inp,
+.mph-date-inp,
+.fin-search-inp,
+.gantt-nm-search-inp,
+.gantt-filter-select,
+.share-email-inp,
+.share-role-sel,
+.cat-name-inp,
+.pj-name-inp,
+.print-setting select {
+  border-color: var(--ctrl-border);
+  border-radius: var(--ctrl-radius);
+  color: var(--txt);
+  font-family: inherit;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease,
+    color 0.14s ease;
+}
+
+.proj-sel,
+.fg input,
+.fg select,
+.setting-row select,
+.setting-row input[type="number"],
+.cb-group select,
+.ff-group select,
+.ff-group input,
+.contractor-toolbar select,
+.contractor-edit-row input,
+.contractor-edit-row select,
+.contractor-contract-row input,
+.contractor-contract-row select,
+.contractor-entry-grid .fg input,
+.contractor-entry-grid .fg select,
+.swal-form-grid .swal2-input,
+.swal-form-grid .swal2-select,
+.contractor-edit-main .swal2-input,
+.swal2-input,
+.swal2-select,
+.swal2-textarea,
+.notes-add-row textarea,
+.note-edit-ta,
+.holiday-add-row input,
+.dep-search-row input,
+.dep-type-sel,
+.dep-thr-inp,
+.dep-threshold-inp,
+.mph-date-inp,
+.fin-search-inp,
+.gantt-nm-search-inp,
+.gantt-filter-select,
+.share-email-inp,
+.share-role-sel,
+.cat-name-inp,
+.pj-name-inp,
+.print-setting select {
+  background-color: var(--ctrl-bg);
+}
+
+.proj-sel,
+.fg input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.fg select,
+.setting-row select,
+.setting-row input[type="number"],
+.cb-group select,
+.ff-group select,
+.ff-group input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]),
+.contractor-toolbar select,
+.contractor-edit-row input,
+.contractor-edit-row select,
+.contractor-contract-row input,
+.contractor-contract-row select,
+.contractor-entry-grid .fg input,
+.contractor-entry-grid .fg select,
+.swal-form-grid .swal2-input,
+.swal-form-grid .swal2-select,
+.contractor-edit-main .swal2-input,
+.swal2-input,
+.swal2-select,
+.cost-inp,
+.cost-sel,
+.pay-type-sel,
+.holiday-add-row input,
+.dep-search-row input,
+.dep-type-sel,
+.dep-thr-inp,
+.dep-threshold-inp,
+.mph-date-inp,
+.fin-search-inp,
+.gantt-nm-search-inp,
+.gantt-filter-select,
+.share-email-inp,
+.share-role-sel,
+.cat-name-inp,
+.pj-name-inp,
+.print-setting select {
+  padding-block: 5px;
+  padding-left: 9px;
+  padding-right: 9px;
+}
+
+.fin-search-inp {
+  padding: 4px 27px;
+}
+
+.gantt-nm-search-inp {
+  padding: 4px 27px 4px 25px;
+}
+
+.dep-search-row input {
+  padding: 5px 8px 5px 26px;
+}
+
+.dep-thr-inp {
+  padding: 2px 4px;
+}
+
+.dep-threshold-inp {
+  padding: 0 2px;
+}
+
+.mph-date-inp {
+  padding: 3px 5px;
+}
+
+.pj-name-inp {
+  padding: 3px 6px;
+}
+
+.swal2-textarea,
+.notes-add-row textarea,
+.note-edit-ta {
+  padding: 8px 10px;
+  line-height: 1.35;
+}
+
+body .swal2-input,
+body .swal2-select {
+  padding-block: 5px;
+  padding-left: 9px;
+}
+
+body .swal2-input {
+  padding-right: 9px;
+}
+
+body .swal2-select {
+  padding-right: 28px;
+}
+
+body .swal2-textarea {
+  padding: 8px 10px;
+}
+
+.cost-inp,
+.cost-sel {
+  background-color: transparent;
+}
+
+.proj-sel:hover,
+.fg input:hover,
+.fg select:hover,
+.setting-row select:hover,
+.setting-row input[type="number"]:hover,
+.cb-group select:hover,
+.ff-group select:hover,
+.ff-group input:hover,
+.contractor-search-wrap:hover,
+.contractor-toolbar select:hover,
+.contractor-edit-row input:hover,
+.contractor-edit-row select:hover,
+.contractor-contract-row input:hover,
+.contractor-contract-row select:hover,
+.contractor-entry-grid .fg input:hover,
+.contractor-entry-grid .fg select:hover,
+.swal-form-grid .swal2-input:hover,
+.swal-form-grid .swal2-select:hover,
+.contractor-edit-main .swal2-input:hover,
+.swal2-input:hover,
+.swal2-select:hover,
+.swal2-textarea:hover,
+.cost-inp:hover,
+.cost-sel:hover,
+.pay-type-sel:hover,
+.notes-add-row textarea:hover,
+.note-edit-ta:hover,
+.holiday-add-row input:hover,
+.dep-search-row input:hover,
+.dep-type-sel:hover,
+.dep-thr-inp:hover,
+.dep-threshold-inp:hover,
+.mph-date-inp:hover,
+.fin-search-inp:hover,
+.gantt-nm-search-inp:hover,
+.gantt-filter-select:hover,
+.share-email-inp:hover,
+.share-role-sel:hover,
+.cat-name-inp:hover,
+.pj-name-inp:hover,
+.print-setting select:hover {
+  border-color: var(--ctrl-border-hover);
+}
+
+.proj-sel:focus,
+.fg input:focus,
+.fg select:focus,
+.setting-row select:focus,
+.setting-row input[type="number"]:focus,
+.cb-group select:focus,
+.ff-group select:focus,
+.ff-group input:focus,
+.contractor-search-wrap:focus-within,
+.contractor-toolbar select:focus,
+.contractor-edit-row input:focus,
+.contractor-edit-row select:focus,
+.contractor-contract-row input:focus,
+.contractor-contract-row select:focus,
+.contractor-entry-grid .fg input:focus,
+.contractor-entry-grid .fg select:focus,
+.swal-form-grid .swal2-input:focus,
+.swal-form-grid .swal2-select:focus,
+.contractor-edit-main .swal2-input:focus,
+.swal2-input:focus,
+.swal2-select:focus,
+.swal2-textarea:focus,
+.cost-inp:focus,
+.cost-sel:focus,
+.pay-type-sel:focus,
+.notes-add-row textarea:focus,
+.note-edit-ta:focus,
+.holiday-add-row input:focus,
+.dep-search-row input:focus,
+.dep-type-sel:focus,
+.dep-thr-inp:focus,
+.dep-threshold-inp:focus,
+.mph-date-inp:focus,
+.fin-search-inp:focus,
+.gantt-nm-search-inp:focus,
+.gantt-filter-select:focus,
+.share-email-inp:focus,
+.share-role-sel:focus,
+.cat-name-inp:focus,
+.pj-name-inp:focus,
+.print-setting select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--ctrl-focus);
+  outline: none;
+}
+
+select,
+.proj-sel,
+.fg select,
+.setting-row select,
+.cb-group select,
+.ff-group select,
+.contractor-toolbar select,
+.contractor-edit-row select,
+.contractor-contract-row select,
+.contractor-entry-grid .fg select,
+.cost-sel,
+.pay-type-sel,
+.dep-type-sel,
+.gantt-filter-select,
+.share-role-sel,
+.print-setting select,
+.swal2-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 10px 6px;
+  padding-right: 28px;
+}
+
+:root select,
+:root .proj-sel,
+:root .fg select,
+:root .setting-row select,
+:root .cb-group select,
+:root .ff-group select,
+:root .contractor-toolbar select,
+:root .contractor-edit-row select,
+:root .contractor-contract-row select,
+:root .contractor-entry-grid .fg select,
+:root .cost-sel,
+:root .pay-type-sel,
+:root .dep-type-sel,
+:root .gantt-filter-select,
+:root .share-role-sel,
+:root .print-setting select,
+:root .swal2-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236a6760'/%3E%3C/svg%3E");
+}
+
+[data-theme="dark"] select,
+[data-theme="dark"] .proj-sel,
+[data-theme="dark"] .fg select,
+[data-theme="dark"] .setting-row select,
+[data-theme="dark"] .cb-group select,
+[data-theme="dark"] .ff-group select,
+[data-theme="dark"] .contractor-toolbar select,
+[data-theme="dark"] .contractor-edit-row select,
+[data-theme="dark"] .contractor-contract-row select,
+[data-theme="dark"] .contractor-entry-grid .fg select,
+[data-theme="dark"] .cost-sel,
+[data-theme="dark"] .pay-type-sel,
+[data-theme="dark"] .dep-type-sel,
+[data-theme="dark"] .gantt-filter-select,
+[data-theme="dark"] .share-role-sel,
+[data-theme="dark"] .print-setting select,
+[data-theme="dark"] .swal2-select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239099b8'/%3E%3C/svg%3E");
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--txt3);
+  opacity: 0.82;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--acc);
+}
+
+input[type="color"] {
+  border-color: var(--ctrl-border);
+  background: var(--ctrl-bg);
+}
+
+.fin-search-clear,
+.contractor-search-clear,
+.gantt-nm-search-clear {
+  border: 1px solid transparent;
+  transition:
+    opacity 0.14s ease,
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.fin-search-clear:hover,
+.contractor-search-clear:hover,
+.gantt-nm-search-clear:hover {
+  border-color: var(--ctrl-danger-border);
+  background: var(--ctrl-danger-bg);
+  color: var(--err);
+}
+
+.fin-filters,
+.contractor-toolbar,
+.gantt-toolbar,
+.cost-toolbar,
+.tools-dropdown,
+.dep-dropdown,
+.color-dropdown,
+.payment-register-current-card,
+.payment-register-item,
+.print-setting,
+.print-section-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+[data-theme="dark"] .fin-filters,
+[data-theme="dark"] .contractor-toolbar,
+[data-theme="dark"] .gantt-toolbar,
+[data-theme="dark"] .cost-toolbar,
+[data-theme="dark"] .tools-dropdown,
+[data-theme="dark"] .dep-dropdown,
+[data-theme="dark"] .color-dropdown,
+[data-theme="dark"] .payment-register-current-card,
+[data-theme="dark"] .payment-register-item,
+[data-theme="dark"] .print-setting,
+[data-theme="dark"] .print-section-card {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.swal2-popup {
+  background: var(--surf);
+  color: var(--txt);
+  border: 1px solid var(--bord);
+}
+
+.swal2-title,
+.swal2-html-container {
+  color: var(--txt);
+}
+
+.swal2-styled.swal2-confirm {
+  background: var(--acc);
+}
+
+.swal2-styled.swal2-cancel {
+  background: var(--ctrl-bg-muted);
+  color: var(--txt);
+}
+
+/* Final normalization for forms that had older local styles */
+.settings-section-body #auth-tab-body .fg input,
+.settings-section-body #auth-tab-body .fg select,
+#auth-modal .fg input,
+#auth-modal .fg select {
+  height: var(--ctrl-h);
+  padding: 5px 9px;
+  border: 1px solid var(--ctrl-border);
+  border-radius: var(--ctrl-radius);
+  background-color: var(--ctrl-bg);
+  color: var(--txt);
+  box-shadow: none;
+}
+
+.settings-section-body #auth-tab-body .fg input:hover,
+.settings-section-body #auth-tab-body .fg select:hover,
+#auth-modal .fg input:hover,
+#auth-modal .fg select:hover {
+  border-color: var(--ctrl-border-hover);
+  background-color: var(--ctrl-bg-muted);
+}
+
+.settings-section-body #auth-tab-body .fg input:focus,
+.settings-section-body #auth-tab-body .fg select:focus,
+#auth-modal .fg input:focus,
+#auth-modal .fg select:focus {
+  border-color: var(--acc);
+  background-color: var(--ctrl-bg);
+  box-shadow: 0 0 0 3px var(--ctrl-focus);
+}
+
+.proj-sel:hover,
+.fg select:hover,
+.setting-row select:hover,
+.cb-group select:hover,
+.ff-group select:hover,
+.contractor-toolbar select:hover,
+.contractor-edit-row select:hover,
+.contractor-contract-row select:hover,
+.contractor-entry-grid .fg select:hover,
+.swal2-select:hover,
+.cost-sel:hover,
+.pay-type-sel:hover,
+.gantt-filter-select:hover,
+.share-role-sel:hover,
+.print-setting select:hover {
+  background-color: var(--ctrl-bg-muted);
+}
+
+.proj-sel:focus,
+.fg select:focus,
+.setting-row select:focus,
+.cb-group select:focus,
+.ff-group select:focus,
+.contractor-toolbar select:focus,
+.contractor-edit-row select:focus,
+.contractor-contract-row select:focus,
+.contractor-entry-grid .fg select:focus,
+.swal2-select:focus,
+.cost-sel:focus,
+.pay-type-sel:focus,
+.gantt-filter-select:focus,
+.share-role-sel:focus,
+.print-setting select:focus {
+  background-color: var(--ctrl-bg);
+}
+
+.ff-checkbox input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  display: inline-grid;
+  place-content: center;
+  border: 1px solid var(--ctrl-border);
+  border-radius: 4px;
+  background: var(--ctrl-bg);
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.ff-checkbox input[type="checkbox"]::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  transform: scale(0);
+  transition: transform 0.1s ease;
+  clip-path: polygon(14% 44%, 0 59%, 41% 100%, 100% 23%, 84% 8%, 38% 67%);
+  background: #fff;
+}
+
+.ff-checkbox input[type="checkbox"]:checked {
+  background: var(--acc);
+  border-color: var(--acc);
+}
+
+.ff-checkbox input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+.ff-checkbox input[type="checkbox"]:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ctrl-focus);
+}
+
+.fin-filters,
+.contractor-toolbar,
+.gantt-toolbar {
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--surf);
+  padding: 8px 10px;
+  gap: 7px;
+}
+
+.contractor-edit-row {
+  position: relative;
+  grid-template-columns: minmax(180px, 1.5fr) 110px minmax(150px, 1.4fr) 84px 82px 112px 32px;
+}
+
+.contractor-edit-row.marked-delete {
+  opacity: 0.55;
+  background: var(--ctrl-danger-bg);
+  border-color: var(--ctrl-danger-border);
+}
+
+.ce-edit-delete-btn {
+  width: 28px;
+  height: 28px;
+  align-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--ctrl-radius);
+  background: transparent;
+  color: var(--err);
+  cursor: pointer;
+}
+
+.ce-edit-delete-btn:hover,
+.contractor-edit-row.marked-delete .ce-edit-delete-btn {
+  background: var(--ctrl-danger-bg);
+  border-color: var(--ctrl-danger-border);
+  color: var(--err);
+}
+
+.ce-edit-delete-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+/* Strong overrides for legacy module rules */
+:root {
+  --ctrl-field-bg: var(--surf);
+}
+
+[data-theme="dark"] {
+  --ctrl-field-bg: var(--surf2);
+}
+
+.settings-section-body #auth-tab-body .fg input,
+.settings-section-body #auth-tab-body .fg select,
+#auth-modal .fg input,
+#auth-modal .fg select,
+.fg #p-sm,
+.proj-sel,
+.contractor-entry-grid .fg input,
+.contractor-entry-grid .fg select,
+#ce-task,
+#ce-type,
+#ce-pay-type {
+  background-color: var(--ctrl-field-bg) !important;
+  border-color: var(--ctrl-border) !important;
+  color: var(--txt) !important;
+}
+
+.settings-section-body #auth-tab-body .fg input:hover,
+.settings-section-body #auth-tab-body .fg select:hover,
+#auth-modal .fg input:hover,
+#auth-modal .fg select:hover,
+.fg #p-sm:hover,
+.proj-sel:hover,
+.contractor-entry-grid .fg input:hover,
+.contractor-entry-grid .fg select:hover,
+#ce-task:hover,
+#ce-type:hover,
+#ce-pay-type:hover {
+  background-color: var(--ctrl-field-bg) !important;
+  border-color: var(--ctrl-border-hover) !important;
+  color: var(--txt) !important;
+}
+
+.settings-section-body #auth-tab-body .fg input:focus,
+.settings-section-body #auth-tab-body .fg select:focus,
+#auth-modal .fg input:focus,
+#auth-modal .fg select:focus,
+.fg #p-sm:focus,
+.proj-sel:focus,
+.contractor-entry-grid .fg input:focus,
+.contractor-entry-grid .fg select:focus,
+#ce-task:focus,
+#ce-type:focus,
+#ce-pay-type:focus {
+  background-color: var(--ctrl-field-bg) !important;
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 3px var(--ctrl-focus) !important;
+}
+
+.ff-checkbox input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 2px 0 0 !important;
+  display: inline-block !important;
+  border: initial !important;
+  border-radius: 0 !important;
+  background: initial !important;
+  cursor: pointer;
+  accent-color: var(--acc);
+}
+
+.ff-checkbox input[type="checkbox"]::before {
+  content: none !important;
+}
+
+.fin-filters,
+.contractor-toolbar,
+.gantt-toolbar {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap !important;
+  gap: 7px !important;
+  padding: 8px 10px !important;
+  margin: 0 0 12px !important;
+  border: 1px solid var(--bord) !important;
+  border-radius: 8px !important;
+  background: var(--surf) !important;
+  overflow-x: visible !important;
+}
+
+.gantt-toolbar {
+  padding-left: 10px !important;
+}
+
+.fin-search-wrap,
+.gantt-nm-search-wrap {
+  height: var(--ctrl-h);
+}
+
+.contractor-search-wrap {
+  min-height: var(--ctrl-h);
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.fin-search-inp,
+.gantt-nm-search-inp,
+.gantt-filter-select,
+.ff-group select,
+.ff-group input,
+.contractor-toolbar select {
+  height: var(--ctrl-h) !important;
+  background-color: var(--ctrl-field-bg) !important;
+}
+
+.contractor-search-wrap input {
+  height: auto;
+  padding: 3px 0;
+  background-color: var(--ctrl-field-bg);
+}
+
+/* Keep selects on a single custom caret. Older module rules and browser
+   defaults can otherwise stack native arrows with the SVG caret on hover. */
+select,
+.proj-sel,
+.fg select,
+.setting-row select,
+.cb-group select,
+.ff-group select,
+.contractor-toolbar select,
+.contractor-edit-row select,
+.contractor-entry-grid .fg select,
+.contractor-contract-row select,
+.cost-sel,
+.pay-type-sel,
+.dep-type-sel,
+.gantt-filter-select,
+.share-role-sel,
+.print-setting select,
+.swal2-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  background-repeat: no-repeat !important;
+  background-position: right 8px center !important;
+  background-size: 10px 6px !important;
+  padding-right: 28px !important;
+}
+
+select::-ms-expand,
+.proj-sel::-ms-expand,
+.fg select::-ms-expand,
+.setting-row select::-ms-expand,
+.cb-group select::-ms-expand,
+.ff-group select::-ms-expand,
+.contractor-toolbar select::-ms-expand,
+.contractor-edit-row select::-ms-expand,
+.contractor-entry-grid .fg select::-ms-expand,
+.contractor-contract-row select::-ms-expand,
+.cost-sel::-ms-expand,
+.pay-type-sel::-ms-expand,
+.dep-type-sel::-ms-expand,
+.gantt-filter-select::-ms-expand,
+.share-role-sel::-ms-expand,
+.print-setting select::-ms-expand,
+.swal2-select::-ms-expand {
+  display: none;
+}
+
+.multi-filter {
+  position: relative;
+  min-width: 132px;
+  flex: 0 0 auto;
+  color: var(--txt);
+}
+
+.multi-filter.mf-wide {
+  min-width: 180px;
+}
+
+.multi-filter summary {
+  height: var(--ctrl-h);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 28px 4px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ctrl-radius);
+  background-color: var(--ctrl-field-bg);
+  background-image: inherit;
+  color: var(--txt);
+  list-style: none;
+  cursor: pointer;
+  font-size: 11px;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    box-shadow 0.14s ease;
+}
+
+.multi-filter:hover summary {
+  border-color: var(--ctrl-border-hover);
+  background-color: var(--ctrl-bg-muted);
+}
+
+.multi-filter[open] summary,
+.multi-filter summary:focus-visible {
+  outline: none;
+  border-color: var(--acc);
+  background-color: var(--ctrl-field-bg);
+  box-shadow: 0 0 0 3px var(--ctrl-focus);
+}
+
+.multi-filter summary::-webkit-details-marker {
+  display: none;
+}
+
+.multi-filter summary::after {
+  content: "";
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  width: 10px;
+  height: 6px;
+  transform: translateY(-50%);
+  background: currentColor;
+  clip-path: polygon(0 0, 50% 100%, 100% 0);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.multi-filter summary span {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--txt3);
+  text-transform: uppercase;
+}
+
+.multi-filter summary b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.mf-count {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--acc);
+  color: #fff;
+  text-align: center;
+  font-size: 10px;
+}
+
+.multi-filter-menu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  z-index: 500;
+  width: max(100%, 220px);
+  max-height: 280px;
+  overflow: auto;
+  padding: 6px;
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  background: var(--surf);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.16);
+}
+
+.multi-filter-clear,
+.multi-filter-option {
+  width: 100%;
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--txt);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.multi-filter-clear {
+  color: var(--txt2);
+  border-bottom: 1px solid var(--bord);
+  border-radius: 5px 5px 0 0;
+  margin-bottom: 4px;
+}
+
+.multi-filter-option:hover,
+.multi-filter-clear:hover {
+  background: var(--ctrl-bg-hover);
+}
+
+.multi-filter-option input {
+  flex: 0 0 auto;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-grid;
+  place-content: center;
+  border: 1px solid var(--ctrl-border);
+  border-radius: 4px;
+  background: var(--ctrl-bg);
+  accent-color: var(--acc);
+}
+
+.multi-filter-option input::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  transform: scale(0);
+  transition: transform 0.1s ease;
+  clip-path: polygon(14% 44%, 0 59%, 41% 100%, 100% 23%, 84% 8%, 38% 67%);
+  background: #fff;
+}
+
+.multi-filter-option input:checked {
+  border-color: var(--acc);
+  background: var(--acc);
+}
+
+.multi-filter-option input:checked::before {
+  transform: scale(1);
+}
+
+.multi-filter-option input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--ctrl-focus);
+}
+
+.ff-group input:not([type="checkbox"]):not([type="radio"]) {
+  border-color: transparent;
+}
+
+.ff-group input:not([type="checkbox"]):not([type="radio"]):hover {
+  border-color: var(--ctrl-border-hover);
+  background-color: var(--ctrl-bg-muted);
+}
+
+.ff-group input:not([type="checkbox"]):not([type="radio"]):focus {
+  border-color: var(--acc);
+  background-color: var(--ctrl-field-bg);
+}

@@ -1,0 +1,423 @@
+/* ── GANTT TABLE ───────────────────────────────────────────────────────────── */
+.gantt-scroll {
+  /* overflow:auto дозволяє скролити і по X і по Y — необхідно для sticky thead */
+  overflow: auto;
+  /* Висота = вся viewport мінус шапка додатку (~44px), вкладки (~37px), легенда (~35px), відступи */
+  max-height: calc(100vh - 178px);
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+}
+table.gt {
+  border-collapse: collapse;
+  min-width: max-content;
+  background: var(--surf);
+}
+
+/* ── STICKY THEAD ROW 1 (роки) ─────────────────────────────────────────────── */
+table.gt thead tr:first-child th {
+  background: var(--hdr);
+  color: var(--hdr-c2);
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  height: 16px;
+  border-right: 1px solid var(--hdr-b);
+  white-space: nowrap;
+  padding: 0 4px;
+  letter-spacing: 0.5px;
+  position: sticky;
+  top: 0;
+  z-index: 14;
+}
+
+/* ── STICKY THEAD ROW 2 (місяці) ────────────────────────────────────────────── */
+table.gt thead tr:nth-child(2) th {
+  background: var(--hdr);
+  color: var(--hdr-c);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  height: 22px;
+  border-right: 1px solid var(--hdr-b);
+  padding: 0;
+  position: sticky;
+  top: 16px;
+  z-index: 14;
+  overflow: hidden;
+}
+
+/* ── STICKY THEAD ROW 3 (тижні) ────────────────────────────────────────────── */
+table.gt thead tr:last-child th {
+  background: var(--hdr2);
+  color: var(--hdr-c2);
+  font-size: 9px;
+  text-align: center;
+  height: 18px;
+  position: sticky;
+  top: 38px;
+  z-index: 14;
+  box-shadow: 0 2px 0 0 var(--hdr-sh), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ── STICKY ЛІВІ КОЛОНКИ В ШАПЦІ (заморожені і вертикально, і горизонтально) ── */
+th.th-h {
+  width: var(--hw);
+  min-width: var(--hw);
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 22;
+  background: var(--hdr) !important;
+}
+th.th-n {
+  width: var(--nw);
+  min-width: var(--nw);
+  position: sticky;
+  top: 0;
+  left: var(--hw);
+  z-index: 22;
+  background: var(--hdr) !important;
+  border-right: 1px solid var(--hdr-b);
+}
+th.th-nm {
+  width: var(--nmw);
+  min-width: var(--nmw);
+  text-align: left !important;
+  padding: 0 4px 0 8px !important;
+  position: sticky;
+  top: 0;
+  left: calc(var(--hw) + var(--nw));
+  z-index: 22;
+  background: var(--hdr) !important;
+  border-right: none;
+  box-shadow: 2px 0 0 0 var(--hdr-b), 4px 0 10px rgba(0, 0, 0, 0.1);
+}
+.th-nm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 100%;
+}
+.th-nm-head > span {
+  font-size: 12px;
+  font-weight: 600;
+}
+.btn-add-task {
+  flex-shrink: 0;
+  margin-right: 4px;
+  border-radius: 5px;
+  border: none;
+  background: var(--acc);
+  color: #fff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  padding: 3px 8px;
+  white-space: nowrap;
+  line-height: 1.5;
+  transition: background 0.15s;
+}
+.btn-add-task:hover {
+  background: var(--acc2);
+}
+th.th-ct {
+  width: var(--ctw);
+  min-width: var(--ctw);
+  text-align: left !important;
+  padding-left: 6px !important;
+  border-right: 1px solid var(--hdr-b);
+  position: sticky;
+  top: 0;
+  left: calc(var(--hw) + var(--nw) + var(--nmw));
+  z-index: 22;
+  background: var(--hdr) !important;
+}
+th.th-yr {
+  border-left: 1px solid var(--hdr-b);
+}
+th.th-mo {
+  border-left: 1px solid var(--hdr-b);
+  display: table-cell; /* flex breaks colspan in some browsers */
+}
+/* Назва місяця з truncation при малому масштабі */
+.mo-text {
+  display: inline-block;
+  max-width: calc(var(--cw) * 4 - 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+th.th-wk {
+  width: var(--cw);
+  min-width: var(--cw);
+  border-left: 1px solid var(--hdr-b2);
+}
+th.th-wk.ms {
+  border-left: 1px solid var(--hdr-b) !important;
+}
+
+/* ── TABLE ROWS ────────────────────────────────────────────────────────────── */
+tbody tr {
+  height: var(--row);
+}
+
+/* row hover прибрано — лишається лише td-nm:hover і .bar:hover */
+tbody tr.row-dragging {
+  opacity: 0.5;
+}
+tbody tr.row-drag-over td {
+  border-top: 2px solid var(--acc) !important;
+}
+.nm-inner {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.nm-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── STICKY CELLS ──────────────────────────────────────────────────────────── */
+td.td-n {
+  text-align: center;
+  font-size: 10px;
+  color: var(--txt3);
+  background: var(--surf2) !important;
+  border-right: 1px solid var(--bord);
+  position: sticky;
+  left: var(--hw);
+  z-index: 4;
+}
+td.td-n.td-drag {
+  cursor: grab;
+  user-select: none;
+}
+td.td-n.td-drag:hover {
+  background: var(--bord) !important;
+  color: var(--txt2);
+}
+td.td-n.td-drag:active {
+  cursor: grabbing;
+}
+td.td-nm {
+  font-size: 14px;
+  padding: 0 5px 0 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: var(--nmw);
+  border-right: none;
+  background: var(--surf);
+  position: sticky;
+  left: calc(var(--hw) + var(--nw));
+  z-index: 4;
+  cursor: pointer;
+  /* Fake solid border + shadow: замінює border-right, не колапсується при sticky */
+  box-shadow: 2px 0 0 0 var(--bord2), 4px 0 10px rgba(0, 0, 0, 0.06);
+}
+td.td-nm:hover {
+  background: #eff4ff !important;
+}
+/* ── NOTES COLUMN ──────────────────────────────────────────────────────────── */
+th.th-notes {
+  width: 32px;
+  min-width: 32px;
+  text-align: center;
+  font-size: 11px;
+  position: sticky;
+  top: 0;
+  left: calc(var(--hw) + var(--nw) + var(--nmw));
+  z-index: 22;
+  background: var(--hdr) !important;
+  border-right: 1px solid var(--hdr-b);
+}
+td.td-notes {
+  width: 32px;
+  min-width: 32px;
+  text-align: center;
+  font-size: 10px;
+  color: var(--txt3);
+  cursor: pointer;
+  border-right: 1px solid var(--bord);
+  background: var(--surf);
+  vertical-align: middle;
+}
+td.td-notes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-direction: column;
+}
+td.td-notes:not(.has-notes) { opacity: 0.22; }
+td.td-notes:hover { background: var(--surf2) !important; opacity: 1; color: var(--acc); }
+td.td-notes.has-notes { color: var(--acc); opacity: 1; }
+.notes-count {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+}
+/* td-notes не бере участі в зебрі гантту */
+/* contractor column removed */
+.nm-inner {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.del-btn, .copy-btn {
+  flex-shrink: 0;
+  opacity: 0;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.del-btn { color: var(--err); margin-left: auto; }
+.copy-btn { color: var(--txt3); }
+td.td-nm:hover .del-btn,
+td.td-nm:hover .copy-btn {
+  opacity: 1;
+}
+.copy-btn:hover { color: var(--acc); background: rgba(37,99,235,0.08); }
+.crit-ic {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--err);
+  flex-shrink: 0;
+  margin-right: 1px;
+}
+.dep-ic {
+  font-size: 10px;
+  flex-shrink: 0;
+  cursor: help;
+  color: var(--warn);
+}
+
+/* ── TIMELINE CELLS ────────────────────────────────────────────────────────── */
+td.td-c {
+  width: var(--cw);
+  min-width: var(--cw);
+  border-right: 1px solid var(--bord);
+  position: relative;
+  overflow: visible;
+  background: var(--surf);
+}
+td.td-c.ms {
+  border-left: 1px solid var(--bord2);
+}
+td.td-c.today-col {
+  background: rgba(220, 50, 50, 0.07) !important;
+}
+tr:nth-child(even) td.td-n,
+tr:nth-child(even) td.td-nm,
+tr:nth-child(even) td.td-ct {
+  background: var(--surf2);
+}
+tr:nth-child(even) td.td-c {
+  background: var(--surf2);
+}
+.today-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: #e03030;
+  z-index: 8;
+  pointer-events: none;
+}
+
+/* ── BAR ───────────────────────────────────────────────────────────────────── */
+.bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  border-radius: 4px;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  user-select: none;
+  z-index: 2;
+  /* inset ring: бар видимий на будь-якому фоні незалежно від кольору категорії */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18), inset 0 0 0 1px rgba(0, 0, 0, 0.15);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.bar:hover {
+  filter: brightness(1.07);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+.bar.dragging {
+  cursor: grabbing;
+  opacity: 0.8;
+}
+.bh {
+  width: 6px;
+  flex-shrink: 0;
+  height: 100%;
+  cursor: ew-resize;
+  background: rgba(0, 0, 0, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bh:hover {
+  background: rgba(0, 0, 0, 0.24);
+}
+.bl {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  flex: 1;
+  padding: 0 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.prog-fill {
+  position: absolute;
+  top: 0;
+  left: 6px;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.30);
+  pointer-events: none;
+}
+
+/* ── CURRENT MONTH HIGHLIGHT ───────────────────────────────────────────────── */
+table.gt thead tr:nth-child(2) th.th-mo.cur-mo {
+  background: var(--hdr-cur) !important;
+  color: var(--hdr-cur-c) !important;
+  border-left-color: var(--hdr-cur-b) !important;
+}
+table.gt thead tr:last-child th.th-wk.cur-mo {
+  background: var(--hdr-cur2) !important;
+  color: var(--hdr-cur-c2) !important;
+}
+
+/* contractor toggle removed */
+
+/* ── HIDE-PAST BUTTON IN MONTH HEADER ──────────────────────────────────────── */
+.btn-hidepast {
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid var(--hdr-b);
+  background: transparent;
+  color: var(--hdr-c2);
+  cursor: pointer;
+  margin-left: 5px;
+  vertical-align: middle;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-hidepast:hover { background: var(--hdr-btn-hover); color: var(--hdr-c); }
+.btn-hidepast.on    { background: var(--hdr-btn-on); color: var(--hdr-c); border-color: var(--hdr-c2); }

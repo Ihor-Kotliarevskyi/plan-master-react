@@ -1,0 +1,80 @@
+/* ── VARIABLES & BASE ─────────────────────────────────────────────────────── */
+:root {
+  --bg: #f3f0eb;
+  --surf: #fdfcf8;
+  --surf2: #ece9e3;
+  --bord: #dedad3;
+  --bord2: #c2bdb4;
+  --txt: #18170f;
+  --txt2: #6a6760;
+  --txt3: #a09d97;
+  --acc: #2563eb;
+  --acc2: #1d4ed8;
+  --ok: #15803d;
+  --warn: #b45309;
+  --err: #dc2626;
+  --hdr: #e8e4dc;
+  --hdr2: #ddd9d0;
+  --hdr-c:  #48453e;
+  --hdr-c2: #857d74;
+  --hdr-b:  #c5c0b8;
+  --hdr-b2: #d0ccc5;
+  --hdr-sh: #c0bcb4;
+  --hdr-cur:   rgba(37, 99, 235, 0.10);
+  --hdr-cur2:  rgba(37, 99, 235, 0.07);
+  --hdr-cur-c:  #1d4ed8;
+  --hdr-cur-c2: #3b6ecf;
+  --hdr-cur-b:  #93b4f0;
+  --hdr-btn-hover: rgba(0,0,0,0.07);
+  --hdr-btn-on:    rgba(0,0,0,0.12);
+  --hw: 0px;
+  --nw: 34px;
+  --nmw: 260px;
+  --cw: 25px;
+  --row: 30px;
+}
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+button:focus,
+button:focus-visible,
+select:focus,
+input:focus {
+  outline: none;
+}
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--txt);
+  font-size: 13px;
+}
+
+svg.lucide {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+/* ── SCROLLBAR ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--bord2);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--txt3); }
+::-webkit-scrollbar-corner { background: transparent; }
+* { scrollbar-width: thin; scrollbar-color: var(--bord2) transparent; }

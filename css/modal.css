@@ -1,0 +1,766 @@
+/* ── MODAL / OVERLAY ────────────────────────────────────────────────────────── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 500;
+}
+.modal {
+  background: var(--surf);
+  border-radius: 10px;
+  padding: 20px;
+  width: 440px;
+  max-width: 95vw;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+}
+.modal h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* ── FORM GROUPS ────────────────────────────────────────────────────────────── */
+.fg {
+  margin-bottom: 10px;
+}
+.fg label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--txt2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 3px;
+}
+.fg input,
+.fg select {
+  width: 100%;
+  font-size: 12px;
+  padding: 6px 8px;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  background: var(--surf);
+  color: var(--txt);
+  font-family: inherit;
+  outline: none;
+}
+.fg input:focus,
+.fg select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+}
+.fg select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  padding-right: 26px;
+  cursor: pointer;
+}
+/* ── Number stepper ─────────────────────────────────────────────────────── */
+.fg .num-wrap {
+  display: flex;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.fg .num-wrap:focus-within {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+}
+.fg .num-wrap input[type="number"] {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  text-align: center;
+  padding: 6px 4px;
+  width: auto;
+  box-shadow: none !important;
+}
+.fg .num-wrap input[type="number"]:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
+.num-btn {
+  background: var(--surf2);
+  border: none;
+  color: var(--txt2);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 9px;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.num-btn:hover {
+  background: var(--acc);
+  color: #fff;
+}
+.num-btn:active {
+  filter: brightness(0.9);
+}
+.row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.m-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.proj-modal-cats {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bord);
+}
+
+/* ── CATEGORY CHIPS ─────────────────────────────────────────────────────────── */
+.cat-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 4px;
+}
+.chip {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  border: 2px solid transparent;
+  opacity: 0.6;
+  transition: opacity 0.15s, transform 0.12s, box-shadow 0.12s;
+  user-select: none;
+}
+.chip:hover {
+  opacity: 0.85;
+  transform: scale(1.03);
+}
+.chip.sel {
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.25);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* ── DEPENDENCY LIST ────────────────────────────────────────────────────────── */
+.dep-list {
+  max-height: 90px;
+  overflow-y: auto;
+  border: 1px solid var(--bord);
+  border-radius: 5px;
+  padding: 3px;
+}
+.dep-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+.dep-item:hover {
+  background: var(--surf2);
+}
+
+/* ── PROGRESS / CALC ────────────────────────────────────────────────────────── */
+.prog-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.prog-row input[type="range"] {
+  flex: 1;
+}
+.prog-row span {
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 32px;
+  text-align: right;
+}
+.warn-box {
+  background: #fffbea;
+  border: 1px solid #f0d070;
+  border-radius: 5px;
+  padding: 7px 10px;
+  font-size: 11px;
+  color: #7a5500;
+  margin-top: 5px;
+  display: none;
+}
+.warn-box.show {
+  display: block;
+}
+.calc-row {
+  background: var(--surf2);
+  border-radius: 5px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--txt2);
+}
+.calc-row b {
+  color: var(--txt);
+}
+
+/* ── CATEGORY COLOR PICKER ──────────────────────────────────────────────────── */
+.color-picker-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.cat-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  cursor: pointer;
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+  transition: transform 0.1s, border-color 0.1s;
+  display: block;
+}
+.cat-swatch:hover {
+  transform: scale(1.1);
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Dropdown panel */
+.color-dropdown {
+  display: none;
+  position: absolute;
+  top: 34px;
+  left: 0;
+  z-index: 600;
+  background: var(--surf);
+  border: 1px solid var(--bord2);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+  padding: 10px;
+  min-width: 168px;
+}
+.color-dropdown.open {
+  display: block;
+}
+.color-dropdown-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Сітка кольорів */
+.pal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+.pal-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: transform 0.1s, border-color 0.1s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.pal-dot:hover {
+  transform: scale(1.12);
+  border-color: rgba(0, 0, 0, 0.35);
+}
+.pal-dot.active {
+  border-color: rgba(0, 0, 0, 0.6);
+  transform: scale(1.08);
+  box-shadow: 0 0 0 2px var(--surf), 0 0 0 4px rgba(0,0,0,0.4);
+}
+
+/* Рядок custom color */
+.color-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--bord);
+  padding-top: 8px;
+}
+.color-custom-row input[type="color"] {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  cursor: pointer;
+  padding: 1px;
+  background: none;
+}
+.cat-editor-list {
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  max-height: 440px;
+  overflow-y: auto;
+}
+.cat-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--bord);
+  background: var(--surf);
+}
+.cat-row:last-child {
+  border-bottom: none;
+}
+.cat-row:hover {
+  background: var(--surf2);
+}
+.cat-name-inp {
+  flex: 1;
+  font-size: 13px;
+  padding: 6px 9px;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  background: var(--surf);
+  color: var(--txt);
+  font-family: inherit;
+  outline: none;
+  height: 28px;
+  align-self: flex-start;
+}
+.cat-name-inp:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+}
+.cat-del {
+  color: var(--err);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  opacity: 0.5;
+  font-size: 14px;
+  flex-shrink: 0;
+  align-self: flex-start;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  height: 28px;
+}
+.cat-del:hover {
+  background: #fee2e2;
+  opacity: 1;
+}
+/* ── CATEGORY EDITOR ────────────────────────────────────────────────────────── */
+.proj-list {
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.pj-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--bord);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.pj-row:last-child {
+  border-bottom: none;
+}
+.pj-row:nth-child(even) {
+  background: var(--surf2);
+}
+.pj-row:hover,
+.pj-row:nth-child(even):hover {
+  background: #eef3ff;
+}
+.pj-row.active,
+.pj-row.active:nth-child(even) {
+  background: rgba(37, 99, 235, 0.08);
+}
+.pj-name-inp {
+  flex: 1;
+  font-size: 12px;
+  padding: 3px 6px;
+  border: 1px solid var(--bord2);
+  border-radius: 4px;
+  background: var(--surf);
+  color: var(--txt);
+  font-family: inherit;
+  outline: none;
+}
+.pj-tasks-count {
+  font-size: 11px;
+  color: var(--txt2);
+  white-space: nowrap;
+  margin-left: auto;
+}
+.pj-del {
+  color: var(--err);
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: 3px;
+  opacity: 0.45;
+  font-size: 12px;
+  transition: opacity 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.pj-del:hover {
+  background: #fee2e2;
+  opacity: 1;
+}
+
+/* ── TASK MODAL WITH TABS ────────────────────────────────────────────────────── */
+.task-modal-wide {
+  width: min(500px, 95vw);
+  max-width: 95vw;
+  transition: max-width 0.2s ease;
+}
+
+/* ── TWO-COLUMN LAYOUT ───────────────────────────────────────────────────────── */
+.task-modal-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.task-modal-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* ── RANGE INPUT (SLIDER) ────────────────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: grab;
+  height: 20px;
+}
+input[type="range"]:active { cursor: grabbing; }
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--bord2);
+  border-radius: 2px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--acc);
+  border: 2px solid var(--surf);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  margin-top: -5px;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  background: var(--bord2);
+  border-radius: 2px;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--acc);
+  border: 2px solid var(--surf);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  cursor: grab;
+}
+input[type="range"]:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+/* Кнопки недоступні, коли поле readonly */
+.num-wrap:has(input[readonly]) .num-btn {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ── Фікс переповнення кнопок вартості в двоколонковому layout ── */
+.row2 > .fg {
+  min-width: 0;
+  overflow: hidden;
+}
+.fg .num-wrap {
+  width: 100%;
+}
+.fg .num-wrap .num-btn {
+  flex-shrink: 0;
+  padding: 0 7px;
+  font-size: 14px;
+  min-width: 24px;
+}
+.fg .num-wrap input[type="number"] {
+  min-width: 0;
+  width: 0; /* flex: 1 gives actual width */
+}
+
+/* ── Кнопки ± для порогу залежності SS+% ── */
+.dep-thr-wrap {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--bord2);
+  border-radius: 4px;
+  overflow: hidden;
+  height: 22px;
+}
+.dep-thr-btn {
+  border: none;
+  background: var(--surf2);
+  color: var(--txt2);
+  padding: 0 6px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  transition: background 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.dep-thr-btn:hover {
+  background: var(--acc);
+  color: #fff;
+}
+.dep-threshold-inp {
+  border: none !important;
+  border-radius: 0 !important;
+  border-left: 1px solid var(--bord2) !important;
+  border-right: 1px solid var(--bord2) !important;
+  width: 40px;
+  text-align: center;
+  font-size: 11px;
+  padding: 0 2px;
+  background: var(--surf);
+  color: var(--txt);
+  outline: none;
+  font-family: inherit;
+}
+.task-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.task-modal-header h3 { margin: 0; }
+.task-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--bord2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.task-tab {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 14px;
+  cursor: pointer;
+  color: var(--txt2);
+  background: var(--surf);
+  border-right: 1px solid var(--bord2);
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.task-tab:last-child { border-right: none; }
+.task-tab:hover { background: var(--surf2); }
+.task-tab.active {
+  background: var(--acc);
+  color: #fff;
+}
+.task-pane { min-height: 200px; }
+#task-pane-costs { display: none; }
+
+/* ── MODAL WIDTHS ────────────────────────────────────────────────────────── */
+.modal-w460 { width: 460px; }
+.modal-w480 { width: 480px; }
+.modal-w560 { width: min(560px, 96vw); }
+.modal-w860 { width: min(860px, 96vw); }
+
+/* ── MODAL HEADER PATTERN ────────────────────────────────────────────────── */
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.modal-header h3 { margin: 0; }
+.modal-header-lg { margin-bottom: 14px; }
+
+/* ── TASK MODAL SEPARATOR BUTTONS ───────────────────────────────────────── */
+.m-btns-sep {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bord);
+}
+
+/* ── PRINT MODAL ────────────────────────────────────────────────────────── */
+#print-modal .settings-section-title { margin-bottom: 8px; }
+.print-section-grid { margin-bottom: 12px; }
+.full-col { grid-column: 1 / -1; }
+#print-chart-picker {
+  display: none;
+  margin-bottom: 12px;
+}
+.print-chart-picker-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--txt3);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+/* ── NOTES MODAL ────────────────────────────────────────────────────────── */
+#notes-modal .notes-list { max-height: 300px; }
+#notes-modal .notes-add-row { margin-top: 8px; }
+
+/* ── DEP LIST MODAL ─────────────────────────────────────────────────────── */
+.dl-modal {
+  width: min(680px, 96vw);
+  max-width: 96vw;
+  height: min(600px, 85vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dl-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dl-count-badge {
+  font-size: 11px;
+  background: var(--surf2);
+  border: 1px solid var(--bord2);
+  border-radius: 10px;
+  padding: 1px 8px;
+  color: var(--txt3);
+  font-weight: 600;
+}
+.dl-filters {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.dl-filter-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid var(--bord2);
+  border-radius: 4px;
+  background: var(--surf);
+  color: var(--txt2);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.dl-filter-btn:hover { background: var(--surf2); }
+.dl-filter-btn.on {
+  background: var(--acc);
+  color: #fff;
+  border-color: var(--acc);
+}
+.dl-wrap {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  border: 1px solid var(--bord);
+  border-radius: 6px;
+}
+.dl-empty {
+  text-align: center;
+  padding: 28px 16px;
+  color: var(--txt3);
+  font-size: 13px;
+}
+.dl-tbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.dl-tbl thead th {
+  position: sticky;
+  top: 0;
+  background: var(--surf2);
+  border-bottom: 1px solid var(--bord2);
+  padding: 7px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  text-align: left;
+  z-index: 1;
+}
+.dl-row {
+  border-bottom: 1px solid var(--bord);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.dl-row:last-child { border-bottom: none; }
+.dl-row:hover { background: var(--surf2); }
+.dl-row td { padding: 7px 10px; vertical-align: middle; }
+.dl-i {
+  width: 32px;
+  color: var(--txt3);
+  font-size: 11px;
+  text-align: right;
+}
+.dl-task {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dl-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dl-tn {
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.dl-nm {
+  color: var(--txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.dl-arrow {
+  width: 70px;
+  text-align: center;
+}
+.dl-crit {
+  width: 32px;
+  text-align: center;
+}
+.dl-crit-ic {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--err);
+}
+[data-theme="dark"] .dl-filter-btn.on { background: var(--acc); }
+[data-theme="dark"] .dl-row:hover { background: var(--surf2); }

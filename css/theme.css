@@ -1,0 +1,605 @@
+/* ── ТЕМНА ТЕМА ───────────────────────────────────────────────────────────────
+   Перевизначаємо CSS змінні з variables.css через атрибут data-theme="dark"
+   на <html>. Усі компоненти автоматично підхоплюють нові значення.
+   ─────────────────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:    #181921;
+  --surf:  #22263a;
+  --surf2: #2c3147;
+  --bord:  #343a55;
+  --bord2: #44496e;
+  --txt:   #e8eaf2;
+  --txt2:  #9099b8;
+  --txt3:  #5c6480;
+  --acc:   #4e7fef;
+  --acc2:  #3a6ae0;
+  --ok:    #22c55e;
+  --warn:  #f59e0b;
+  --err:   #f87171;
+  --hdr:   #141520;
+  --hdr2:  #1a1e2c;
+  --hdr-c:  #dde4f0;
+  --hdr-c2: #8899bb;
+  --hdr-b:  #3a4a65;
+  --hdr-b2: #2e3d58;
+  --hdr-sh: #1a2a48;
+  --hdr-cur:   #243060;
+  --hdr-cur2:  #1e2a4a;
+  --hdr-cur-c:  #c8d8ff;
+  --hdr-cur-c2: #a0b4e8;
+  --hdr-cur-b:  #4a60a0;
+  --hdr-btn-hover: rgba(255,255,255,0.10);
+  --hdr-btn-on:    rgba(255,255,255,0.20);
+}
+
+/* ── Зебра в темній темі: дуже м'який відтінок, щоб не різ очей ─────────── */
+[data-theme="dark"] tr:nth-child(even) td.td-n,
+[data-theme="dark"] tr:nth-child(even) td.td-nm,
+[data-theme="dark"] tr:nth-child(even) td.td-ct,
+[data-theme="dark"] tr:nth-child(even) td.td-c,
+[data-theme="dark"] .fin-tbl tbody tr:nth-child(even):not(.ttl) td,
+[data-theme="dark"] .cost-tbl .cost-row:nth-child(even) td {
+  background: #252a3f;
+}
+
+/* ── Hover у темній темі — лише назва роботи ────────────────────────────── */
+[data-theme="dark"] td.td-nm:hover {
+  background: #262d4a !important;
+}
+
+/* ── Sticky-межі в темній темі: fake border + тінь ──────────────────────── */
+[data-theme="dark"] td.td-nm {
+  box-shadow: 2px 0 0 0 #343a55, 4px 0 12px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] th.th-nm {
+  box-shadow: 2px 0 0 0 #2a3a5a, 4px 0 12px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] table.gt thead tr:last-child th {
+  box-shadow: 0 2px 0 0 var(--hdr), 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] tbody tr:hover td.today-col {
+  background: rgba(220, 60, 60, 0.12) !important;
+}
+
+/* Активний рядок проєкту */
+[data-theme="dark"] .pj-row.active {
+  background: rgba(78, 127, 239, 0.14);
+}
+[data-theme="dark"] .pj-row:nth-child(even) {
+  background: #252a3f;
+}
+[data-theme="dark"] .pj-row:hover,
+[data-theme="dark"] .pj-row:nth-child(even):hover {
+  background: #262d4a;
+}
+[data-theme="dark"] .pj-row.active:nth-child(even) {
+  background: rgba(78, 127, 239, 0.14);
+}
+[data-theme="dark"] .pj-tasks-count {
+  color: #8a95b8;
+}
+[data-theme="dark"] .pj-del {
+  opacity: 0.65;
+}
+[data-theme="dark"] .pj-del:hover {
+  background: rgba(248, 113, 113, 0.15);
+  opacity: 1;
+}
+[data-theme="dark"] .fg select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239099b8'/%3E%3C/svg%3E");
+}
+
+/* ── Інпути на темній темі ────────────────────────────────────────────────── */
+[data-theme="dark"] .fg input,
+[data-theme="dark"] .fg select,
+[data-theme="dark"] .num-wrap input[type="number"],
+[data-theme="dark"] .cat-name-inp,
+[data-theme="dark"] .pj-name-inp,
+[data-theme="dark"] .dep-search-row input,
+[data-theme="dark"] .notes-add-row textarea,
+[data-theme="dark"] .note-edit-ta,
+[data-theme="dark"] .holiday-add-row input {
+  background: var(--surf2);
+}
+[data-theme="dark"] .mph-date-inp {
+  background: var(--surf2);
+  border-color: var(--bord2);
+}
+[data-theme="dark"] .dep-type-btn,
+[data-theme="dark"] .dep-threshold-inp,
+[data-theme="dark"] .dep-thr-btn {
+  background: var(--surf2);
+  color: var(--txt2);
+}
+[data-theme="dark"] .dep-type-btn.active {
+  background: var(--acc);
+  color: #fff;
+}
+[data-theme="dark"] .dep-thr-btn:hover {
+  background: var(--acc);
+  color: #fff;
+}
+
+/* ── Слайдер на темній темі ──────────────────────────────────────────────── */
+[data-theme="dark"] input[type="range"]::-webkit-slider-runnable-track {
+  background: var(--bord2);
+}
+[data-theme="dark"] input[type="range"]::-webkit-slider-thumb {
+  border-color: var(--surf2);
+}
+[data-theme="dark"] input[type="range"]::-moz-range-track {
+  background: var(--bord2);
+}
+[data-theme="dark"] input[type="range"]::-moz-range-thumb {
+  border-color: var(--surf2);
+}
+
+/* ── warn-box на темній темі ─────────────────────────────────────────────── */
+[data-theme="dark"] .warn-box {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: var(--warn);
+}
+
+/* ── Кошторис: темна тема ────────────────────────────────────────────────── */
+[data-theme="dark"] .cost-inp:hover,
+[data-theme="dark"] .cost-inp:focus {
+  background: var(--surf2);
+}
+[data-theme="dark"] .cost-sel:hover,
+[data-theme="dark"] .cost-sel:focus {
+  background-color: var(--surf2);
+}
+[data-theme="dark"] .cost-sel {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239099b8'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .cost-act-btn {
+  background: var(--surf2);
+  border-color: var(--bord2);
+}
+[data-theme="dark"] .cost-act-btn:hover {
+  background: var(--bord);
+}
+[data-theme="dark"] .cost-act-btn.del:hover {
+  background: rgba(248, 113, 113, 0.15);
+}
+[data-theme="dark"] .pay-row {
+  background: var(--surf2);
+  border-color: var(--bord);
+}
+
+/* ── Нативний date-picker: темна тема ───────────────────────────────────────
+   color-scheme: dark → Chrome/Edge рендерить попап у темних кольорах.
+   Firefox наразі не підтримує стилізацію попапу — лише сам інпут.     */
+[data-theme="dark"] input[type="date"] {
+  color-scheme: dark;
+}
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.75) brightness(1.8);
+  opacity: 0.65;
+}
+[data-theme="dark"] input[type="date"]:hover::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="date"]:focus::-webkit-calendar-picker-indicator {
+  opacity: 1;
+}
+
+/* Фінансова таблиця hover */
+[data-theme="dark"] .fin-tbl tr:hover td {
+  background: #262d4a;
+}
+
+/* Чіпи і легенда */
+[data-theme="dark"] .leg:hover {
+  background: var(--surf2);
+}
+
+/* SweetAlert2 в темній темі */
+[data-theme="dark"] .swal2-popup {
+  background: var(--surf);
+  color: var(--txt);
+  border: 1px solid var(--bord);
+}
+[data-theme="dark"] .swal2-title,
+[data-theme="dark"] .swal2-html-container {
+  color: var(--txt);
+}
+
+/* ── ПЕРЕМИКАЧ ТЕМИ ───────────────────────────────────────────────────────── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  padding: 5px 9px;
+  border-radius: 5px;
+  border: 1px solid var(--bord2);
+  background: var(--surf);
+  color: var(--txt);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.theme-toggle:hover {
+  background: var(--surf2);
+}
+.theme-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* ── АВАТАР В ШАПЦІ ───────────────────────────────────────────────────────── */
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 3px 8px 3px 4px;
+  border-radius: 20px;
+  border: 1px solid var(--bord2);
+  background: var(--surf);
+  color: var(--txt);
+  font-size: 12px;
+  font-weight: 500;
+  transition: background 5s, box-shadow 5s;
+  white-space: nowrap;
+  user-select: none;
+  flex-shrink: 0;
+  position: relative;
+}
+.user-btn:hover { background: var(--surf2); }
+
+/* Синхронізація — гало від кнопки */
+.user-btn.syncing {
+  animation: user-btn-halo 5s ease-out infinite;
+}
+@keyframes user-btn-halo {
+  0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.55); }
+  70%  { box-shadow: 0 0 0 10px rgba(34,197,94,0); }
+  100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+}
+
+/* Обгортка аватара */
+.user-avatar-wrap {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+/* Статус-крапка — через ::after на кнопці */
+.user-btn::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 22px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--surf);
+  transition: background 0.3s;
+  pointer-events: none;
+}
+.user-btn.status-offline::after { background: #9ca3af; }
+.user-btn.status-ok::after      { background: #22c55e; }
+.user-btn.status-warn::after    { background: #f59e0b; }
+.user-btn.status-error::after   { background: #ef4444; }
+.user-btn.status-syncing::after { background: #22c55e; }
+.user-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--acc);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+/* ── КАБІНЕТ КОРИСТУВАЧА ──────────────────────────────────────────────────── */
+/* ── USER MODAL — фіксований розмір, дві колонки ── */
+.um-modal {
+  width: min(800px, 96vw) !important;
+  height: min(680px, 92vh);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.um-modal .user-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  gap: 0;
+  padding: 0;
+}
+.um-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  height: 100%;
+}
+.um-col {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 4px 4px 2px;
+}
+
+/* Картка юзера праворуч */
+.um-user-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  background: var(--surf2);
+  border-radius: 8px;
+  border: 1px solid var(--bord);
+}
+.um-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.um-user-name {
+  font-size: 15px;
+  color: var(--txt);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Старий стиль (залишаємо для сумісності) */
+.user-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.user-avatar-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  background: var(--surf2);
+  border-radius: 8px;
+  border: 1px solid var(--bord);
+}
+.user-avatar-large {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: var(--acc);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 3px solid var(--surf);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+.user-avatar-large img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+.user-avatar-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.user-avatar-meta strong {
+  font-size: 14px;
+  color: var(--txt);
+}
+.user-avatar-meta span {
+  font-size: 11px;
+  color: var(--txt3);
+}
+.role-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  color: #fff;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.role-badge.guest  { background: #6b7280; }
+.role-badge.user   { background: var(--acc); }
+.role-badge.admin  { background: #7c3aed; }
+
+/* Секції налаштувань */
+.settings-section {
+  border: 1px solid var(--bord);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.settings-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--txt3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+  background: var(--surf2);
+  border-bottom: 1px solid var(--bord);
+}
+.settings-section-body {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.setting-row label {
+  font-size: 12px;
+  color: var(--txt2);
+}
+.setting-row select,
+.setting-row input[type="number"] {
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  background: var(--surf2);
+  color: var(--txt);
+  min-width: 110px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.setting-row select {
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-color: var(--surf2);
+  padding-right: 26px;
+  cursor: pointer;
+}
+.setting-row select:hover,
+.setting-row input[type="number"]:hover {
+  border-color: var(--acc);
+}
+.setting-row select:focus,
+.setting-row input[type="number"]:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+}
+.avatar-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  padding: 5px 11px;
+  border-radius: 5px;
+  border: 1px solid var(--bord2);
+  background: var(--surf2);
+  color: var(--txt2);
+  cursor: pointer;
+  margin-top: 4px;
+  font-family: inherit;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.avatar-upload-btn:hover {
+  background: var(--bord);
+  border-color: var(--acc);
+  color: var(--txt);
+}
+.avatar-clear-btn {
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--err);
+  cursor: pointer;
+  opacity: 0.6;
+}
+.avatar-clear-btn:hover { opacity: 1; }
+
+/* ── Кнопка небезпечної дії ──────────────────────────────────────────────── */
+.btn.btn-danger {
+  background: var(--err);
+  color: #fff;
+  border-color: var(--err);
+}
+.btn.btn-danger:hover { filter: brightness(0.88); }
+
+/* ── Auth-форма в кабінеті ───────────────────────────────────────────────── */
+.auth-hint {
+  font-size: 12px;
+  color: var(--txt2);
+  line-height: 1.5;
+  margin-bottom: 4px;
+}
+.auth-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.auth-tabs .btn { flex: 1; justify-content: center; }
+.auth-submit-btn {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 12px;
+  font-size: 13px;
+  justify-content: center;
+}
+.auth-error {
+  font-size: 11px;
+  color: var(--err);
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+
+/* ── Акаунт / синхронізація ──────────────────────────────────────────────── */
+.account-email {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--txt);
+}
+.sync-enabled-lbl {
+  font-size: 12px;
+  color: var(--ok);
+  font-weight: 500;
+}
+.baseline-empty-hint {
+  font-size: 11px;
+  color: var(--txt3);
+  line-height: 1.5;
+}
+.baseline-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.baseline-saved-lbl {
+  font-size: 12px;
+  color: var(--ok);
+}
+
+/* ── Dark theme: setting-row inputs ─────────────────────────────────────── */
+[data-theme="dark"] .setting-row select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239099b8'/%3E%3C/svg%3E");
+  background-color: var(--surf2);
+}
+[data-theme="dark"] .setting-row select:hover,
+[data-theme="dark"] .setting-row input[type="number"]:hover,
+[data-theme="dark"] .setting-row select:focus,
+[data-theme="dark"] .setting-row input[type="number"]:focus {
+  background-color: var(--surf2);
+}
+[data-theme="dark"] .avatar-upload-btn {
+  background: var(--surf2);
+}
+[data-theme="dark"] .avatar-upload-btn:hover {
+  background: var(--bord);
+}

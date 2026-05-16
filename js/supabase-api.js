@@ -1,0 +1,636 @@
+/**
+ * Supabase адаптер — активний бекенд.
+ * Підключати ТІЛЬКИ ОДИН з двох: supabase-api.js АБО api.js.
+ * Таблиці: profiles, projects, project_shares, tasks.
+ * RPC: upsert_tasks(p_project_id, p_tasks), get_user_id_by_email(p_email).
+ */
+
+const SUPABASE_URL = "https://obltmniiuohjnualkvln.supabase.co";
+const SUPABASE_KEY = "sb_publishable_abEL79y0UsErLcXAyhgVAQ_6AJOOCSN";
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+  },
+});
+
+let _sbUser = null;
+let _sbProfile = null;
+let _projectRole = null;
+let _apiLoadProjectsSeq = 0;
+
+function isLoggedIn() { return !!_sbUser; }
+function isReadOnly() { return _projectRole === "viewer"; }
+function canEdit() { return !isReadOnly(); }
+
+async function apiRegister(name, email, password) {
+  _sbUser = _sbProfile = _projectRole = null;
+  const { data, error } = await sb.auth.signUp({
+    email,
+    password,
+    options: { data: { name } },
+  });
+  if (error) throw new Error(error.message);
+  if (!data.user) throw new Error("Перевірте пошту для підтвердження реєстрації");
+  _sbUser = data.user;
+  _sbProfile = await _loadProfile();
+  updateUserBtn();
+  return data;
+}
+
+async function apiLogin(email, password) {
+  _sbUser = _sbProfile = _projectRole = null;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) throw new Error(error.message);
+  _sbUser = data.user;
+  _sbProfile = await _loadProfile();
+  updateUserBtn();
+  return data;
+}
+
+async function apiLogout() {
+  // Спочатку синхронізуємо незбережені зміни
+  if (currentId && isLoggedIn()) {
+    const lv = allProjects[currentId]?._localVersion  || 0;
+    const sv = allProjects[currentId]?._serverVersion || 0;
+    if (lv > sv) {
+      try { await apiSyncProject(currentId); } catch (_) {}
+    }
+  }
+
+  await sb.auth.signOut({ scope: "local" });
+  _sbUser = _sbProfile = _projectRole = null;
+
+  // Чистимо буфер — не залишаємо чужі дані наступному юзеру
+  try { localStorage.removeItem(SK_BUF); } catch (_) {}
+
+  // Скидаємо стан до чистого проєкту
+  initDefaultProject();
+  loadCurrent();
+  render();
+  updateUserBtn();
+}
+
+async function apiGetMe() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return null;
+  _sbUser = user;
+  _sbProfile = await _loadProfile();
+  return _sbProfile;
+}
+
+async function _loadProfile() {
+  if (!_sbUser) return null;
+  const { data } = await sb
+    .from("profiles")
+    .select("*")
+    .eq("id", _sbUser.id)
+    .single();
+  return data;
+}
+
+async function apiUpdateProfile(updates) {
+  if (!_sbUser) return;
+  const dbUpdates = {};
+  if (updates.name !== undefined) dbUpdates.name = updates.name;
+  if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
+  if (updates.theme !== undefined) dbUpdates.theme = updates.theme;
+  if (updates.defaults) {
+    if (updates.defaults.sm !== undefined) dbUpdates.default_sm = updates.defaults.sm;
+    if (updates.defaults.sy !== undefined) dbUpdates.default_sy = updates.defaults.sy;
+    if (updates.defaults.nm !== undefined) dbUpdates.default_nm = updates.defaults.nm;
+  }
+  const { error } = await sb.from("profiles").update(dbUpdates).eq("id", _sbUser.id);
+  if (error) throw new Error(error.message);
+}
+
+async function apiLoadProjects() {
+  if (!_sbUser) return;
+  const seq = ++_apiLoadProjectsSeq;
+  const bufferAtStart = (() => {
+    try { return localStorage.getItem(SK_BUF) || ""; } catch (_) { return ""; }
+  })();
+
+  try {
+    // ── Крок 1: аналізуємо буфер ────────────────────────────────────────────
+    let bufUserId = null;
+    let bufCurrentId = null;
+    const offlineNew    = {}; // без _serverId — створені офлайн, треба відправити
+    const localSynced   = {}; // з _serverId + версії — можливо є незбережені зміни
+
+    try {
+      const buf = JSON.parse(localStorage.getItem(SK_BUF) || "{}");
+      bufUserId = buf._userId || null;
+      bufCurrentId = buf.currentId || null;
+      const isOwnBuf = !bufUserId || bufUserId === _sbUser.id;
+
+      Object.entries(buf.allProjects || {}).forEach(([id, p]) => {
+        if (!p._serverId && isOwnBuf) {
+          // Офлайн-проєкт поточного юзера (або анонімний) → відправимо на сервер
+          offlineNew[id] = p;
+        } else if (p._serverId && bufUserId === _sbUser.id) {
+          // Проєкт із попереднього сеансу цього ж юзера → збережемо версії
+          localSynced[id] = p;
+        }
+        // Чужі проєкти (bufUserId !== _sbUser.id) → ігноруємо
+      });
+    } catch (_) {}
+
+    // ── Крок 2: завантажуємо список із сервера ───────────────────────────────
+    const { data: own, error: e1 } = await sb
+      .from("projects")
+      .select("id,name,sm,sy,nm,is_archived,updated_at")
+      .eq("owner_id", _sbUser.id)
+      .eq("is_archived", false)
+      .order("updated_at", { ascending: false });
+    if (e1) throw e1;
+
+    const { data: shared, error: e2 } = await sb
+      .from("project_shares")
+      .select("role, project:projects(id,name,sm,sy,nm,is_archived,updated_at)")
+      .eq("user_id", _sbUser.id);
+    if (e2) throw e2;
+
+    if (seq !== _apiLoadProjectsSeq) return;
+    const bufferNow = (() => {
+      try { return localStorage.getItem(SK_BUF) || ""; } catch (_) { return ""; }
+    })();
+    if (bufferNow !== bufferAtStart) {
+      await apiLoadProjects();
+      return;
+    }
+
+    // ── Крок 3: будуємо чистий allProjects ──────────────────────────────────
+    // Починаємо з офлайн-проєктів (вони не мають аналогів на сервері)
+    allProjects = { ...offlineNew };
+
+    const addServer = (list, isShared = false) => {
+      (list || []).forEach((item) => {
+        const p = isShared ? item.project : item;
+        if (!p) return;
+
+        // Шукаємо локальну копію цього серверного проєкту (за _serverId)
+        const local = Object.entries(localSynced)
+          .find(([, lp]) => lp._serverId === p.id);
+
+        if (local) {
+          // Є локальний стан з версіями → залишаємо (apiLoadProject вирішить sync/load)
+          allProjects[local[0]] = local[1];
+        } else {
+          // Новий для нас серверний проєкт → стаб, дані підтягнуться через apiLoadProject
+          allProjects[p.id] = {
+            proj: { name: p.name, sm: p.sm, sy: p.sy, nm: p.nm },
+            cats: [], tasks: [], nextN: 1,
+            _serverId: p.id,
+            _role:          isShared ? item.role : "owner",
+            _localVersion:  0,
+            _serverVersion: 0,
+          };
+        }
+      });
+    };
+
+    addServer(own);
+    addServer(shared, true);
+
+    if (!Object.keys(allProjects).length) initDefaultProject();
+    if (bufCurrentId && allProjects[bufCurrentId]) currentId = bufCurrentId;
+    else if (!currentId || !allProjects[currentId]) currentId = Object.keys(allProjects)[0];
+
+    updateProjSel();
+    loadCurrent();
+    render();
+
+    // ── Крок 4: синхронізуємо поточний проєкт ───────────────────────────────
+    if (currentId && allProjects[currentId]) {
+      await apiLoadProject(currentId);
+    }
+
+    // ── Крок 5: відправляємо офлайн-проєкти на сервер ───────────────────────
+    for (const id of Object.keys(offlineNew)) {
+      await apiCreateProject(id);
+    }
+
+  } catch (_) {}
+}
+
+/**
+ * Будує payload для upsert_tasks.
+ * Імена ключів JSON відповідають тому, що читає SQL-функція (t->>'...').
+ * Числові поля явно приводимо до цілих — функція очікує smallint/integer.
+ */
+function _buildTasksPayload(tasks) {
+  return (tasks || []).map((t, idx) => ({
+    id:        t.id   || null,
+    n:         Math.trunc(t.n   || 0),
+    order:     idx,
+    name:      t.name || "",
+    cat:       Math.trunc(t.cat  || 0),
+    ms:        Math.trunc(t.ms   || 0),
+    ws:        Math.trunc(t.ws   || 0),
+    me:        Math.trunc(t.me   || 0),
+    we:        Math.trunc(t.we   || 0),
+    prog:      Math.trunc(t.prog || 0),   // завжди ціле — smallint у БД
+    budget:    Number(t.budget)  || 0,
+    spent:     Number(t.spent)   || 0,
+    deps:      t.deps    || [],
+    phases:    t.phases  || null,
+    costItems: t.costItems || null,       // саме так читає SQL-функція: t->'costItems'
+    notes:     t.notes   || [],
+  }));
+}
+
+/** Записує поточний стан allProjects у буфер (з userId для ізоляції між акаунтами). */
+async function _assertSyncedTaskCount(serverId, expectedCount) {
+  const { count, error } = await sb
+    .from("tasks")
+    .select("id", { count: "exact", head: true })
+    .eq("project_id", serverId);
+  if (error) throw error;
+  if ((count || 0) !== expectedCount) {
+    throw new Error(`Synced task count mismatch: expected ${expectedCount}, got ${count || 0}`);
+  }
+}
+
+function _saveBuffer() {
+  try {
+    localStorage.setItem(SK_BUF, JSON.stringify({
+      allProjects, currentId, _userId: _sbUser?.id || null,
+    }));
+  } catch (_) {}
+}
+
+/**
+ * Завантажує проєкт із сервера.
+ * Логіка:
+ *   _localVersion > _serverVersion → є незбережені локальні зміни → push, не завантажуємо.
+ *   _localVersion === _serverVersion → нема змін → завантажуємо з сервера.
+ */
+async function apiLoadProject(localId) {
+  if (!_sbUser) return;
+  const serverId = allProjects[localId]?._serverId;
+  if (!serverId) return;
+
+  const lv = allProjects[localId]?._localVersion  || 0;
+  const sv = allProjects[localId]?._serverVersion || 0;
+
+  if (lv > sv) {
+    // Є несинхронізовані локальні зміни — відправляємо на сервер.
+    await apiSyncProject(localId);
+    return;
+  }
+
+  // Локальний стан синхронізований — завантажуємо з сервера (джерело правди).
+  try {
+    const { data, error } = await sb
+      .from("projects")
+      .select("id,name,sm,sy,nm,cats,next_n,baseline,baseline_date,owner_id")
+      .eq("id", serverId)
+      .single();
+    if (error) throw error;
+
+    if (data.owner_id === _sbUser.id) {
+      _projectRole = "owner";
+    } else {
+      const { data: share } = await sb
+        .from("project_shares")
+        .select("role")
+        .eq("project_id", serverId)
+        .eq("user_id", _sbUser.id)
+        .single();
+      _projectRole = share?.role || "viewer";
+    }
+
+    const { data: taskRows, error: te } = await sb
+      .from("tasks")
+      .select("id,n,order,name,cat,ms,ws,me,we,prog,budget,spent,deps,phases,cost_items,notes")
+      .eq("project_id", serverId)
+      .order("order", { ascending: true });
+    if (te) throw te;
+
+    const loadedTasks = (taskRows || []).map((t) => ({
+      id: t.id, n: t.n, name: t.name, cat: t.cat,
+      ms: t.ms, ws: t.ws, me: t.me, we: t.we, prog: t.prog,
+      budget: Number(t.budget), spent: Number(t.spent),
+      deps: t.deps || [], phases: t.phases || null,
+      costItems: t.cost_items || null, notes: t.notes || [],
+    }));
+
+    // Після завантаження з сервера версії вирівнюємо → lv === sv → "в синхроні"
+    const syncedVersion = lv;
+    allProjects[localId] = {
+      proj: {
+        name: data.name, sm: data.sm, sy: data.sy, nm: data.nm,
+        baseline: data.baseline, baselineDate: data.baseline_date,
+      },
+      cats:  data.cats || [],
+      tasks: loadedTasks,
+      nextN: data.next_n || 1,
+      _serverId:      data.id,
+      _role:          _projectRole,
+      _localVersion:  syncedVersion,
+      _serverVersion: syncedVersion,
+    };
+    _saveBuffer();
+    loadCurrent();
+    render();
+    _updateReadOnlyUI();
+  } catch (_) {}
+}
+
+/**
+ * Відправляє проєкт на сервер.
+ * Приймає idToSync — щоб коректно працювати після switchProject,
+ * коли currentId вже змінився, а дебаунс ще не спрацював.
+ */
+async function apiSyncProject(idToSync) {
+  if (!_sbUser) return;
+  const snapId  = idToSync || currentId;
+  if (!snapId) return;
+  const p       = allProjects[snapId];
+  if (!p) return;
+  const serverId = p._serverId;
+  if (!serverId) { await apiCreateProject(snapId); return; }
+  const role = p._role || (snapId === currentId ? _projectRole : null);
+  if (role === "viewer") return;
+
+  try {
+    // Перевіряємо, що проєкт ще існує на сервері
+    const { data: existing, error: checkErr } = await sb
+      .from("projects").select("id").eq("id", serverId).maybeSingle();
+    if (checkErr) throw checkErr;
+
+    if (!existing) {
+      if (allProjects[snapId]) allProjects[snapId]._serverId = null;
+      await apiCreateProject(snapId);
+      return;
+    }
+
+    // Паралельно оновлюємо метадані проєкту і задачі
+    const [projRes, tasksRes] = await Promise.all([
+      sb.from("projects").update({
+        name:          p.proj.name,
+        sm:            p.proj.sm,
+        sy:            p.proj.sy,
+        nm:            p.proj.nm,
+        cats:          p.cats,
+        next_n:        p.nextN,
+        baseline:      p.proj.baseline      || null,
+        baseline_date: p.proj.baselineDate  || null,
+        updated_at:    new Date().toISOString(),
+      }).eq("id", serverId),
+      sb.rpc("upsert_tasks", {
+        p_project_id: serverId,
+        p_tasks:      _buildTasksPayload(p.tasks),
+      }),
+    ]);
+
+    if (projRes.error)  throw projRes.error;
+    if (tasksRes.error) throw tasksRes.error;
+    await _assertSyncedTaskCount(serverId, (p.tasks || []).length);
+
+    // Обидва запити успішні — позначаємо проєкт як синхронізований.
+    // _serverVersion = _localVersion → наступний apiLoadProject не перезапише дані.
+    if (allProjects[snapId]) {
+      allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+      _saveBuffer();
+    }
+    _showSyncIndicator();
+
+  } catch (_) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+  }
+}
+
+async function apiCreateProject(idToCreate) {
+  if (!_sbUser) return;
+  const snapId = idToCreate || currentId;
+  if (!snapId || !allProjects[snapId]) return;
+  const p = allProjects[snapId];
+
+  const { data, error } = await sb
+    .from("projects")
+    .insert({
+      owner_id:      _sbUser.id,
+      name:          p.proj.name,
+      sm:            p.proj.sm,
+      sy:            p.proj.sy,
+      nm:            p.proj.nm,
+      cats:          p.cats,
+      next_n:        p.nextN,
+      baseline:      p.proj.baseline     || null,
+      baseline_date: p.proj.baselineDate || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) return;
+
+  allProjects[snapId]._serverId      = data.id;
+  allProjects[snapId]._role          = "owner";
+  if (snapId === currentId) _projectRole = "owner";
+  _saveBuffer();
+
+  try {
+    if ((p.tasks || []).length > 0) {
+      const { error: tasksError } = await sb.rpc("upsert_tasks", {
+        p_project_id: data.id,
+        p_tasks:      _buildTasksPayload(p.tasks),
+      });
+      if (tasksError) throw tasksError;
+    }
+    await _assertSyncedTaskCount(data.id, (p.tasks || []).length);
+
+    allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+    _saveBuffer();
+    _showSyncIndicator();
+  } catch (_) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+  }
+}
+
+async function apiDeleteProject(localId) {
+  if (!_sbUser) return;
+  const serverId = allProjects[localId]?._serverId;
+  if (!serverId) return;
+  await sb.from("projects").delete().eq("id", serverId);
+}
+
+/** Повертає список користувачів з доступом до поточного проєкту. */
+async function apiGetShares() {
+  const serverId = allProjects[currentId]?._serverId;
+  if (!serverId || !_sbUser) return [];
+
+  const { data, error } = await sb
+    .from("project_shares")
+    .select("id, role, user:profiles(id,name,email)")
+    .eq("project_id", serverId);
+
+  if (error) return [];
+  return data || [];
+}
+
+/** Надає доступ до проєкту за email. */
+async function apiShareProject(email, role = "viewer") {
+  const serverId = allProjects[currentId]?._serverId;
+  if (!serverId || !_sbUser) return;
+
+  const { data: profile } = await sb
+    .from("profiles")
+    .select("id, name")
+    .eq(
+      "id",
+      (
+        await sb
+          .from("profiles")
+          .select("id")
+          .eq("id", (await sb.rpc("get_user_id_by_email", { p_email: email })).data)
+          .single()
+      ).data?.id,
+    )
+    .single();
+
+  const { error } = await sb.from("project_shares").upsert(
+    {
+      project_id: serverId,
+      user_id: profile?.id,
+      role,
+      invited_by: _sbUser.id,
+    },
+    { onConflict: "project_id,user_id" },
+  );
+
+  if (error) throw new Error(error.message);
+}
+
+/** Змінює роль користувача у спільному доступі. */
+async function apiUpdateShareRole(shareId, role) {
+  const { error } = await sb.from("project_shares").update({ role }).eq("id", shareId);
+  if (error) throw new Error(error.message);
+}
+
+/** Видаляє запис спільного доступу. */
+async function apiRemoveShare(shareId) {
+  const { error } = await sb.from("project_shares").delete().eq("id", shareId);
+  if (error) throw new Error(error.message);
+}
+
+/** Блокує UI редагування для роль viewer. */
+function _updateReadOnlyUI() {
+  const readonly = isReadOnly();
+
+  const banner = document.getElementById("readonly-banner");
+  if (banner) banner.style.display = readonly ? "flex" : "none";
+
+  const gtbl = document.getElementById("gtbl-wrap");
+  if (gtbl) {
+    gtbl.style.pointerEvents = readonly ? "none" : "";
+    gtbl.style.opacity = readonly ? "0.85" : "";
+    gtbl.title = readonly ? "Режим перегляду — редагування заблоковано" : "";
+  }
+
+  const addBtn = document.querySelector(".btn-acc[onclick='openAdd()']");
+  if (addBtn) addBtn.style.display = readonly ? "none" : "";
+}
+
+async function openShareModal() {
+  const shares = await apiGetShares();
+  const role = _projectRole;
+
+  if (role !== "owner" && role !== "admin") {
+    Swal.fire({ icon: "info", title: "Тільки власник може керувати доступом" });
+    return;
+  }
+
+  const list = shares.length
+    ? shares
+        .map(
+          (s) => `
+        <div class="share-row">
+          <span>${s.user?.name || "—"}</span>
+          <select class="cost-sel" onchange="apiUpdateShareRole('${s.id}',this.value)">
+            <option value="viewer"${s.role === "viewer" ? " selected" : ""}>👁 Перегляд</option>
+            <option value="editor"${s.role === "editor" ? " selected" : ""}>✏ Редагування</option>
+            <option value="admin"${s.role === "admin" ? " selected" : ""}>⚙ Адмін</option>
+          </select>
+          <button class="cost-act-btn del" onclick="apiRemoveShare('${s.id}');openShareModal()">✕</button>
+        </div>`,
+        )
+        .join("")
+    : `<div class="share-empty">Нікому не надано доступ</div>`;
+
+  Swal.fire({
+    title: "👥 Спільний доступ",
+    html: `
+      <div class="share-modal-body">
+        <div class="share-proj-name">Проєкт: <b>${proj.name}</b></div>
+        <div class="share-list">${list}</div>
+        <hr class="share-divider">
+        <div class="share-add-title">Надати доступ:</div>
+        <div class="share-add-row">
+          <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
+          <select id="share-role" class="share-role-sel">
+            <option value="viewer">👁 Перегляд</option>
+            <option value="editor">✏ Редагування</option>
+          </select>
+        </div>
+        <div id="share-err" class="share-err"></div>
+      </div>`,
+    showCancelButton: true,
+    confirmButtonText: "Надати доступ",
+    cancelButtonText: "Закрити",
+    preConfirm: async () => {
+      const email = document.getElementById("share-email").value.trim();
+      const role = document.getElementById("share-role").value;
+      if (!email) { Swal.showValidationMessage("Введіть email"); return false; }
+      try {
+        await apiShareProject(email, role);
+      } catch (err) {
+        Swal.showValidationMessage(err.message);
+        return false;
+      }
+    },
+  });
+}
+
+let _syncTimer = null;
+function _showSyncIndicator() {
+  if (typeof setUserSyncStatus === "function") {
+    setUserSyncStatus("syncing");
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => setUserSyncStatus("ok"), 1800);
+  }
+}
+
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === "INITIAL_SESSION" && session?.user) {
+    _sbUser = session.user;
+    _sbProfile = await _loadProfile();
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+    else updateUserBtn();
+    await apiLoadProjects();
+  } else if (event === "TOKEN_REFRESHED" && session?.user) {
+    _sbUser = session.user;
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+    else updateUserBtn();
+  } else if (event === "SIGNED_OUT") {
+    _sbUser = _sbProfile = _projectRole = null;
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("offline");
+    else updateUserBtn();
+    _updateReadOnlyUI();
+  } else if (event === "USER_UPDATED" && session?.user) {
+    _sbUser = session.user;
+    _sbProfile = await _loadProfile();
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+    else updateUserBtn();
+  }
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  sb.auth.getSession().then(({ data: { session } }) => {
+    if (!session) updateUserBtn();
+  });
+});
