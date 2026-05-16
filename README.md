@@ -155,6 +155,8 @@ const SUPABASE_KEY = "your-public-key";
 - **[docs/API.md](docs/API.md)** — REST API для резервного бекенду
 - **[docs/DATABASE.md](docs/DATABASE.md)** — схема Supabase та RLS
 - **[docs/ROLES_AND_SHARING_PLAN.md](docs/ROLES_AND_SHARING_PLAN.md)** — контроль доступу та спільний доступ
+- **[docs/TECH_MIGRATION_PLAN.md](docs/TECH_MIGRATION_PLAN.md)** — технічний план міграції та поетапної модернізації
+- **[docs/PHASE1_IMPLEMENTATION_BACKLOG.md](docs/PHASE1_IMPLEMENTATION_BACKLOG.md)** — backlog найближчої реалізації granular project roles
 
 ## PWA та Офлайн
 
