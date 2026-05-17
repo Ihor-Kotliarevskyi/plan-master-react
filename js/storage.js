@@ -25,7 +25,14 @@ function saveAll() {
     _localVersion:  (prev?._localVersion  || 0) + 1,
     _serverVersion: prev?._serverVersion  || 0,
     ...(prev?._serverId ? { _serverId: prev._serverId } : {}),
-    ...(prev?._role     ? { _role:     prev._role     } : {}),
+    ...(prev?._role
+      ? {
+          _role:
+            typeof normalizeProjectRole === "function"
+              ? normalizeProjectRole(prev._role, prev._role)
+              : prev._role,
+        }
+      : {}),
   };
 
   try {
@@ -74,6 +81,13 @@ function loadAll() {
     const d = JSON.parse(localStorage.getItem(SK_BUF));
     if (d?.allProjects && Object.keys(d.allProjects).length) {
       allProjects = d.allProjects;
+      if (typeof normalizeProjectRole === "function") {
+        Object.values(allProjects).forEach((projectSnap) => {
+          if (projectSnap && projectSnap._role) {
+            projectSnap._role = normalizeProjectRole(projectSnap._role, projectSnap._role);
+          }
+        });
+      }
       currentId   = d.currentId || Object.keys(d.allProjects)[0];
     } else {
       initDefaultProject();

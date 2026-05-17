@@ -75,6 +75,7 @@ function renderCostTable() {
   if (typeof _updateAutoBadges === "function") _updateAutoBadges(_costItems.length > 0);
   if (typeof updCalc === "function") updCalc();
   lucide.createIcons({ nodes: [document.getElementById("cost-tbody")] });
+  if (typeof _applyTaskModalPermissions === "function") _applyTaskModalPermissions();
 }
 
 function _renderCostRow(it) {
@@ -192,6 +193,7 @@ function _refreshTotals() {
 }
 
 function addCostItem(type = "material") {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
   _costItems.push({
     id: _nextCostId(),
@@ -213,6 +215,7 @@ function addCostItem(type = "material") {
 }
 
 function deleteCostItem(id) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
   _costItems = _costItems.filter((it) => it.id !== id);
   _expandedIds.delete(id);
@@ -220,6 +223,7 @@ function deleteCostItem(id) {
 }
 
 function setCostField(id, field, value) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   const it = _costItems.find((it) => it.id === id);
   if (!it) return;
   it[field] = value === "__custom" ? "" : value;
@@ -227,6 +231,7 @@ function setCostField(id, field, value) {
 }
 
 function setCostContractNo(id, value) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   const it = _costItems.find((it) => it.id === id);
   if (!it) return;
   it.contractNo = value;
@@ -234,6 +239,7 @@ function setCostContractNo(id, value) {
 }
 
 function toggleCostPayments(id) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
   if (_expandedIds.has(id)) _expandedIds.delete(id);
   else _expandedIds.add(id);
@@ -241,6 +247,7 @@ function toggleCostPayments(id) {
 }
 
 function addPayment(itemId) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
   const it = _costItems.find((it) => it.id === itemId);
   if (!it) return;
@@ -261,6 +268,7 @@ function addPayment(itemId) {
 }
 
 function deletePayment(itemId, pi) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
   const it = _costItems.find((it) => it.id === itemId);
   if (it?.payments) {
@@ -270,6 +278,7 @@ function deletePayment(itemId, pi) {
 }
 
 function setPayField(itemId, pi, field, value) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   const it = _costItems.find((it) => it.id === itemId);
   if (it?.payments?.[pi]) it.payments[pi][field] = value;
 }

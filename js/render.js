@@ -170,7 +170,7 @@ function renderTable() {
   const now = new Date();
   const curMonthIdx = (now.getFullYear() - proj.sy) * 12 + (now.getMonth() - proj.sm);
 
-  const canAdd = typeof canEdit === "function" ? canEdit() : true;
+  const canAdd = typeof canEditTasks === "function" ? canEditTasks() : true;
 
   // Build year groups from visible months
   const visibleMonths = ml.slice(visMonthStart);

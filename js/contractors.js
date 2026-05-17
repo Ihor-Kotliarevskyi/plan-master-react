@@ -356,7 +356,7 @@ function _syncContractorControls() {
         : ""}`;
   }
 
-  const canImport = typeof canEdit === "function" ? canEdit() : true;
+  const canImport = typeof canEditTasks === "function" ? canEditTasks() : true;
   document.querySelectorAll(".contractor-import-btn").forEach((el) => {
     el.classList.toggle("disabled", !canImport);
     el.style.display = canImport ? "inline-flex" : "none";
@@ -1658,7 +1658,7 @@ function syncPaymentAddActs(supplier) {
 function openContractorEntryModal(prefillSupplier = "", lockSupplier = false) {
   prefillSupplier = decodeURIComponent(prefillSupplier || "");
   _contractorEntryEditPath = null;
-  if (typeof canEdit === "function" && !canEdit()) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) {
     Swal.fire({
       toast: true,
       position: "top-end",
@@ -1747,7 +1747,7 @@ function addContractorContractRow() {
 }
 
 function saveContractorEntry() {
-  if (typeof canEdit === "function" && !canEdit()) return;
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
 
   const supplier = _ctText(document.getElementById("ce-supplier")?.value);
   if (!supplier) {
@@ -2118,7 +2118,7 @@ function importContractorTable(event) {
   event.target.value = "";
   if (!file) return;
 
-  if (typeof canEdit === "function" && !canEdit()) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) {
     Swal.fire({
       toast: true,
       position: "top-end",

@@ -117,7 +117,7 @@ function _renderUserModal() {
   const initial = (p.name || "?")[0].toUpperCase();
   const avatarLarge = p.avatar
     ? `<img src="${p.avatar}" alt="avatar" class="user-avatar-large-img" />`
-    : `<span>${initial}</span>`;
+    : `<span id="um-avatar-initial">${initial}</span>`;
 
   document.getElementById("user-modal-body").innerHTML = `
     <div class="um-cols">
@@ -189,7 +189,14 @@ function _renderUserModal() {
         <div class="um-user-card">
           <div class="user-avatar-large" id="um-avatar-preview">${avatarLarge}</div>
           <div class="um-user-info">
-            <strong id="um-name-preview" class="um-user-name">${_esc(p.name)}</strong>
+            <label for="um-name" class="user-inline-label">Ім'я</label>
+            <input
+              id="um-name"
+              class="user-inline-input"
+              value="${_esc(p.name)}"
+              placeholder="Введіть ім'я"
+              oninput="_syncUserNamePreview(this.value)"
+            />
             <span class="user-email-hint">${_esc(p.email) || "email не вказано"}</span>
             <div class="user-avatar-actions">
               <label class="avatar-upload-btn">
@@ -198,17 +205,6 @@ function _renderUserModal() {
                        onchange="handleAvatarUpload(event)" />
               </label>
               ${p.avatar ? `<button class="avatar-clear-btn" onclick="clearAvatar()"><i data-lucide="x"></i></button>` : ""}
-            </div>
-          </div>
-        </div>
-
-        <div class="settings-section">
-          <div class="settings-section-title">Особисті дані</div>
-          <div class="settings-section-body">
-            <div class="fg">
-              <label>Ім'я</label>
-              <input id="um-name" value="${_esc(p.name)}" placeholder="Введіть ім'я"
-                     oninput="document.getElementById('um-name-preview').textContent=this.value||'—'" />
             </div>
           </div>
         </div>
@@ -260,13 +256,15 @@ function _renderAccountSection(loggedIn, sbp, p) {
 function _renderAuthForm(tab) {
   const isLogin = tab === "login";
   return `
-    ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
-    <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
-    <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
-    <div id="auth-error" class="auth-error" style="display:none"></div>
-    <button class="btn btn-acc auth-submit-btn" onclick="_submitAuthInCabinet('${tab}')">
-      ${isLogin ? "Увійти" : "Зареєструватись"}
-    </button>`;
+    <div class="auth-form">
+      ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
+      <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
+      <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
+      <div id="auth-error" class="auth-error" style="display:none"></div>
+      <button class="btn btn-acc auth-submit-btn" type="button" onclick="_submitAuthInCabinet('${tab}')">
+        ${isLogin ? "Увійти" : "Зареєструватись"}
+      </button>
+    </div>`;
 }
 
 function _switchAuthTab(tab) {
@@ -275,6 +273,12 @@ function _switchAuthTab(tab) {
   document.getElementById("atab-register").className =
     "btn btn-sm" + (tab === "register" ? " btn-acc" : "");
   document.getElementById("auth-tab-body").innerHTML = _renderAuthForm(tab);
+}
+
+function _syncUserNamePreview(value) {
+  const nextName = (value || "").trim();
+  const avatarInitial = document.getElementById("um-avatar-initial");
+  if (avatarInitial) avatarInitial.textContent = (nextName || "?")[0].toUpperCase();
 }
 
 async function _submitAuthInCabinet(tab) {

@@ -10,6 +10,7 @@
 - `projects`
 - `tasks`
 - `project_shares`
+- `activity_log`
 
 Основний RPC:
 
@@ -229,9 +230,14 @@
 
 - `viewer`
 - `editor`
-- `admin`
+- `manager`
 
 `owner` у поточному коді не зберігається як рядок у `project_shares`; власник визначається через `projects.owner_id`.
+
+Примітка щодо сумісності:
+
+- legacy-значення `admin` ще може траплятися в старих даних
+- активний клієнт нормалізує `admin` до `manager`
 
 ## RLS — фактична модель доступу
 
@@ -239,15 +245,67 @@
 
 - `SELECT`: власник або користувач, присутній у `project_shares`
 - `INSERT`: автентифікований користувач з `owner_id = auth.uid()`
-- `UPDATE`: власник або роль `editor/admin`
+- `UPDATE`: власник або роль `editor/manager`
 - `DELETE`: тільки власник
+
+Технічне уточнення:
+
+- у поточному клієнті `apiSyncProject()` оновлює і `projects`, і `tasks` в одному sync-flow
+- тому `editor` тимчасово зберігає `UPDATE` для `projects`, навіть якщо бізнесово `project settings` уже обмежуються через capability layer
 
 ### `project_shares`
 
-- `SELECT`: власник проєкту або сам запрошений
-- `INSERT`: власник або `admin`
-- `UPDATE`: власник або `admin`
-- `DELETE`: власник або `admin`
+- `SELECT`: власник проєкту, `manager` або сам запрошений
+- `INSERT`: власник або `manager`
+- `UPDATE`: власник або `manager`
+- `DELETE`: власник або `manager`
+
+## `activity_log`
+
+Backend-first audit foundation uses:
+
+- `id uuid`
+- `project_id uuid`
+- `actor_id uuid`
+- `actor_name text`
+- `actor_email text`
+- `event_type text`
+- `entity_type text`
+- `entity_id text`
+- `payload jsonb`
+- `created_at timestamptz`
+
+Current intended event families:
+
+- `task.created`
+- `task.updated`
+- `task.deleted`
+- `project.settings_updated`
+- `project.baseline_saved`
+- `project.baseline_cleared`
+- `share.granted`
+- `share.role_updated`
+- `share.revoked`
+
+Payload contract:
+
+- top-level `entity_type` and `entity_id` live in dedicated columns
+- `payload` stores only event-specific details
+- task events should prefer `taskN`, `taskName`, and compact flags such as `hasPhases`
+- project mutation events may store `before` / `after`
+- share events may store `email` and `role`
+
+RLS model:
+
+- `INSERT`: authenticated user with `actor_id = auth.uid()` and any project membership
+- `SELECT`: `owner`, `manager`, `editor`
+- `UPDATE` / `DELETE`: not granted to `authenticated`
+
+Implementation note:
+
+- foundation starts as backend-first logging
+- current client contract can already read raw events through `apiGetActivityLog()`
+- timeline/UI can be added later without changing the event storage contract
 
 ### `tasks`
 

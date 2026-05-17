@@ -126,6 +126,33 @@ function getProjectPermissions(role) {
 
 ## Backlog по шарах
 
+### 0. Supabase середовище для міграцій
+
+Мета:
+
+- не тестувати зміни ролей, constraints і RLS напряму на робочій базі
+
+Рішення:
+
+- для цього клону варто створити окремий Supabase project як staging/dev середовище
+- production Supabase project залишити без змін до перевірки Phase 1
+- URL і publishable key винести з `js/supabase-api.js` у конфігурацію на наступному технічному етапі
+
+Чому це потрібно:
+
+- перехід `admin -> manager` зачіпає існуючі записи `project_shares`
+- RLS-помилки часто проявляються як "0 rows updated/selected", а не як явна помилка
+- окремий project дозволить прогнати сценарії `owner/manager/editor/viewer` без ризику для реальних даних
+
+Мінімальний порядок:
+
+1. створити окремий Supabase project
+2. перенести поточну схему
+3. перенести мінімальні seed-дані або тестових користувачів
+4. виконати role/RLS migration
+5. перевірити сценарії доступів
+6. лише після цього повторити міграцію на production
+
 ### 1. База даних і RLS
 
 Мета:

@@ -5,8 +5,13 @@
  * RPC: upsert_tasks(p_project_id, p_tasks), get_user_id_by_email(p_email).
  */
 
-const SUPABASE_URL = "https://obltmniiuohjnualkvln.supabase.co";
-const SUPABASE_KEY = "sb_publishable_abEL79y0UsErLcXAyhgVAQ_6AJOOCSN";
+const SUPABASE_ENV = window.__PLAN_MASTER_ENV__ || {};
+const SUPABASE_URL = SUPABASE_ENV.SUPABASE_URL || "";
+const SUPABASE_KEY = SUPABASE_ENV.SUPABASE_PUBLISHABLE_KEY || "";
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error("Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.");
+}
 
 const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -17,21 +22,26 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
   },
 });
 
+function _getAuthRedirectUrl() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
 let _sbUser = null;
 let _sbProfile = null;
 let _projectRole = null;
 let _apiLoadProjectsSeq = 0;
 
 function isLoggedIn() { return !!_sbUser; }
-function isReadOnly() { return _projectRole === "viewer"; }
-function canEdit() { return !isReadOnly(); }
 
 async function apiRegister(name, email, password) {
   _sbUser = _sbProfile = _projectRole = null;
   const { data, error } = await sb.auth.signUp({
     email,
     password,
-    options: { data: { name } },
+    options: {
+      data: { name },
+      emailRedirectTo: _getAuthRedirectUrl(),
+    },
   });
   if (error) throw new Error(error.message);
   if (!data.user) throw new Error("Перевірте пошту для підтвердження реєстрації");
@@ -54,8 +64,9 @@ async function apiLogin(email, password) {
 async function apiLogout() {
   // Спочатку синхронізуємо незбережені зміни
   if (currentId && isLoggedIn()) {
-    const lv = allProjects[currentId]?._localVersion  || 0;
-    const sv = allProjects[currentId]?._serverVersion || 0;
+    const currentProject = getCurrentProjectSnapshot();
+    const lv = currentProject?._localVersion || 0;
+    const sv = currentProject?._serverVersion || 0;
     if (lv > sv) {
       try { await apiSyncProject(currentId); } catch (_) {}
     }
@@ -185,7 +196,7 @@ async function apiLoadProjects() {
             proj: { name: p.name, sm: p.sm, sy: p.sy, nm: p.nm },
             cats: [], tasks: [], nextN: 1,
             _serverId: p.id,
-            _role:          isShared ? item.role : "owner",
+            _role:          isShared ? normalizeProjectRole(item.role) : "owner",
             _localVersion:  0,
             _serverVersion: 0,
           };
@@ -271,11 +282,12 @@ function _saveBuffer() {
  */
 async function apiLoadProject(localId) {
   if (!_sbUser) return;
-  const serverId = allProjects[localId]?._serverId;
+  const localProject = getProjectSnapshot(localId);
+  const serverId = getProjectServerId(localId);
   if (!serverId) return;
 
-  const lv = allProjects[localId]?._localVersion  || 0;
-  const sv = allProjects[localId]?._serverVersion || 0;
+  const lv = localProject?._localVersion || 0;
+  const sv = localProject?._serverVersion || 0;
 
   if (lv > sv) {
     // Є несинхронізовані локальні зміни — відправляємо на сервер.
@@ -292,17 +304,17 @@ async function apiLoadProject(localId) {
       .single();
     if (error) throw error;
 
-    if (data.owner_id === _sbUser.id) {
-      _projectRole = "owner";
-    } else {
+    let resolvedRole = "owner";
+    if (data.owner_id !== _sbUser.id) {
       const { data: share } = await sb
         .from("project_shares")
         .select("role")
         .eq("project_id", serverId)
         .eq("user_id", _sbUser.id)
         .single();
-      _projectRole = share?.role || "viewer";
+      resolvedRole = normalizeProjectRole(share?.role || "viewer");
     }
+    setProjectRole(localId, resolvedRole);
 
     const { data: taskRows, error: te } = await sb
       .from("tasks")
@@ -330,7 +342,7 @@ async function apiLoadProject(localId) {
       tasks: loadedTasks,
       nextN: data.next_n || 1,
       _serverId:      data.id,
-      _role:          _projectRole,
+      _role:          getStoredProjectRole(localId, resolvedRole),
       _localVersion:  syncedVersion,
       _serverVersion: syncedVersion,
     };
@@ -350,12 +362,12 @@ async function apiSyncProject(idToSync) {
   if (!_sbUser) return;
   const snapId  = idToSync || currentId;
   if (!snapId) return;
-  const p       = allProjects[snapId];
+  const p       = getProjectSnapshot(snapId);
   if (!p) return;
-  const serverId = p._serverId;
+  const serverId = getProjectServerId(snapId);
   if (!serverId) { await apiCreateProject(snapId); return; }
-  const role = p._role || (snapId === currentId ? _projectRole : null);
-  if (role === "viewer") return;
+  const role = getStoredProjectRole(snapId, "viewer");
+  if (!canEditTasks(role)) return;
 
   try {
     // Перевіряємо, що проєкт ще існує на сервері
@@ -364,7 +376,7 @@ async function apiSyncProject(idToSync) {
     if (checkErr) throw checkErr;
 
     if (!existing) {
-      if (allProjects[snapId]) allProjects[snapId]._serverId = null;
+      p._serverId = null;
       await apiCreateProject(snapId);
       return;
     }
@@ -408,8 +420,8 @@ async function apiSyncProject(idToSync) {
 async function apiCreateProject(idToCreate) {
   if (!_sbUser) return;
   const snapId = idToCreate || currentId;
-  if (!snapId || !allProjects[snapId]) return;
-  const p = allProjects[snapId];
+  const p = getProjectSnapshot(snapId);
+  if (!snapId || !p) return;
 
   const { data, error } = await sb
     .from("projects")
@@ -429,9 +441,8 @@ async function apiCreateProject(idToCreate) {
 
   if (error) return;
 
-  allProjects[snapId]._serverId      = data.id;
-  allProjects[snapId]._role          = "owner";
-  if (snapId === currentId) _projectRole = "owner";
+  p._serverId = data.id;
+  setProjectOwnerRole(snapId);
   _saveBuffer();
 
   try {
@@ -454,14 +465,39 @@ async function apiCreateProject(idToCreate) {
 
 async function apiDeleteProject(localId) {
   if (!_sbUser) return;
-  const serverId = allProjects[localId]?._serverId;
+  const serverId = getProjectServerId(localId);
   if (!serverId) return;
   await sb.from("projects").delete().eq("id", serverId);
 }
 
+async function apiLogActivity(eventType, payload = {}) {
+  if (!_sbUser) return;
+  const serverId = getCurrentProjectServerId();
+  if (!serverId) return;
+
+  const entityType = payload.entityType || "project";
+  const entityId = payload.entityId != null ? String(payload.entityId) : null;
+  const details = { ...payload };
+  delete details.entityType;
+  delete details.entityId;
+
+  const { error } = await sb.from("activity_log").insert({
+    project_id: serverId,
+    actor_id: _sbUser.id,
+    actor_name: _sbProfile?.name || _sbUser?.user_metadata?.name || null,
+    actor_email: _sbUser?.email || null,
+    event_type: eventType,
+    entity_type: entityType,
+    entity_id: entityId,
+    payload: details,
+  });
+
+  if (error) throw error;
+}
+
 /** Повертає список користувачів з доступом до поточного проєкту. */
 async function apiGetShares() {
-  const serverId = allProjects[currentId]?._serverId;
+  const serverId = getCurrentProjectServerId();
   if (!serverId || !_sbUser) return [];
 
   const { data, error } = await sb
@@ -475,8 +511,12 @@ async function apiGetShares() {
 
 /** Надає доступ до проєкту за email. */
 async function apiShareProject(email, role = "viewer") {
-  const serverId = allProjects[currentId]?._serverId;
+  const serverId = getCurrentProjectServerId();
   if (!serverId || !_sbUser) return;
+  if (!canInviteUsers()) throw new Error("У вас немає прав на запрошення користувачів");
+
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
 
   const { data: profile } = await sb
     .from("profiles")
@@ -497,30 +537,59 @@ async function apiShareProject(email, role = "viewer") {
     {
       project_id: serverId,
       user_id: profile?.id,
-      role,
+      role: shareRole,
       invited_by: _sbUser.id,
     },
     { onConflict: "project_id,user_id" },
   );
 
   if (error) throw new Error(error.message);
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, profile?.id || email, {
+    email,
+    role: shareRole,
+  });
 }
 
 /** Змінює роль користувача у спільному доступі. */
 async function apiUpdateShareRole(shareId, role) {
-  const { error } = await sb.from("project_shares").update({ role }).eq("id", shareId);
+  if (!canManageShares()) throw new Error("У вас немає прав на зміну доступу");
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+
+  const { error } = await sb.from("project_shares").update({ role: shareRole }).eq("id", shareId);
   if (error) throw new Error(error.message);
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_ROLE_UPDATED, shareId, {
+    role: shareRole,
+  });
 }
 
 /** Видаляє запис спільного доступу. */
 async function apiRemoveShare(shareId) {
+  if (!canManageShares()) throw new Error("У вас немає прав на видалення доступу");
   const { error } = await sb.from("project_shares").delete().eq("id", shareId);
   if (error) throw new Error(error.message);
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_REVOKED, shareId);
 }
 
-/** Блокує UI редагування для роль viewer. */
+/** Блокує UI-дії відповідно до capability поточної ролі. */
+async function apiGetActivityLog(limit = 100) {
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !_sbUser) return [];
+
+  const { data, error } = await sb
+    .from("activity_log")
+    .select("id, project_id, actor_id, actor_name, actor_email, event_type, entity_type, entity_id, payload, created_at")
+    .eq("project_id", serverId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+
+  if (error) throw new Error(error.message);
+  return data || [];
+}
+
 function _updateReadOnlyUI() {
-  const readonly = isReadOnly();
+  const readonly = !canEditTasks();
+  const canShare = canManageShares();
 
   const banner = document.getElementById("readonly-banner");
   if (banner) banner.style.display = readonly ? "flex" : "none";
@@ -534,30 +603,39 @@ function _updateReadOnlyUI() {
 
   const addBtn = document.querySelector(".btn-acc[onclick='openAdd()']");
   if (addBtn) addBtn.style.display = readonly ? "none" : "";
+
+  const shareBtn = document.getElementById("share-btn");
+  if (shareBtn) shareBtn.style.display = isLoggedIn() && canShare ? "" : "none";
 }
 
 async function openShareModal() {
   const shares = await apiGetShares();
-  const role = _projectRole;
 
-  if (role !== "owner" && role !== "admin") {
-    Swal.fire({ icon: "info", title: "Тільки власник може керувати доступом" });
+  if (!canManageShares()) {
+    Swal.fire({ icon: "info", title: "У вас немає прав на керування доступом" });
     return;
   }
+
+  const roleOptions = SHAREABLE_PROJECT_ROLES.map(
+    (role) => `<option value="${role}">${PROJECT_ROLE_LABELS[role]}</option>`,
+  ).join("");
 
   const list = shares.length
     ? shares
         .map(
-          (s) => `
+          (s) => {
+            const shareRole = normalizeProjectRole(s.role);
+            return `
         <div class="share-row">
           <span>${s.user?.name || "—"}</span>
           <select class="cost-sel" onchange="apiUpdateShareRole('${s.id}',this.value)">
-            <option value="viewer"${s.role === "viewer" ? " selected" : ""}>👁 Перегляд</option>
-            <option value="editor"${s.role === "editor" ? " selected" : ""}>✏ Редагування</option>
-            <option value="admin"${s.role === "admin" ? " selected" : ""}>⚙ Адмін</option>
+            ${SHAREABLE_PROJECT_ROLES.map(
+              (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${PROJECT_ROLE_LABELS[role]}</option>`,
+            ).join("")}
           </select>
           <button class="cost-act-btn del" onclick="apiRemoveShare('${s.id}');openShareModal()">✕</button>
-        </div>`,
+        </div>`;
+          },
         )
         .join("")
     : `<div class="share-empty">Нікому не надано доступ</div>`;
@@ -573,8 +651,7 @@ async function openShareModal() {
         <div class="share-add-row">
           <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
           <select id="share-role" class="share-role-sel">
-            <option value="viewer">👁 Перегляд</option>
-            <option value="editor">✏ Редагування</option>
+            ${roleOptions}
           </select>
         </div>
         <div id="share-err" class="share-err"></div>
@@ -605,13 +682,18 @@ function _showSyncIndicator() {
   }
 }
 
+async function _hydrateSession(session, { loadProjects = true } = {}) {
+  if (!session?.user) return;
+  _sbUser = session.user;
+  _sbProfile = await _loadProfile();
+  if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+  else updateUserBtn();
+  if (loadProjects) await apiLoadProjects();
+}
+
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === "INITIAL_SESSION" && session?.user) {
-    _sbUser = session.user;
-    _sbProfile = await _loadProfile();
-    if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
-    else updateUserBtn();
-    await apiLoadProjects();
+  if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session?.user) {
+    await _hydrateSession(session, { loadProjects: true });
   } else if (event === "TOKEN_REFRESHED" && session?.user) {
     _sbUser = session.user;
     if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
@@ -630,7 +712,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-  sb.auth.getSession().then(({ data: { session } }) => {
-    if (!session) updateUserBtn();
+  sb.auth.getSession().then(async ({ data: { session } }) => {
+    if (session?.user) {
+      await _hydrateSession(session, { loadProjects: false });
+      return;
+    }
+    updateUserBtn();
   });
 });

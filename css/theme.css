@@ -361,6 +361,29 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.user-inline-label {
+  font-size: 11px;
+  color: var(--txt3);
+  font-weight: 600;
+}
+.user-inline-input {
+  width: 100%;
+  font-size: 13px;
+  padding: 6px 9px;
+  border: 1px solid var(--bord2);
+  border-radius: 5px;
+  background: var(--surf);
+  color: var(--txt);
+  font-family: inherit;
+  outline: none;
+}
+.user-inline-input:hover {
+  border-color: var(--acc);
+}
+.user-inline-input:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 2px rgba(30, 80, 200, 0.12);
+}
 
 /* Старий стиль (залишаємо для сумісності) */
 .user-modal-body {
@@ -537,6 +560,11 @@
   line-height: 1.5;
   margin-bottom: 4px;
 }
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 .auth-tabs {
   display: flex;
   gap: 6px;
@@ -602,4 +630,9 @@
 }
 [data-theme="dark"] .avatar-upload-btn:hover {
   background: var(--bord);
+}
+[data-theme="dark"] .user-inline-input {
+  background: var(--surf2);
+  border-color: var(--bord2);
+  color: var(--txt);
 }
