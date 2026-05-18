@@ -8,6 +8,50 @@ function setUserSyncStatus(status) {
   updateUserBtn();
 }
 
+function getProjectSyncState(projectId = currentId) {
+  const snap = projectId && allProjects ? allProjects[projectId] : null;
+  const localVersion = snap?._localVersion || 0;
+  const serverVersion = snap?._serverVersion || 0;
+  const hasServerCopy = !!snap?._serverId;
+  const hasLocalChanges = hasServerCopy ? localVersion > serverVersion : localVersion > 0;
+  const updatedAt = snap?._localUpdatedAt || null;
+
+  return {
+    snap,
+    hasServerCopy,
+    hasLocalChanges,
+    localVersion,
+    serverVersion,
+    updatedAt,
+  };
+}
+
+function getCurrentSyncBadge() {
+  const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  if (!loggedIn) return { status: "offline", label: "Синхронізація вимкнена" };
+  if (_userSyncStatus === "error") return { status: "error", label: "Помилка синхронізації" };
+  if (_userSyncStatus === "syncing") return { status: "syncing", label: "Триває синхронізація" };
+  if (getProjectSyncState().hasLocalChanges) {
+    return { status: "warn", label: "Є локальні зміни, що ще не відправлені" };
+  }
+  return { status: "ok", label: "Синхронізація увімкнена" };
+}
+
+function refreshUserSyncStatus(preferredStatus = null) {
+  const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  let nextStatus = preferredStatus;
+
+  if (!nextStatus) {
+    if (!loggedIn) nextStatus = "offline";
+    else if (!navigator.onLine) nextStatus = "warn";
+    else nextStatus = getProjectSyncState().hasLocalChanges ? "warn" : "ok";
+  }
+
+  _userSyncStatus = nextStatus;
+  updateUserBtn();
+  return nextStatus;
+}
+
 
 const ROLES = {
   guest: { label: "Гість", cls: "guest" },
@@ -81,7 +125,7 @@ function updateUserBtn() {
     ? `<img src="${avatar}" alt="avatar" class="user-avatar-img" />`
     : initial;
 
-  const status = loggedIn ? _userSyncStatus : "offline";
+  const status = getCurrentSyncBadge().status;
   btn.innerHTML = `
     <div class="user-avatar-wrap">
       <div class="user-avatar">${avatarHTML}</div>
@@ -217,6 +261,11 @@ function _renderUserModal() {
 }
 
 function _renderAccountSection(loggedIn, sbp, p) {
+  const syncBadge = getCurrentSyncBadge();
+  const projectSync = getProjectSyncState();
+  const syncMeta = projectSync.updatedAt
+    ? `<div class="account-sync-meta">Остання локальна зміна: ${new Date(projectSync.updatedAt).toLocaleString("uk-UA")}</div>`
+    : "";
   if (loggedIn && sbp) {
     return `
     <div class="settings-section">
@@ -227,12 +276,13 @@ function _renderAccountSection(loggedIn, sbp, p) {
           <span class="account-email">${_esc(p.email)}</span>
         </div>
         <div class="setting-row" style="margin-top:8px">
-          <label class="sync-enabled-lbl">● Синхронізація увімкнена</label>
+          <label class="sync-enabled-lbl">● ${_esc(syncBadge.label)}</label>
           <button class="btn btn-sm btn-danger"
             onclick="closeUserModal();apiLogout().then(()=>{ updateUserBtn(); })">
             Вийти
           </button>
         </div>
+        ${syncMeta}
       </div>
     </div>`;
   }
@@ -319,12 +369,13 @@ async function _submitAuthInCabinet(tab) {
 
     updateUserBtn();
 
+    const localProjectState = getProjectSyncState();
     const localUnsynced =
       currentId &&
-      allProjects[currentId] &&
-      !allProjects[currentId]._serverId &&
-      allProjects[currentId]._localUpdatedAt &&
-      allProjects[currentId].tasks?.length > 0;
+      localProjectState.snap &&
+      !localProjectState.hasServerCopy &&
+      localProjectState.updatedAt &&
+      localProjectState.snap.tasks?.length > 0;
 
     if (localUnsynced) {
       const { isConfirmed } = await Swal.fire({
@@ -334,7 +385,7 @@ async function _submitAuthInCabinet(tab) {
           <div class="swal-info-text">
             <p>Ви працювали без акаунту. Знайдено локальний проєкт:</p>
             <b>${proj.name || "Без назви"}</b>
-            <p class="swal-meta">Змінено: ${new Date(allProjects[currentId]._localUpdatedAt).toLocaleString("uk-UA")}</p>
+            <p class="swal-meta">Змінено: ${new Date(localProjectState.updatedAt).toLocaleString("uk-UA")}</p>
             <p>Що зробити з локальними даними?</p>
           </div>`,
         showCancelButton: true,

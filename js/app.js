@@ -475,6 +475,7 @@ function importJSON(e) {
           cats: d.cats || DEF_CATS.map((c) => ({ ...c })),
           tasks: importedTasks,
           nextN: maxN + 1,
+          _localUpdatedAt: new Date().toISOString(),
           _localVersion: 1, _serverVersion: 0,
           _role: "owner",
         };

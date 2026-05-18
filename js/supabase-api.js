@@ -82,7 +82,8 @@ async function apiLogout() {
   initDefaultProject();
   loadCurrent();
   render();
-  updateUserBtn();
+  if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus("offline");
+  else updateUserBtn();
 }
 
 async function apiGetMe() {
@@ -214,6 +215,7 @@ async function apiLoadProjects() {
     updateProjSel();
     loadCurrent();
     render();
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
 
     // ── Крок 4: синхронізуємо поточний проєкт ───────────────────────────────
     if (currentId && allProjects[currentId]) {
@@ -350,6 +352,7 @@ async function apiLoadProject(localId) {
     loadCurrent();
     render();
     _updateReadOnlyUI();
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
   } catch (_) {}
 }
 
@@ -678,7 +681,10 @@ function _showSyncIndicator() {
   if (typeof setUserSyncStatus === "function") {
     setUserSyncStatus("syncing");
     clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(() => setUserSyncStatus("ok"), 1800);
+    _syncTimer = setTimeout(() => {
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+      else setUserSyncStatus("ok");
+    }, 1800);
   }
 }
 
@@ -686,7 +692,7 @@ async function _hydrateSession(session, { loadProjects = true } = {}) {
   if (!session?.user) return;
   _sbUser = session.user;
   _sbProfile = await _loadProfile();
-  if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+  if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
   else updateUserBtn();
   if (loadProjects) await apiLoadProjects();
 }
@@ -696,17 +702,17 @@ sb.auth.onAuthStateChange(async (event, session) => {
     await _hydrateSession(session, { loadProjects: true });
   } else if (event === "TOKEN_REFRESHED" && session?.user) {
     _sbUser = session.user;
-    if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
     else updateUserBtn();
   } else if (event === "SIGNED_OUT") {
     _sbUser = _sbProfile = _projectRole = null;
-    if (typeof setUserSyncStatus === "function") setUserSyncStatus("offline");
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus("offline");
     else updateUserBtn();
     _updateReadOnlyUI();
   } else if (event === "USER_UPDATED" && session?.user) {
     _sbUser = session.user;
     _sbProfile = await _loadProfile();
-    if (typeof setUserSyncStatus === "function") setUserSyncStatus("ok");
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
     else updateUserBtn();
   }
 });

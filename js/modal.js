@@ -1317,6 +1317,7 @@ async function loadDemoProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: DEF_TASKS.map((t) => ({ ...t })),
     nextN: DEF_TASKS.length + 1,
+    _localUpdatedAt: new Date().toISOString(),
     _localVersion: 1, _serverVersion: 0,
   };
   try { localStorage.setItem(SK_BUF, JSON.stringify({ allProjects, currentId })); } catch (_) {}
@@ -1354,6 +1355,7 @@ async function createProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: [],
     nextN: 1,
+    _localUpdatedAt: new Date().toISOString(),
   };
   saveAll();
   switchProject(id);

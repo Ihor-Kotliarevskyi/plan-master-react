@@ -64,6 +64,13 @@
 - **PWA:** Service Worker, Offline Cache
 - **UI Components:** SweetAlert2, Custom HTML5 controls
 
+## План Робіт і Стабілізації
+
+- `docs/ROLES_AND_SHARING_PLAN.md` — продуктовий план по ролях, sharing, audit і org-напрямку
+- `docs/TECH_MIGRATION_PLAN.md` — технічна послідовність міграції та модернізації
+- `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` — деталізований backlog поточного етапу `owner/manager/editor/viewer`
+- `docs/STABILIZATION_CHECKLIST.md` — фінальний checklist для комплексного auth/sync/roles/audit прогону
+
 ## Структура Проєкту
 
 ```
