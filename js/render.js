@@ -3,6 +3,7 @@ function render() {
   renderLegend();
   renderTable();
   updateProjSel();
+  if (typeof _updateReadOnlyUI === "function") _updateReadOnlyUI();
   if (typeof refreshActivePane === "function") refreshActivePane();
   if (typeof checkOverdue === "function") checkOverdue();
 }
@@ -16,12 +17,32 @@ function updateHeader() {
 
 function updateProjSel() {
   const sel = document.getElementById("proj-sel");
-  sel.innerHTML = Object.entries(allProjects)
-    .map(
-      ([id, p]) =>
-        `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}</option>`,
-    )
-    .join("");
+  if (!sel) return;
+  const entries = Object.entries(allProjects || {});
+  const own = [];
+  const shared = [];
+
+  entries.forEach(([id, p]) => {
+    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
+    (isShared ? shared : own).push([id, p]);
+  });
+
+  const renderOptions = (list, isShared = false) =>
+    list
+      .map(([id, p]) => {
+        const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
+        const roleLabel =
+          isShared && typeof PROJECT_ROLE_LABELS !== "undefined"
+            ? ` · ${PROJECT_ROLE_LABELS[role] || role}`
+            : "";
+        return `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}${roleLabel}</option>`;
+      })
+      .join("");
+
+  const ownMarkup = own.length ? `<optgroup label="Мої проєкти">${renderOptions(own)}</optgroup>` : "";
+  const sharedMarkup = shared.length ? `<optgroup label="Розшарені">${renderOptions(shared, true)}</optgroup>` : "";
+
+  sel.innerHTML = ownMarkup + sharedMarkup;
 }
 
 function renderLegend() {

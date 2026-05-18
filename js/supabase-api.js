@@ -165,19 +165,55 @@ async function apiLoadProjects() {
     } catch (_) {}
 
     // ── Крок 2: завантажуємо список із сервера ───────────────────────────────
-    const { data: own, error: e1 } = await sb
-      .from("projects")
-      .select("id,name,sm,sy,nm,is_archived,updated_at")
-      .eq("owner_id", authUser.id)
-      .eq("is_archived", false)
-      .order("updated_at", { ascending: false });
-    if (e1) throw e1;
+    let own = [];
+    let shared = [];
+    const { data: accessibleProjects, error: accessibleProjectsError } = await sb.rpc("list_accessible_projects");
+    if (!accessibleProjectsError && Array.isArray(accessibleProjects)) {
+      own = accessibleProjects
+        .filter((item) => item?.source === "own")
+        .map((item) => ({
+          id: item.project_id,
+          name: item.name,
+          sm: item.sm,
+          sy: item.sy,
+          nm: item.nm,
+          is_archived: item.is_archived,
+          updated_at: item.updated_at,
+          _access: item,
+        }));
+      shared = accessibleProjects
+        .filter((item) => item?.source === "shared")
+        .map((item) => ({
+          role: item.role,
+          project: {
+            id: item.project_id,
+            name: item.name,
+            sm: item.sm,
+            sy: item.sy,
+            nm: item.nm,
+            is_archived: item.is_archived,
+            updated_at: item.updated_at,
+          },
+          _access: item,
+        }));
+    } else {
+      const { data: ownProjects, error: e1 } = await sb
+        .from("projects")
+        .select("id,name,sm,sy,nm,is_archived,updated_at")
+        .eq("owner_id", authUser.id)
+        .eq("is_archived", false)
+        .order("updated_at", { ascending: false });
+      if (e1) throw e1;
 
-    const { data: shared, error: e2 } = await sb
-      .from("project_shares")
-      .select("role, project:projects(id,name,sm,sy,nm,is_archived,updated_at)")
-      .eq("user_id", authUser.id);
-    if (e2) throw e2;
+      const { data: sharedProjects, error: e2 } = await sb
+        .from("project_shares")
+        .select("role, invited_by, project:projects(id,name,sm,sy,nm,is_archived,updated_at,owner_id)")
+        .eq("user_id", authUser.id);
+      if (e2) throw e2;
+
+      own = ownProjects || [];
+      shared = sharedProjects || [];
+    }
 
     if (seq !== _apiLoadProjectsSeq) return;
     const bufferNow = (() => {
@@ -196,6 +232,16 @@ async function apiLoadProjects() {
       (list || []).forEach((item) => {
         const p = isShared ? item.project : item;
         if (!p) return;
+        const normalizedRole = isShared ? normalizeProjectRole(item.role) : "owner";
+        const accessMeta = item._access || {
+          source: isShared ? "shared" : "own",
+          owner_id: p.owner_id || authUser.id,
+          owner_name: "",
+          owner_email: "",
+          invited_by: item.invited_by || null,
+          invited_by_name: "",
+          invited_by_email: "",
+        };
 
         // Шукаємо локальну копію цього серверного проєкту (за _serverId)
         const local = Object.entries(localSynced)
@@ -203,14 +249,35 @@ async function apiLoadProjects() {
 
         if (local) {
           // Є локальний стан з версіями → залишаємо (apiLoadProject вирішить sync/load)
-          allProjects[local[0]] = local[1];
+          allProjects[local[0]] = {
+            ...local[1],
+            _role: normalizedRole,
+            _access: {
+              source: accessMeta.source,
+              ownerId: accessMeta.owner_id || null,
+              ownerName: accessMeta.owner_name || "",
+              ownerEmail: accessMeta.owner_email || "",
+              invitedBy: accessMeta.invited_by || null,
+              invitedByName: accessMeta.invited_by_name || "",
+              invitedByEmail: accessMeta.invited_by_email || "",
+            },
+          };
         } else {
           // Новий для нас серверний проєкт → стаб, дані підтягнуться через apiLoadProject
           allProjects[p.id] = {
             proj: { name: p.name, sm: p.sm, sy: p.sy, nm: p.nm },
             cats: [], tasks: [], nextN: 1,
             _serverId: p.id,
-            _role:          isShared ? normalizeProjectRole(item.role) : "owner",
+            _role:          normalizedRole,
+            _access: {
+              source: accessMeta.source,
+              ownerId: accessMeta.owner_id || null,
+              ownerName: accessMeta.owner_name || "",
+              ownerEmail: accessMeta.owner_email || "",
+              invitedBy: accessMeta.invited_by || null,
+              invitedByName: accessMeta.invited_by_name || "",
+              invitedByEmail: accessMeta.invited_by_email || "",
+            },
             _localVersion:  0,
             _serverVersion: 0,
           };
@@ -553,13 +620,39 @@ async function apiGetShares() {
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return [];
 
+  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", {
+    p_project_id: serverId,
+  });
+  if (!rpcSharesError && Array.isArray(rpcShares)) {
+    return rpcShares.map((share) => ({
+      id: share.id,
+      role: normalizeProjectRole(share.role),
+      user: {
+        id: share.user_id,
+        name: share.user_name || share.user_email || share.user_id,
+        email: share.user_email || "",
+      },
+      invitedByName: share.invited_by_name || "",
+      invitedByEmail: share.invited_by_email || "",
+    }));
+  }
+
   const { data, error } = await sb
     .from("project_shares")
-    .select("id, role, user:profiles(id,name,email)")
-    .eq("project_id", serverId);
+    .select("id, role, user_id, created_at")
+    .eq("project_id", serverId)
+    .order("created_at", { ascending: true });
 
   if (error) return [];
-  return data || [];
+  return (data || []).map((share) => ({
+    id: share.id,
+    role: normalizeProjectRole(share.role),
+    user: {
+      id: share.user_id,
+      name: share.user_id,
+      email: "",
+    },
+  }));
 }
 
 /** Надає доступ до проєкту за email. */
@@ -571,26 +664,24 @@ async function apiShareProject(email, role = "viewer") {
 
   const shareRole = normalizeProjectRole(role);
   if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) throw new Error("Введіть email");
 
-  const { data: profile } = await sb
-    .from("profiles")
-    .select("id, name")
-    .eq(
-      "id",
-      (
-        await sb
-          .from("profiles")
-          .select("id")
-          .eq("id", (await sb.rpc("get_user_id_by_email", { p_email: email })).data)
-          .single()
-      ).data?.id,
-    )
-    .single();
+  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", {
+    p_email: normalizedEmail,
+  });
+  if (lookupError) throw new Error(lookupError.message);
+  if (!targetUserId) {
+    throw new Error("Користувача з таким email не знайдено. Він має спочатку зареєструватися.");
+  }
+  if (targetUserId === authUser.id) {
+    throw new Error("Ви вже маєте доступ до цього проєкту як власник.");
+  }
 
   const { error } = await sb.from("project_shares").upsert(
     {
       project_id: serverId,
-      user_id: profile?.id,
+      user_id: targetUserId,
       role: shareRole,
       invited_by: authUser.id,
     },
@@ -598,10 +689,16 @@ async function apiShareProject(email, role = "viewer") {
   );
 
   if (error) throw new Error(error.message);
-  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, profile?.id || email, {
-    email,
+  _showSyncIndicator();
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, targetUserId, {
+    email: normalizedEmail,
     role: shareRole,
   });
+  return {
+    userId: targetUserId,
+    email: normalizedEmail,
+    role: shareRole,
+  };
 }
 
 /** Змінює роль користувача у спільному доступі. */
@@ -612,9 +709,11 @@ async function apiUpdateShareRole(shareId, role) {
 
   const { error } = await sb.from("project_shares").update({ role: shareRole }).eq("id", shareId);
   if (error) throw new Error(error.message);
+  _showSyncIndicator();
   await logShareActivity(AUDIT_EVENT_TYPES.SHARE_ROLE_UPDATED, shareId, {
     role: shareRole,
   });
+  return shareRole;
 }
 
 /** Видаляє запис спільного доступу. */
@@ -622,6 +721,7 @@ async function apiRemoveShare(shareId) {
   if (!canManageShares()) throw new Error("У вас немає прав на видалення доступу");
   const { error } = await sb.from("project_shares").delete().eq("id", shareId);
   if (error) throw new Error(error.message);
+  _showSyncIndicator();
   await logShareActivity(AUDIT_EVENT_TYPES.SHARE_REVOKED, shareId);
 }
 
@@ -645,9 +745,29 @@ async function apiGetActivityLog(limit = 100) {
 function _updateReadOnlyUI() {
   const readonly = !canEditTasks();
   const canShare = canManageShares();
+  const role = typeof getProjectRole === "function" ? getProjectRole() : (allProjects?.[currentId]?._role || "owner");
+  const roleLabel = typeof PROJECT_ROLE_LABELS !== "undefined" ? (PROJECT_ROLE_LABELS[role] || role) : role;
+  const roleHint = typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "";
+  const accessMeta = allProjects?.[currentId]?._access || null;
+  const sharedMeta =
+    accessMeta?.source === "shared"
+      ? [accessMeta.ownerName || accessMeta.ownerEmail, accessMeta.invitedByName || accessMeta.invitedByEmail]
+          .filter(Boolean)
+          .join(" · ")
+      : "";
 
   const banner = document.getElementById("readonly-banner");
   if (banner) banner.style.display = readonly ? "flex" : "none";
+
+  const headerBanner = document.getElementById("project-access-banner");
+  if (headerBanner) {
+    const shouldShow = role !== "owner";
+    headerBanner.style.display = shouldShow ? "flex" : "none";
+    headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
+    headerBanner.innerHTML = shouldShow
+      ? `<span class="project-access-pill">${roleLabel}</span><span class="project-access-text">${roleHint}${sharedMeta ? ` ${sharedMeta}` : ""}</span>`
+      : "";
+  }
 
   const gtbl = document.getElementById("gtbl-wrap");
   if (gtbl) {
@@ -663,6 +783,40 @@ function _updateReadOnlyUI() {
   if (shareBtn) shareBtn.style.display = isLoggedIn() && canShare ? "" : "none";
 }
 
+async function handleShareRoleChange(shareId, role) {
+  try {
+    const nextRole = await apiUpdateShareRole(shareId, role);
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: `Роль оновлено: ${PROJECT_ROLE_LABELS[nextRole] || nextRole}`,
+      showConfirmButton: false,
+      timer: 2600,
+    });
+    await openShareModal();
+  } catch (err) {
+    Swal.fire({ icon: "error", title: "Не вдалося змінити роль", text: err.message || "Спробуйте ще раз" });
+  }
+}
+
+async function handleShareRemoval(shareId) {
+  try {
+    await apiRemoveShare(shareId);
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: "Доступ скасовано",
+      showConfirmButton: false,
+      timer: 2400,
+    });
+    await openShareModal();
+  } catch (err) {
+    Swal.fire({ icon: "error", title: "Не вдалося скасувати доступ", text: err.message || "Спробуйте ще раз" });
+  }
+}
+
 async function openShareModal() {
   const shares = await apiGetShares();
 
@@ -674,21 +828,28 @@ async function openShareModal() {
   const roleOptions = SHAREABLE_PROJECT_ROLES.map(
     (role) => `<option value="${role}">${PROJECT_ROLE_LABELS[role]}</option>`,
   ).join("");
+  const roleGuide = `
+    <div class="share-role-guide">
+      <div><b>Менеджер:</b> керує доступом і налаштуваннями проєкту.</div>
+      <div><b>Редактор:</b> редагує задачі, але не керує доступом.</div>
+      <div><b>Перегляд:</b> лише перегляд без змін.</div>
+    </div>`;
 
   const list = shares.length
     ? shares
         .map(
           (s) => {
             const shareRole = normalizeProjectRole(s.role);
+            const shareLabel = s.user?.email || s.user?.name || s.user?.id || "—";
             return `
         <div class="share-row">
-          <span>${s.user?.name || "—"}</span>
-          <select class="cost-sel" onchange="apiUpdateShareRole('${s.id}',this.value)">
+          <span>${shareLabel}</span>
+          <select class="cost-sel" onchange="handleShareRoleChange('${s.id}',this.value)">
             ${SHAREABLE_PROJECT_ROLES.map(
               (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${PROJECT_ROLE_LABELS[role]}</option>`,
             ).join("")}
           </select>
-          <button class="cost-act-btn del" onclick="apiRemoveShare('${s.id}');openShareModal()">✕</button>
+          <button class="cost-act-btn del" onclick="handleShareRemoval('${s.id}')">✕</button>
         </div>`;
           },
         )
@@ -709,6 +870,7 @@ async function openShareModal() {
             ${roleOptions}
           </select>
         </div>
+        ${roleGuide}
         <div id="share-err" class="share-err"></div>
       </div>`,
     showCancelButton: true,
@@ -719,7 +881,16 @@ async function openShareModal() {
       const role = document.getElementById("share-role").value;
       if (!email) { Swal.showValidationMessage("Введіть email"); return false; }
       try {
-        await apiShareProject(email, role);
+        const result = await apiShareProject(email, role);
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: `Доступ надано: ${PROJECT_ROLE_LABELS[result.role] || result.role}`,
+          text: result.email,
+          showConfirmButton: false,
+          timer: 2800,
+        });
       } catch (err) {
         Swal.showValidationMessage(err.message);
         return false;

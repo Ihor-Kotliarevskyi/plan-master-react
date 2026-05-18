@@ -1273,25 +1273,57 @@ function openProjManager() {
       : allProjects?.[projectId]?._role || (projectId === currentId ? _projectRole : "owner");
     return getProjectPermissions(role).canManageProject;
   };
+  const roleLabels = typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS : {};
+  const entries = Object.entries(allProjects || {});
+  const own = [];
+  const shared = [];
 
-  document.getElementById("proj-list-el").innerHTML = Object.entries(allProjects)
-    .map(
-      ([id, p]) => {
-        const canManageProjectEntry = getManagePermission(id);
-        return `<div class="pj-row${id === currentId ? " active" : ""}">
-           <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
-                  onchange="${canManageProjectEntry ? `allProjects['${id}'].proj.name=this.value;updateProjSel();` : ""}"
-                  onclick="event.stopPropagation()">
-           <span class="pj-tasks-count">${p.tasks?.length || 0} робіт</span>
-           ${
-             canManageProjectEntry
-               ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити"><i data-lucide="trash-2"></i></span>`
-               : ""
-           }
-         </div>`;
-      },
-    )
-    .join("");
+  entries.forEach(([id, p]) => {
+    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
+    (isShared ? shared : own).push([id, p]);
+  });
+
+  const renderProjectRow = ([id, p]) => {
+    const canManageProjectEntry = getManagePermission(id);
+    const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
+    const roleLabel = roleLabels[role] || role;
+    const ownerLabel = p?._access?.ownerName || p?._access?.ownerEmail || "";
+    const invitedByLabel = p?._access?.invitedByName || p?._access?.invitedByEmail || "";
+    const sharedMeta =
+      p?._access?.source === "shared"
+        ? `<div class="pj-meta">${ownerLabel ? `Власник: ${ownerLabel}` : ""}${invitedByLabel ? `${ownerLabel ? " · " : ""}Поділився: ${invitedByLabel}` : ""}</div>`
+        : `<div class="pj-meta">Власний проєкт</div>`;
+    return `<div class="pj-row${id === currentId ? " active" : ""}">
+       <div class="pj-main">
+         <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
+                onchange="${canManageProjectEntry ? `allProjects['${id}'].proj.name=this.value;updateProjSel();` : ""}"
+                onclick="event.stopPropagation()">
+         <span class="pj-role-chip pj-role-${role}">${roleLabel}</span>
+       </div>
+       <div class="pj-sub">
+         <span class="pj-tasks-count">${p.tasks?.length || 0} робіт</span>
+         ${sharedMeta}
+       </div>
+       ${
+         canManageProjectEntry
+           ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити"><i data-lucide="trash-2"></i></span>`
+           : ""
+       }
+     </div>`;
+  };
+
+  const renderGroup = (title, list) =>
+    list.length
+      ? `<div class="proj-group">
+          <div class="proj-group-title">${title}</div>
+          ${list.map(renderProjectRow).join("")}
+        </div>`
+      : "";
+
+  document.getElementById("proj-list-el").innerHTML = [
+    renderGroup("Мої проєкти", own),
+    renderGroup("Розшарені проєкти", shared),
+  ].join("");
   lucide.createIcons({ nodes: [document.getElementById("proj-list-el")] });
   document.getElementById("projmgr-modal").style.display = "flex";
 }

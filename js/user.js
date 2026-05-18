@@ -386,10 +386,12 @@ async function openAuditLogModal() {
 
   let events = [];
   try {
-    setStage("submit started");
     events = await apiGetActivityLog(25);
   } catch (err) {
-    Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: err.message || "Спробуйте пізніше" });
+    const hint = String(err?.message || "").includes("activity_log")
+      ? "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql."
+      : (err.message || "Спробуйте пізніше");
+    Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: hint });
     return;
   }
 

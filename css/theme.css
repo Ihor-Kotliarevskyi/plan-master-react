@@ -661,6 +661,124 @@
   color: var(--txt3);
   text-align: center;
 }
+
+.project-access-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin: 10px 14px 0;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, #d97706 15%);
+  background: color-mix(in srgb, var(--panel) 82%, #f59e0b 18%);
+  color: var(--txt);
+}
+
+.project-access-banner.is-readonly {
+  border-color: color-mix(in srgb, var(--line) 76%, #dc2626 24%);
+  background: color-mix(in srgb, var(--panel) 78%, #ef4444 22%);
+}
+
+.project-access-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.project-access-text {
+  font-size: 13px;
+  color: var(--txt2);
+}
+
+.proj-group {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.proj-group-title {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--txt3);
+}
+
+.pj-row {
+  position: relative;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel) 92%, var(--txt) 8%);
+}
+
+.pj-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pj-sub {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-right: 38px;
+}
+
+.pj-meta {
+  font-size: 12px;
+  color: var(--txt3);
+}
+
+.pj-role-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--panel) 70%, var(--txt) 30%);
+  color: var(--txt2);
+}
+
+.pj-role-manager {
+  background: color-mix(in srgb, #f59e0b 20%, var(--panel) 80%);
+}
+
+.pj-role-editor {
+  background: color-mix(in srgb, #2563eb 18%, var(--panel) 82%);
+}
+
+.pj-role-viewer {
+  background: color-mix(in srgb, #6b7280 18%, var(--panel) 82%);
+}
+
+.share-role-guide {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 92%, var(--txt) 8%);
+  font-size: 12px;
+  color: var(--txt2);
+  text-align: left;
+}
+
+.share-meta {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--txt3);
+}
 .baseline-empty-hint {
   font-size: 11px;
   color: var(--txt3);

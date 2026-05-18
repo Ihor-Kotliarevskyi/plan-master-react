@@ -18,6 +18,13 @@ const SHAREABLE_PROJECT_ROLES = Object.freeze([
   PROJECT_ROLES.MANAGER,
 ]);
 
+const PROJECT_ROLE_HINTS = Object.freeze({
+  owner: "Повний доступ до проєкту, ролей і змін.",
+  manager: "Може змінювати проєкт і керувати доступом користувачів.",
+  editor: "Може редагувати задачі, але не керує доступом і налаштуваннями проєкту.",
+  viewer: "Може лише переглядати проєкт без внесення змін.",
+});
+
 function normalizeProjectRole(role, fallbackRole = PROJECT_ROLES.VIEWER) {
   if (role === "admin") return PROJECT_ROLES.MANAGER;
   if (role === PROJECT_ROLES.OWNER) return PROJECT_ROLES.OWNER;
@@ -25,6 +32,11 @@ function normalizeProjectRole(role, fallbackRole = PROJECT_ROLES.VIEWER) {
   if (role === PROJECT_ROLES.EDITOR) return PROJECT_ROLES.EDITOR;
   if (role === PROJECT_ROLES.VIEWER) return PROJECT_ROLES.VIEWER;
   return fallbackRole;
+}
+
+function getProjectRoleHint(role) {
+  const normalizedRole = normalizeProjectRole(role, PROJECT_ROLES.VIEWER);
+  return PROJECT_ROLE_HINTS[normalizedRole] || "";
 }
 
 function getProjectRole(role) {

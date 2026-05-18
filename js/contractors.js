@@ -132,6 +132,14 @@ const CONTRACTOR_IMPORT_FIELD_ORDER = [
   "note",
 ];
 
+function _canMutateContractors(showMessage = false) {
+  const allowed = typeof canEditTasks === "function" ? canEditTasks() : true;
+  if (!allowed && showMessage) {
+    Swal.fire({ icon: "info", title: "У вас немає прав на зміну контрагентів у цьому проєкті" });
+  }
+  return allowed;
+}
+
 CONTRACTOR_IMPORT_HEADERS.splice(0, CONTRACTOR_IMPORT_HEADERS.length,
   "Робота",
   "Контрагент",
@@ -411,12 +419,15 @@ function _renderContractorRow(row, colspan) {
   const open = contractorExpanded.has(row.key);
   const status = _contractorStatus(row);
   const special = _isPinnedContractorRow(row);
-  const selectable = !_isBulkDeleteBlockedKey(row.key) && !row.isForecast;
+  const canMutate = _canMutateContractors();
+  const selectable = canMutate && !_isBulkDeleteBlockedKey(row.key) && !row.isForecast;
   const selected = selectable && contractorSelected.has(row.key);
   const detail = open
     ? (row.isForecast ? _renderContractorForecastDetails(row, colspan) : _renderContractorDetails(row, colspan))
     : "";
-  const action = row.isForecast
+  const action = !canMutate
+    ? `<span class="contractor-muted">Перегляд</span>`
+    : row.isForecast
     ? `<span class="contractor-muted">—</span>`
     : `<button class="btn btn-sm contractor-row-action" onclick="editContractor('${encodeURIComponent(row.key)}')" title="Редагувати контрагента">
           <i data-lucide="pencil"></i>
@@ -1043,6 +1054,7 @@ function _findContractorItem(path) {
 }
 
 async function editContractor(key) {
+  if (!_canMutateContractors(true)) return;
   key = decodeURIComponent(key || "");
   const entry = _getAllContractorItems().find(({ item }) => _contractorKey(item.supplier) === key);
   if (!entry) return;
@@ -1130,6 +1142,7 @@ function syncPaymentEditActs(supplier, taskIndex = null) {
 }
 
 async function deleteContractor(key) {
+  if (!_canMutateContractors(true)) return;
   key = decodeURIComponent(key || "");
   if (!key || key === _contractorKey(CONTRACTOR_EMPTY_NAME)) return;
   await _bulkDeleteContractors([key], "поточного контрагента");
@@ -1144,6 +1157,7 @@ function _getAllContractorItems() {
 }
 
 async function editContractorPayment(path) {
+  if (!_canMutateContractors(true)) return;
   const found = _findContractorPayment(path);
   if (!found) return;
   const { task, item, payment } = found;
@@ -1227,6 +1241,7 @@ async function editContractorPayment(path) {
 }
 
 async function deleteContractorPayment(path) {
+  if (!_canMutateContractors(true)) return;
   const data = _decodeContractorPaymentPath(path);
   const found = _findContractorPayment(data);
   if (!found) return;
@@ -1284,6 +1299,7 @@ function _syncContractorSelectionHeader(rows = null) {
 }
 
 function toggleContractorSelection(key, checked) {
+  if (!_canMutateContractors(true)) return;
   key = decodeURIComponent(key || "");
   if (!key || _isBulkDeleteBlockedKey(key)) return;
   if (checked) contractorSelected.add(key);
@@ -1292,6 +1308,7 @@ function toggleContractorSelection(key, checked) {
 }
 
 function toggleAllVisibleContractors(checked) {
+  if (!_canMutateContractors(true)) return;
   _visibleDeletableContractorRows().forEach((row) => {
     if (checked) contractorSelected.add(row.key);
     else contractorSelected.delete(row.key);
@@ -1300,6 +1317,7 @@ function toggleAllVisibleContractors(checked) {
 }
 
 function toggleContractorSelectionMode(force) {
+  if (!_canMutateContractors(true)) return;
   contractorSelectionMode = typeof force === "boolean" ? force : !contractorSelectionMode;
   if (!contractorSelectionMode && !contractorSelected.size) contractorSelected.clear();
   renderContractors();
@@ -1313,6 +1331,7 @@ function clearContractorSelection() {
 }
 
 async function deleteSelectedContractors() {
+  if (!_canMutateContractors(true)) return;
   const keys = _selectedContractorKeys();
   if (!keys.length) {
     Swal.fire({ icon: "info", title: "Немає вибраних контрагентів" });
@@ -1322,6 +1341,7 @@ async function deleteSelectedContractors() {
 }
 
 async function deleteVisibleContractors() {
+  if (!_canMutateContractors(true)) return;
   const keys = _visibleDeletableContractorRows().map((row) => row.key);
   if (!keys.length) {
     Swal.fire({ icon: "info", title: "Немає контрагентів для видалення" });
@@ -1331,6 +1351,7 @@ async function deleteVisibleContractors() {
 }
 
 async function _bulkDeleteContractors(keys, scopeLabel) {
+  if (!_canMutateContractors(true)) return;
   const uniqueKeys = Array.from(new Set(keys)).filter((key) => !_isBulkDeleteBlockedKey(key));
   if (!uniqueKeys.length) return;
 
@@ -1403,6 +1424,7 @@ function openContractorTask(ti) {
 }
 
 async function openContractorActModal(prefillSupplier = "", contractPath = "") {
+  if (!_canMutateContractors(true)) return;
   const pathContract = contractPath ? _findContractorItem(contractPath) : null;
   const supplier = pathContract ? _contractorName(pathContract.item.supplier) : decodeURIComponent(prefillSupplier || "");
   const contracts = pathContract ? [{ task: pathContract.task, ti: pathContract.ti, item: pathContract.item }] : _contractorContractsForSupplier(supplier);
@@ -1557,6 +1579,7 @@ async function editContractorAct(path) {
 }
 
 async function deleteContractorAct(path) {
+  if (!_canMutateContractors(true)) return;
   const found = _findContractorAct(path);
   if (!found) return;
   const result = await Swal.fire({
