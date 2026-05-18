@@ -15,8 +15,21 @@ let _apiUser = null;
 let _projectRole = null;
 
 function isLoggedIn() { return !!_authToken; }
-function isReadOnly() { return _projectRole === "viewer"; }
-function canEdit() { return !isReadOnly(); }
+function _getCurrentRole() {
+  return typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(currentId, _projectRole || "owner")
+    : _projectRole;
+}
+function isReadOnly() {
+  return typeof canEditTasks === "function"
+    ? !canEditTasks(_getCurrentRole())
+    : _projectRole === "viewer";
+}
+function canEdit() {
+  return typeof canEditTasks === "function"
+    ? canEditTasks(_getCurrentRole())
+    : !isReadOnly();
+}
 
 async function _fetch(path, options = {}) {
   const headers = { "Content-Type": "application/json" };
@@ -97,7 +110,7 @@ async function apiLoadProjects() {
           tasks: [],
           nextN: 1,
           _serverId: sp.id,
-          _role: sp.role || "owner",
+          _role: typeof normalizeProjectRole === "function" ? normalizeProjectRole(sp.role || "owner") : (sp.role || "owner"),
         };
       }
     });
@@ -107,7 +120,9 @@ async function apiLoadProjects() {
 
 async function apiLoadProject(localId) {
   if (!_authToken) return;
-  const serverId = allProjects[localId]?._serverId;
+  const serverId = typeof getProjectServerId === "function"
+    ? getProjectServerId(localId)
+    : allProjects[localId]?._serverId;
   if (!serverId) return;
 
   try {
@@ -115,7 +130,11 @@ async function apiLoadProject(localId) {
     if (!projData?.project) return;
     const p = projData.project;
 
-    _projectRole = projData.role || "owner";
+    const resolvedRole = typeof normalizeProjectRole === "function"
+      ? normalizeProjectRole(projData.role || "owner")
+      : (projData.role || "owner");
+    if (typeof setProjectRole === "function") setProjectRole(localId, resolvedRole);
+    else _projectRole = resolvedRole;
 
     const taskData = await _fetch(`/projects/${serverId}/tasks`);
     const tasks = taskData?.tasks || [];
@@ -133,7 +152,9 @@ async function apiLoadProject(localId) {
       tasks,
       nextN: p.nextN || 1,
       _serverId: p._id,
-      _role: _projectRole,
+      _role: typeof getStoredProjectRole === "function"
+        ? getStoredProjectRole(localId, resolvedRole)
+        : (typeof normalizeProjectRole === "function" ? normalizeProjectRole(_projectRole, _projectRole) : _projectRole),
     };
 
     loadCurrent();
@@ -146,9 +167,9 @@ let _syncProjTimer = null;
 let _syncTasksTimer = null;
 
 async function apiSyncProject() {
-  if (!_authToken || !currentId || !canEdit()) return;
-  const p = allProjects[currentId];
-  const serverId = p?._serverId;
+  if (!_authToken || !currentId || (typeof canEditTasks === "function" ? !canEditTasks(_getCurrentRole()) : !canEdit())) return;
+  const p = typeof getCurrentProjectSnapshot === "function" ? getCurrentProjectSnapshot() : allProjects[currentId];
+  const serverId = typeof getCurrentProjectServerId === "function" ? getCurrentProjectServerId() : p?._serverId;
 
   if (!serverId) { await apiCreateProject(); return; }
 
@@ -185,7 +206,7 @@ async function apiSyncProject() {
 
 async function apiCreateProject() {
   if (!_authToken || !currentId) return;
-  const p = allProjects[currentId];
+  const p = typeof getCurrentProjectSnapshot === "function" ? getCurrentProjectSnapshot() : allProjects[currentId];
   try {
     const data = await _fetch("/projects", {
       method: "POST",
@@ -200,9 +221,12 @@ async function apiCreateProject() {
       }),
     });
     if (data?.project) {
-      allProjects[currentId]._serverId = data.project.id;
-      allProjects[currentId]._role = "owner";
-      _projectRole = "owner";
+      if (p) p._serverId = data.project.id;
+      if (typeof setProjectOwnerRole === "function") setProjectOwnerRole(currentId);
+      else {
+        allProjects[currentId]._role = "owner";
+        _projectRole = "owner";
+      }
       localStorage.setItem(SK, JSON.stringify({ allProjects, currentId }));
     }
   } catch (_) {}
@@ -210,11 +234,21 @@ async function apiCreateProject() {
 
 async function apiDeleteProject(localId) {
   if (!_authToken) return;
-  const serverId = allProjects[localId]?._serverId;
+  const serverId = typeof getProjectServerId === "function"
+    ? getProjectServerId(localId)
+    : allProjects[localId]?._serverId;
   if (!serverId) return;
   try {
     await _fetch(`/projects/${serverId}`, { method: "DELETE" });
   } catch (_) {}
+}
+
+async function apiLogActivity() {
+  return null;
+}
+
+async function apiGetActivityLog() {
+  return [];
 }
 
 function _updateReadOnlyUI() {
@@ -235,12 +269,14 @@ function _updateReadOnlyUI() {
   const shareBtn = document.getElementById("share-btn");
   if (shareBtn) {
     shareBtn.style.display =
-      isLoggedIn() && (_projectRole === "owner" || _projectRole === "admin") ? "" : "none";
+      isLoggedIn() && canManageShares() ? "" : "none";
   }
 }
 
 async function apiGetShares() {
-  const sid = allProjects[currentId]?._serverId;
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
   if (!sid || !_authToken) return [];
   try {
     const data = await _fetch(`/projects/${sid}/shares`);
@@ -249,51 +285,69 @@ async function apiGetShares() {
 }
 
 async function apiShareProject(email, role = "viewer") {
-  const sid = allProjects[currentId]?._serverId;
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
   if (!sid) return;
+  if (!canInviteUsers()) throw new Error("У вас немає прав на запрошення користувачів");
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
   return _fetch(`/projects/${sid}/shares`, {
     method: "POST",
-    body: JSON.stringify({ email, role }),
+    body: JSON.stringify({ email, role: shareRole }),
   });
 }
 
 async function apiUpdateShareRole(userId, role) {
-  const sid = allProjects[currentId]?._serverId;
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
   if (!sid) return;
+  if (!canManageShares()) throw new Error("У вас немає прав на зміну доступу");
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
   return _fetch(`/projects/${sid}/shares/${userId}`, {
     method: "PATCH",
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role: shareRole }),
   });
 }
 
 async function apiRemoveShare(userId) {
-  const sid = allProjects[currentId]?._serverId;
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
   if (!sid) return;
+  if (!canManageShares()) throw new Error("У вас немає прав на видалення доступу");
   return _fetch(`/projects/${sid}/shares/${userId}`, { method: "DELETE" });
 }
 
 async function openShareModal() {
-  if (_projectRole !== "owner" && _projectRole !== "admin") {
-    Swal.fire({ icon: "info", title: "Тільки власник може керувати доступом" });
+  if (!canManageShares()) {
+    Swal.fire({ icon: "info", title: "У вас немає прав на керування доступом" });
     return;
   }
   const shares = await apiGetShares();
+  const roleOptions = SHAREABLE_PROJECT_ROLES.map(
+    (role) => `<option value="${role}">${PROJECT_ROLE_LABELS[role]}</option>`,
+  ).join("");
   const list = shares.length
     ? shares
         .map(
-          (s) =>
-            `<div class="share-row">
+          (s) => {
+            const shareRole = normalizeProjectRole(s.role);
+            return `<div class="share-row">
                <span class="share-name">${s.userId?.name || "—"}
                  <span class="share-email">${s.userId?.email || ""}</span>
                </span>
                <select class="cost-sel" onchange="apiUpdateShareRole('${s.userId?._id}',this.value)">
-                 <option value="viewer"${s.role === "viewer" ? " selected" : ""}>👁 Перегляд</option>
-                 <option value="editor"${s.role === "editor" ? " selected" : ""}>✏ Редагування</option>
-                 <option value="admin"${s.role === "admin" ? " selected" : ""}>⚙ Адмін</option>
+                 ${SHAREABLE_PROJECT_ROLES.map(
+                   (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${PROJECT_ROLE_LABELS[role]}</option>`,
+                 ).join("")}
                </select>
                <button class="cost-act-btn del"
                        onclick="apiRemoveShare('${s.userId?._id}');openShareModal()">✕</button>
-             </div>`,
+             </div>`;
+          },
         )
         .join("")
     : `<div class="share-empty">Нікому не надано доступ</div>`;
@@ -308,9 +362,7 @@ async function openShareModal() {
       <div class="share-add-row">
         <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
         <select id="share-role" class="share-role-sel">
-          <option value="viewer">👁 Перегляд</option>
-          <option value="editor">✏ Редагування</option>
-          <option value="admin">⚙ Адмін</option>
+          ${roleOptions}
         </select>
       </div></div>`,
     showCancelButton: true,
@@ -332,6 +384,15 @@ async function openShareModal() {
 
 let _syncTimer = null;
 function _showSyncIndicator() {
+  if (typeof setUserSyncStatus === "function") {
+    setUserSyncStatus("syncing");
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => {
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+      else setUserSyncStatus("ok");
+    }, 1800);
+    return;
+  }
   const el = document.getElementById("sync-indicator");
   if (!el) return;
   el.textContent = "☁ збережено";
@@ -388,7 +449,8 @@ async function _submitAuth(tab) {
         defaults: { ...userProfile.defaults, ...me.defaults },
       };
       saveUser?.();
-      updateUserBtn?.();
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+      else updateUserBtn?.();
     }
     await apiLoadProjects();
     Swal.fire({
@@ -431,6 +493,7 @@ function updateAuthBtn() {
   if (_authToken) {
     _apiUser = await apiGetMe();
     if (_apiUser) {
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
       await apiLoadProjects();
     } else {
       apiLogout();

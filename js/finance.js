@@ -214,7 +214,7 @@ function clearFinSearch() {
 }
 
 async function deleteVisibleFinanceTasks() {
-  if (typeof canEdit === "function" && !canEdit()) return;
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
 
   const rows = _getFinanceRows();
   const indexes = Array.from(new Set(rows.map((row) => row.ti)))

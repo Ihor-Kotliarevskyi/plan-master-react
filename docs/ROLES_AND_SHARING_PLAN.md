@@ -2,6 +2,11 @@
 
 > Статус документа: план розвитку, перевірений проти поточного стану застосунку `2026-05-16`.
 
+Пов'язаний execution-план:
+
+- `docs/TECH_MIGRATION_PLAN.md` — технічна черга модернізації, декомпозиції та можливої UI-міграції
+- `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` — деталізований backlog найближчої реалізації ролей `owner/manager/editor/viewer`
+
 ## Що вже реалізовано
 
 ### На рівні БД і клієнта
@@ -9,7 +14,7 @@
 У застосунку вже є робочий sharing на рівні проєкту:
 
 - таблиця `project_shares`
-- ролі `viewer`, `editor`, `admin`
+- ролі `viewer`, `editor`, `manager`
 - власник проєкту через `projects.owner_id`
 - UI для запрошення користувача за email
 - зміна ролі та видалення share
@@ -22,6 +27,9 @@
 - `_projectRole`
 - `isReadOnly()`
 - `canEdit()`
+- `canEditTasks()`
+- `canManageProject()`
+- `canManageShares()`
 - `_updateReadOnlyUI()`
 - `apiGetShares()`
 - `apiShareProject()`
@@ -35,7 +43,7 @@
 |---|---|---|---|
 | `viewer` | так | ні | ні |
 | `editor` | так | так | ні |
-| `admin` | так | так | так |
+| `manager` | так | так | так |
 | `owner` | так | так | так |
 
 Примітка:
@@ -49,7 +57,7 @@
 
 Твердження на кшталт "sharing foundation ще попереду" більше неактуальні. Базовий project-level sharing уже є в продакшн-коді.
 
-### 2. Роль `manager` ще не підтримується
+### 2. Роль `manager` уже заведена в активний клієнт, але ще не доведена до кінця
 
 У плані є перехід до:
 
@@ -58,7 +66,10 @@
 - `editor`
 - `viewer`
 
-Це поки що лише майбутнє розширення. Поточний код ні в БД, ні в UI цю роль не підтримує.
+Активний Supabase-клієнт уже використовує цю модель на рівні permission layer та share UI, але Phase 1 ще не завершено повністю:
+
+- ще лишається cleanup legacy `admin` у частині документації та резервного шляху
+- RLS і sync contract ще мають фінально зійтися з capability model
 
 ### 3. Компанії / організації ще не існують
 
@@ -80,6 +91,11 @@
 - `notifications`
 - realtime notification panel
 - bell icon flow
+
+Уточнення для поточного стану:
+
+- backend-first foundation для `activity_log` може бути додана раніше за UI timeline
+- це не означає, що audit UI уже існує; йдеться лише про write-only шар подій
 
 ## Актуальна оцінка плану
 
@@ -107,7 +123,7 @@
 Статус: `вже реалізовано`
 
 - project-level sharing
-- ролі `viewer/editor/admin`
+- ролі `viewer/editor/manager`
 - owner через `projects.owner_id`
 - readonly mode
 - share modal по email
@@ -119,6 +135,7 @@
 Мета:
 
 - перейти від моделі `viewer/editor/admin` до:
+- перейти від legacy-моделі `viewer/editor/admin` до:
   - `owner`
   - `manager`
   - `editor`

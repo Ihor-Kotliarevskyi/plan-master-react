@@ -22,10 +22,18 @@ function saveAll() {
     cats:  cats.map((c) => ({ ...c })),
     tasks: tasks.map((t) => ({ ...t })),
     nextN,
+    _localUpdatedAt: new Date().toISOString(),
     _localVersion:  (prev?._localVersion  || 0) + 1,
     _serverVersion: prev?._serverVersion  || 0,
     ...(prev?._serverId ? { _serverId: prev._serverId } : {}),
-    ...(prev?._role     ? { _role:     prev._role     } : {}),
+    ...(prev?._role
+      ? {
+          _role:
+            typeof normalizeProjectRole === "function"
+              ? normalizeProjectRole(prev._role, prev._role)
+              : prev._role,
+        }
+      : {}),
   };
 
   try {
@@ -37,6 +45,7 @@ function saveAll() {
   if (typeof apiSyncProject === "function" &&
       typeof isLoggedIn    === "function" &&
       isLoggedIn()) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("warn");
     clearTimeout(_syncDebounceTimer);
     // передаємо snapId, щоб дебаунс не використовував currentId,
     // який міг змінитись після switchProject
@@ -74,6 +83,13 @@ function loadAll() {
     const d = JSON.parse(localStorage.getItem(SK_BUF));
     if (d?.allProjects && Object.keys(d.allProjects).length) {
       allProjects = d.allProjects;
+      if (typeof normalizeProjectRole === "function") {
+        Object.values(allProjects).forEach((projectSnap) => {
+          if (projectSnap && projectSnap._role) {
+            projectSnap._role = normalizeProjectRole(projectSnap._role, projectSnap._role);
+          }
+        });
+      }
       currentId   = d.currentId || Object.keys(d.allProjects)[0];
     } else {
       initDefaultProject();
@@ -93,6 +109,7 @@ function initDefaultProject() {
       cats:  DEF_CATS.map((c) => ({ ...c })),
       tasks: [],
       nextN: 1,
+      _localUpdatedAt: new Date().toISOString(),
       _localVersion:  1,
       _serverVersion: 0,
     },
@@ -158,10 +175,20 @@ function _updateOnlineStatus() {
     el.textContent = "⚠ офлайн — зміни збережено локально";
     el.style.opacity = "1";
     el.style.color = "var(--warn, #e67e00)";
+    if (typeof refreshUserSyncStatus === "function" &&
+        typeof isLoggedIn === "function" &&
+        isLoggedIn()) {
+      refreshUserSyncStatus("warn");
+    }
   } else {
     el.textContent = "";
     el.style.opacity = "0";
     el.style.color = "";
+    if (typeof refreshUserSyncStatus === "function" &&
+        typeof isLoggedIn === "function" &&
+        isLoggedIn()) {
+      refreshUserSyncStatus();
+    }
     if (typeof apiSyncProject === "function" &&
         typeof isLoggedIn    === "function" &&
         isLoggedIn()) {
@@ -180,6 +207,7 @@ function switchProject(id) {
   hiddenCats = new Set();
   render();
   updateProjSel();
+  if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
 
   if (typeof apiLoadProject === "function" &&
       typeof isLoggedIn    === "function" &&

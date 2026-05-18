@@ -19,7 +19,7 @@
 - **Надійна синхронізація** — використання версіонування (`_localVersion` vs `_serverVersion`) для запобігання втраті даних
 - **Write-Ahead Buffer** — всі зміни миттєво зберігаються в локальний буфер `gantt_buf` перед відправкою на сервер
 - **Автосинхронізація** — інтелектуальний debounce 800 мс з урахуванням перемикання проєктів
-- **Спільний доступ** — ролі owner, editor, viewer з контролем прав на рівні БД (RLS)
+- **Спільний доступ** — ролі owner, manager, editor, viewer з контролем прав на рівні БД (RLS)
 - **Офлайн-режим** — повна функціональність при відсутності інтернету з автоматичним PUSH при відновленні зв'язку
 
 
@@ -63,6 +63,13 @@
 - **Export:** SheetJS (Excel), jsPDF + html2canvas (PDF)
 - **PWA:** Service Worker, Offline Cache
 - **UI Components:** SweetAlert2, Custom HTML5 controls
+
+## План Робіт і Стабілізації
+
+- `docs/ROLES_AND_SHARING_PLAN.md` — продуктовий план по ролях, sharing, audit і org-напрямку
+- `docs/TECH_MIGRATION_PLAN.md` — технічна послідовність міграції та модернізації
+- `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` — деталізований backlog поточного етапу `owner/manager/editor/viewer`
+- `docs/STABILIZATION_CHECKLIST.md` — фінальний checklist для комплексного auth/sync/roles/audit прогону
 
 ## Структура Проєкту
 
@@ -155,6 +162,8 @@ const SUPABASE_KEY = "your-public-key";
 - **[docs/API.md](docs/API.md)** — REST API для резервного бекенду
 - **[docs/DATABASE.md](docs/DATABASE.md)** — схема Supabase та RLS
 - **[docs/ROLES_AND_SHARING_PLAN.md](docs/ROLES_AND_SHARING_PLAN.md)** — контроль доступу та спільний доступ
+- **[docs/TECH_MIGRATION_PLAN.md](docs/TECH_MIGRATION_PLAN.md)** — технічний план міграції та поетапної модернізації
+- **[docs/PHASE1_IMPLEMENTATION_BACKLOG.md](docs/PHASE1_IMPLEMENTATION_BACKLOG.md)** — backlog найближчої реалізації granular project roles
 
 ## PWA та Офлайн
 

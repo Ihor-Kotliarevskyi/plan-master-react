@@ -1,11 +1,15 @@
 let showBaseline = false;
 
 /** Зберігає поточні позиції задач як базовий план. */
-function saveBaseline() {
+async function saveBaseline() {
   proj.baseline = tasks.map((t) => ({ id: t.id, n: t.n, ms: t.ms, ws: t.ws, me: t.me, we: t.we }));
   proj.baselineDate = new Date().toLocaleDateString("uk-UA");
   saveAll();
   renderTable();
+  await logProjectMutation(AUDIT_EVENT_TYPES.PROJECT_BASELINE_SAVED, {
+    items: proj.baseline.length,
+    baselineDate: proj.baselineDate,
+  });
   Swal.fire({
     toast: true, position: "top-end", icon: "success",
     title: `Базовий план збережено (${proj.baselineDate})`,
@@ -29,6 +33,7 @@ async function clearBaseline() {
   saveAll();
   renderTable();
   document.getElementById("btn-baseline")?.classList.remove("on");
+  await logProjectMutation(AUDIT_EVENT_TYPES.PROJECT_BASELINE_CLEARED);
 }
 
 /** Перемикає відображення базового плану. */

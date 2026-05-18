@@ -63,8 +63,37 @@ function buildChips(sel) {
 }
 
 function pickCat(i) {
+  if (!_canMutateTaskModal()) return;
   selCat = i;
   document.querySelectorAll("#cat-chips .cat-chip").forEach((c, j) => c.classList.toggle("active", j === i));
+}
+
+function _canMutateTaskModal() {
+  return typeof canEditTasks !== "function" || canEditTasks();
+}
+
+function _applyTaskModalPermissions() {
+  const modal = document.getElementById("modal");
+  if (!modal) return;
+  const editable = _canMutateTaskModal();
+
+  modal.querySelectorAll("input, select, textarea, button").forEach((el) => {
+    if (el.closest(".m-btns") || el.closest(".task-tabs")) return;
+    el.disabled = !editable;
+    if (el.matches("input, textarea")) el.readOnly = !editable;
+  });
+
+  const saveBtn = modal.querySelector(".m-btns .btn-acc");
+  if (saveBtn) saveBtn.style.display = editable ? "" : "none";
+}
+
+function _applyNotesModalPermissions() {
+  const editable = _canMutateTaskModal();
+  const addRow = document.querySelector("#notes-modal .notes-add-row");
+  if (addRow) addRow.style.display = editable ? "" : "none";
+  document.querySelectorAll("#notes-modal .note-actions, #notes-modal .note-edit-actions").forEach((el) => {
+    el.style.display = editable ? "" : "none";
+  });
 }
 
 /** Зважений загальний прогрес фаз з урахуванням тривалості кожної. */
@@ -119,6 +148,7 @@ function renderModalPhases() {
   document.getElementById("modal-phases").innerHTML = rows + summary;
   lucide.createIcons({ nodes: [document.getElementById("modal-phases")] });
   _syncModalPhasesToHidden();
+  _applyTaskModalPermissions();
 }
 
 /** Повертає індекс активної фази (остання з prog > 0, або перша). */
@@ -186,6 +216,7 @@ function _syncModalPhasesToHidden() {
 }
 
 function modalAddPhase() {
+  if (!_canMutateTaskModal()) return;
   _flushModalPhases();
   const last = _modalPhases[_modalPhases.length - 1];
   const newMs = Math.min(proj.nm - 1, last.me + 1);
@@ -194,6 +225,7 @@ function modalAddPhase() {
 }
 
 function modalRemovePhase(pi) {
+  if (!_canMutateTaskModal()) return;
   _flushModalPhases();
   if (_modalPhases.length <= 1) return;
   _modalPhases.splice(pi, 1);
@@ -345,14 +377,17 @@ function renderDepTags() {
     .join("");
 
   renderModalNet();
+  _applyTaskModalPermissions();
 }
 
 /** Показує dropdown з фільтрацією задач. */
 function showDepDropdown() {
+  if (!_canMutateTaskModal()) return;
   filterDepSearch(document.getElementById("dep-search")?.value || "");
 }
 
 function filterDepSearch(q) {
+  if (!_canMutateTaskModal()) return;
   const dd = document.getElementById("dep-dropdown");
   if (!dd) return;
   const added = new Set(_modalDeps.map((d) => d.id));
@@ -376,6 +411,7 @@ function filterDepSearch(q) {
 }
 
 function addDepTag(id) {
+  if (!_canMutateTaskModal()) return;
   if (_modalDeps.find((d) => d.id === id)) return;
   _modalDeps.push({ id, type: "FS", threshold: 0 });
   renderDepTags();
@@ -386,6 +422,7 @@ function addDepTag(id) {
 }
 
 function removeDepTag(id) {
+  if (!_canMutateTaskModal()) return;
   _modalDeps = _modalDeps.filter((d) => d.id !== id);
   if (_editingDepId === id) {
     _editingDepId = null;
@@ -395,6 +432,7 @@ function removeDepTag(id) {
 }
 
 function editDepTag(id) {
+  if (!_canMutateTaskModal()) return;
   _editingDepId = _editingDepId === id ? null : id;
   renderDepTags();
   renderDepTypeEditor();
@@ -446,6 +484,7 @@ function renderDepTypeEditor() {
         }
       </div>
     </div>`;
+  _applyTaskModalPermissions();
 }
 
 function setDepType(id, type) {
@@ -551,7 +590,8 @@ function openAdd() {
   document.getElementById("dep-dropdown").style.display = "none";
   switchTaskTab("general");
   document.getElementById("modal").style.display = "flex";
-  setTimeout(() => document.getElementById("f-name").focus(), 50);
+  _applyTaskModalPermissions();
+  if (_canMutateTaskModal()) setTimeout(() => document.getElementById("f-name").focus(), 50);
 }
 
 function openEdit(ti) {
@@ -602,6 +642,7 @@ function openEdit(ti) {
 
   switchTaskTab("general");
   document.getElementById("modal").style.display = "flex";
+  _applyTaskModalPermissions();
 }
 
 function closeModal() {
@@ -611,6 +652,9 @@ function closeModal() {
 
 /** Зберігає задачу (нову або відредаговану). */
 async function saveTask() {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
+  const isEdit = editIdx !== null;
+
   const name = document.getElementById("f-name").value.trim();
   if (!name) {
     document.getElementById("f-name").focus();
@@ -676,28 +720,40 @@ async function saveTask() {
     if (!res.isConfirmed) return;
   }
 
-  if (editIdx !== null)
+  let savedTask = null;
+  if (isEdit) {
     tasks[editIdx] = { ...tasks[editIdx], ...obj, notes: tasks[editIdx].notes || [] };
-  else tasks.push({ id: genId(), n: nextN++, ...obj, notes: [] });
+    savedTask = tasks[editIdx];
+  } else {
+    tasks.push({ id: genId(), n: nextN++, ...obj, notes: [] });
+    savedTask = tasks[tasks.length - 1];
+  }
 
   closeModal();
   saveAll();
   render();
+  await logTaskActivity(isEdit ? AUDIT_EVENT_TYPES.TASK_UPDATED : AUDIT_EVENT_TYPES.TASK_CREATED, savedTask, {
+    category: savedTask?.cat ?? selCat,
+    hasPhases: Array.isArray(savedTask?.phases) && savedTask.phases.length > 1,
+  });
   Swal.fire({
     toast: true,
     position: "top-end",
     icon: "success",
-    title: editIdx !== null ? "Роботу оновлено" : "Роботу додано",
+    title: isEdit ? "Роботу оновлено" : "Роботу додано",
     showConfirmButton: false,
     timer: 2000,
   });
 }
 
 async function delTask(ti) {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
+  const task = tasks[ti];
+
   const res = await Swal.fire({
     icon: "warning",
     title: "Видалити роботу?",
-    text: `«${tasks[ti].name}»`,
+    text: `«${task.name}»`,
     showCancelButton: true,
     confirmButtonText: "Видалити",
     confirmButtonColor: "#c42b2b",
@@ -707,6 +763,7 @@ async function delTask(ti) {
   tasks.splice(ti, 1);
   saveAll();
   render();
+  await logTaskActivity(AUDIT_EVENT_TYPES.TASK_DELETED, task);
 }
 
 function openNotesModal(ti) {
@@ -715,6 +772,7 @@ function openNotesModal(ti) {
   document.getElementById("notes-modal-title").textContent = t.name;
   renderNotes(t.notes || []);
   document.getElementById("notes-modal").style.display = "flex";
+  _applyNotesModalPermissions();
 }
 
 function closeNotesModal() {
@@ -767,6 +825,7 @@ function renderNotes(notes) {
     .join("");
   lucide.createIcons({ nodes: [el] });
   el.scrollTop = el.scrollHeight;
+  _applyNotesModalPermissions();
 }
 
 function _getNotesTask() { return _notesTi !== null ? tasks[_notesTi] : null; }
@@ -799,6 +858,7 @@ function _noteDate() {
 }
 
 function addNote() {
+  if (!_canMutateTaskModal()) return;
   const ta = document.getElementById("note-input");
   const text = ta?.value?.trim();
   if (!text) return;
@@ -816,6 +876,7 @@ function addNote() {
 }
 
 function startNoteEdit(i) {
+  if (!_canMutateTaskModal()) return;
   document.getElementById(`note-text-${i}`).style.display = "none";
   document.getElementById(`note-edit-row-${i}`).style.display = "block";
   document.getElementById(`note-edit-ta-${i}`)?.focus();
@@ -827,6 +888,7 @@ function cancelNoteEdit(i) {
 }
 
 function saveNoteEdit(i) {
+  if (!_canMutateTaskModal()) return;
   const ta = document.getElementById(`note-edit-ta-${i}`);
   const txt = ta?.value?.trim();
   if (!txt) return;
@@ -845,6 +907,7 @@ function saveNoteEdit(i) {
 }
 
 async function deleteNote(i) {
+  if (!_canMutateTaskModal()) return;
   const res = await Swal.fire({
     icon: "warning",
     title: "Видалити нотатку?",
@@ -879,6 +942,10 @@ function _escHtml(s) {
 }
 
 function openCatEditor() {
+  if (typeof canManageProject === "function" && !canManageProject()) {
+    Swal.fire({ icon: "info", title: "У вас немає прав на зміну категорій" });
+    return;
+  }
   tempCats = cats.map((c) => ({ ...c }));
   renderCatList();
   document.getElementById("cat-modal").style.display = "flex";
@@ -1126,21 +1193,48 @@ function depListGo(fromTi) {
 }
 
 function openProj() {
+  const canManage = typeof canManageProject === "function" ? canManageProject() : true;
   const sel = document.getElementById("p-sm");
   sel.innerHTML = MN.map((m, i) => `<option value="${i}">${m}</option>`).join("");
   sel.value = String(proj.sm);
-  document.getElementById("p-name").value = proj.name;
-  document.getElementById("p-sy").value = proj.sy;
-  document.getElementById("p-nm").value = proj.nm;
-  document.getElementById("proj-modal").style.display = "flex";
+  const nameInput = document.getElementById("p-name");
+  const yearInput = document.getElementById("p-sy");
+  const durationInput = document.getElementById("p-nm");
+  const modal = document.getElementById("proj-modal");
+
+  nameInput.value = proj.name;
+  yearInput.value = proj.sy;
+  durationInput.value = proj.nm;
+
+  [nameInput, sel, yearInput, durationInput].forEach((el) => {
+    if (!el) return;
+    el.disabled = !canManage;
+    el.readOnly = !canManage;
+  });
+
+  modal.querySelectorAll(".num-btn").forEach((btn) => {
+    btn.disabled = !canManage;
+    btn.style.display = canManage ? "" : "none";
+  });
+
+  const catsBtn = modal.querySelector(".proj-modal-cats .btn");
+  if (catsBtn) catsBtn.style.display = canManage ? "" : "none";
+
+  const saveBtn = modal.querySelector(".m-btns .btn-acc");
+  if (saveBtn) saveBtn.style.display = canManage ? "" : "none";
+
+  modal.style.display = "flex";
 }
 
 function closeProjModal() {
   document.getElementById("proj-modal").style.display = "none";
 }
 
-function saveProjSettings() {
+async function saveProjSettings() {
+  if (typeof canManageProject === "function" && !canManageProject()) return;
+
   const oldAbsStart = proj.sy * 12 + proj.sm;
+  const before = { name: proj.name, sm: proj.sm, sy: proj.sy, nm: proj.nm };
   proj.name = document.getElementById("p-name").value.trim() || proj.name;
   const newSm = +document.getElementById("p-sm").value;
   const newSy = +document.getElementById("p-sy").value;
@@ -1164,21 +1258,72 @@ function saveProjSettings() {
   closeProjModal();
   saveAll();
   render();
+  await logProjectMutation(AUDIT_EVENT_TYPES.PROJECT_SETTINGS_UPDATED, {
+    before,
+    after: { name: proj.name, sm: proj.sm, sy: proj.sy, nm: proj.nm },
+    shiftedTasks: shift !== 0,
+  });
 }
 
 function openProjManager() {
-  document.getElementById("proj-list-el").innerHTML = Object.entries(allProjects)
-    .map(
-      ([id, p]) =>
-        `<div class="pj-row${id === currentId ? " active" : ""}">
-           <input class="pj-name-inp" value="${p.proj.name}"
-                  onchange="allProjects['${id}'].proj.name=this.value;updateProjSel();"
-                  onclick="event.stopPropagation()">
-           <span class="pj-tasks-count">${p.tasks?.length || 0} робіт</span>
-           <span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити"><i data-lucide="trash-2"></i></span>
-         </div>`,
-    )
-    .join("");
+  const getManagePermission = (projectId) => {
+    if (typeof getProjectPermissions !== "function") return true;
+    const role = typeof getStoredProjectRole === "function"
+      ? getStoredProjectRole(projectId, "owner")
+      : allProjects?.[projectId]?._role || (projectId === currentId ? _projectRole : "owner");
+    return getProjectPermissions(role).canManageProject;
+  };
+  const roleLabels = typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS : {};
+  const entries = Object.entries(allProjects || {});
+  const own = [];
+  const shared = [];
+
+  entries.forEach(([id, p]) => {
+    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
+    (isShared ? shared : own).push([id, p]);
+  });
+
+  const renderProjectRow = ([id, p]) => {
+    const canManageProjectEntry = getManagePermission(id);
+    const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
+    const roleLabel = roleLabels[role] || role;
+    const ownerLabel = p?._access?.ownerName || p?._access?.ownerEmail || "";
+    const invitedByLabel = p?._access?.invitedByName || p?._access?.invitedByEmail || "";
+    const sharedMeta =
+      p?._access?.source === "shared"
+        ? `<div class="pj-meta">${ownerLabel ? `Власник: ${ownerLabel}` : ""}${invitedByLabel ? `${ownerLabel ? " · " : ""}Поділився: ${invitedByLabel}` : ""}</div>`
+        : `<div class="pj-meta">Власний проєкт</div>`;
+    return `<div class="pj-row${id === currentId ? " active" : ""}">
+       <div class="pj-main">
+         <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
+                onchange="${canManageProjectEntry ? `allProjects['${id}'].proj.name=this.value;updateProjSel();` : ""}"
+                onclick="event.stopPropagation()">
+         <span class="pj-role-chip pj-role-${role}">${roleLabel}</span>
+       </div>
+       <div class="pj-sub">
+         <span class="pj-tasks-count">${p.tasks?.length || 0} робіт</span>
+         ${sharedMeta}
+       </div>
+       ${
+         canManageProjectEntry
+           ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити"><i data-lucide="trash-2"></i></span>`
+           : ""
+       }
+     </div>`;
+  };
+
+  const renderGroup = (title, list) =>
+    list.length
+      ? `<div class="proj-group">
+          <div class="proj-group-title">${title}</div>
+          ${list.map(renderProjectRow).join("")}
+        </div>`
+      : "";
+
+  document.getElementById("proj-list-el").innerHTML = [
+    renderGroup("Мої проєкти", own),
+    renderGroup("Розшарені проєкти", shared),
+  ].join("");
   lucide.createIcons({ nodes: [document.getElementById("proj-list-el")] });
   document.getElementById("projmgr-modal").style.display = "flex";
 }
@@ -1204,6 +1349,7 @@ async function loadDemoProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: DEF_TASKS.map((t) => ({ ...t })),
     nextN: DEF_TASKS.length + 1,
+    _localUpdatedAt: new Date().toISOString(),
     _localVersion: 1, _serverVersion: 0,
   };
   try { localStorage.setItem(SK_BUF, JSON.stringify({ allProjects, currentId })); } catch (_) {}
@@ -1241,6 +1387,7 @@ async function createProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: [],
     nextN: 1,
+    _localUpdatedAt: new Date().toISOString(),
   };
   saveAll();
   switchProject(id);
@@ -1248,6 +1395,11 @@ async function createProject() {
 }
 
 async function deleteProject(id) {
+  const role = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(id, "owner")
+    : allProjects?.[id]?._role || (id === currentId ? _projectRole : "owner");
+  if (typeof canManageProject === "function" && !canManageProject(role)) return;
+
   if (Object.keys(allProjects).length <= 1) {
     Swal.fire({ icon: "info", title: "Неможливо видалити", text: "Має залишатися хоча б один проєкт." });
     return;

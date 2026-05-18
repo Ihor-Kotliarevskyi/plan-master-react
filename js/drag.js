@@ -4,6 +4,7 @@ function attachDrag() {
   if (!tbl) return;
 
   tbl.addEventListener("mousedown", (e) => {
+    if (typeof canEditTasks === "function" && !canEditTasks()) return;
     const handle = e.target.closest(".td-drag");
     const bh = e.target.closest(".bh");
     const bar = e.target.closest(".bar");
@@ -54,6 +55,7 @@ function attachDrag() {
 }
 
 document.addEventListener("mousemove", (e) => {
+  if (typeof canEditTasks === "function" && !canEditTasks()) return;
   if (rowDrag) {
     let best = null;
     let bd = 9999;
@@ -126,6 +128,11 @@ document.addEventListener("mousemove", (e) => {
 });
 
 document.addEventListener("mouseup", () => {
+  if (typeof canEditTasks === "function" && !canEditTasks()) {
+    drag = null;
+    rowDrag = null;
+    return;
+  }
   if (rowDrag) {
     document
       .querySelectorAll("#gtbl tbody tr")

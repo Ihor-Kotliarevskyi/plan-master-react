@@ -8,6 +8,50 @@ function setUserSyncStatus(status) {
   updateUserBtn();
 }
 
+function getProjectSyncState(projectId = currentId) {
+  const snap = projectId && allProjects ? allProjects[projectId] : null;
+  const localVersion = snap?._localVersion || 0;
+  const serverVersion = snap?._serverVersion || 0;
+  const hasServerCopy = !!snap?._serverId;
+  const hasLocalChanges = hasServerCopy ? localVersion > serverVersion : localVersion > 0;
+  const updatedAt = snap?._localUpdatedAt || null;
+
+  return {
+    snap,
+    hasServerCopy,
+    hasLocalChanges,
+    localVersion,
+    serverVersion,
+    updatedAt,
+  };
+}
+
+function getCurrentSyncBadge() {
+  const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  if (!loggedIn) return { status: "offline", label: "Синхронізація вимкнена" };
+  if (_userSyncStatus === "error") return { status: "error", label: "Помилка синхронізації" };
+  if (_userSyncStatus === "syncing") return { status: "syncing", label: "Триває синхронізація" };
+  if (getProjectSyncState().hasLocalChanges) {
+    return { status: "warn", label: "Є локальні зміни, що ще не відправлені" };
+  }
+  return { status: "ok", label: "Синхронізація увімкнена" };
+}
+
+function refreshUserSyncStatus(preferredStatus = null) {
+  const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  let nextStatus = preferredStatus;
+
+  if (!nextStatus) {
+    if (!loggedIn) nextStatus = "offline";
+    else if (!navigator.onLine) nextStatus = "warn";
+    else nextStatus = getProjectSyncState().hasLocalChanges ? "warn" : "ok";
+  }
+
+  _userSyncStatus = nextStatus;
+  updateUserBtn();
+  return nextStatus;
+}
+
 
 const ROLES = {
   guest: { label: "Гість", cls: "guest" },
@@ -81,7 +125,7 @@ function updateUserBtn() {
     ? `<img src="${avatar}" alt="avatar" class="user-avatar-img" />`
     : initial;
 
-  const status = loggedIn ? _userSyncStatus : "offline";
+  const status = getCurrentSyncBadge().status;
   btn.innerHTML = `
     <div class="user-avatar-wrap">
       <div class="user-avatar">${avatarHTML}</div>
@@ -117,7 +161,7 @@ function _renderUserModal() {
   const initial = (p.name || "?")[0].toUpperCase();
   const avatarLarge = p.avatar
     ? `<img src="${p.avatar}" alt="avatar" class="user-avatar-large-img" />`
-    : `<span>${initial}</span>`;
+    : `<span id="um-avatar-initial">${initial}</span>`;
 
   document.getElementById("user-modal-body").innerHTML = `
     <div class="um-cols">
@@ -189,7 +233,14 @@ function _renderUserModal() {
         <div class="um-user-card">
           <div class="user-avatar-large" id="um-avatar-preview">${avatarLarge}</div>
           <div class="um-user-info">
-            <strong id="um-name-preview" class="um-user-name">${_esc(p.name)}</strong>
+            <label for="um-name" class="user-inline-label">Ім'я</label>
+            <input
+              id="um-name"
+              class="user-inline-input"
+              value="${_esc(p.name)}"
+              placeholder="Введіть ім'я"
+              oninput="_syncUserNamePreview(this.value)"
+            />
             <span class="user-email-hint">${_esc(p.email) || "email не вказано"}</span>
             <div class="user-avatar-actions">
               <label class="avatar-upload-btn">
@@ -202,17 +253,6 @@ function _renderUserModal() {
           </div>
         </div>
 
-        <div class="settings-section">
-          <div class="settings-section-title">Особисті дані</div>
-          <div class="settings-section-body">
-            <div class="fg">
-              <label>Ім'я</label>
-              <input id="um-name" value="${_esc(p.name)}" placeholder="Введіть ім'я"
-                     oninput="document.getElementById('um-name-preview').textContent=this.value||'—'" />
-            </div>
-          </div>
-        </div>
-
         ${_renderAccountSection(loggedIn, sbp, p)}
       </div>
 
@@ -221,6 +261,29 @@ function _renderUserModal() {
 }
 
 function _renderAccountSection(loggedIn, sbp, p) {
+  const syncBadge = getCurrentSyncBadge();
+  const projectSync = getProjectSyncState();
+  const currentRole = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(currentId, "owner")
+    : "owner";
+  const roleLabel =
+    typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole;
+  const syncMeta = projectSync.updatedAt
+    ? `<div class="account-sync-meta">Остання локальна зміна: ${new Date(projectSync.updatedAt).toLocaleString("uk-UA")}</div>`
+    : "";
+  const syncDetails = projectSync.snap
+    ? `<div class="account-sync-details">
+        <div><b>Проєкт:</b> ${_esc(projectSync.snap.proj?.name || "—")}</div>
+        <div><b>Роль:</b> ${_esc(roleLabel)}</div>
+        <div><b>Хмарна копія:</b> ${projectSync.hasServerCopy ? "так" : "ні"}</div>
+        <div><b>Локальна версія:</b> ${projectSync.localVersion}</div>
+        <div><b>Серверна версія:</b> ${projectSync.serverVersion}</div>
+      </div>`
+    : "";
+  const auditBtn =
+    typeof canViewAuditLog === "function" && canViewAuditLog()
+      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> Журнал змін</button>`
+      : "";
   if (loggedIn && sbp) {
     return `
     <div class="settings-section">
@@ -231,12 +294,15 @@ function _renderAccountSection(loggedIn, sbp, p) {
           <span class="account-email">${_esc(p.email)}</span>
         </div>
         <div class="setting-row" style="margin-top:8px">
-          <label class="sync-enabled-lbl">● Синхронізація увімкнена</label>
+          <label class="sync-enabled-lbl">● ${_esc(syncBadge.label)}</label>
           <button class="btn btn-sm btn-danger"
             onclick="closeUserModal();apiLogout().then(()=>{ updateUserBtn(); })">
             Вийти
           </button>
         </div>
+        ${auditBtn ? `<div class="account-actions">${auditBtn}</div>` : ""}
+        ${syncDetails}
+        ${syncMeta}
       </div>
     </div>`;
   }
@@ -260,13 +326,15 @@ function _renderAccountSection(loggedIn, sbp, p) {
 function _renderAuthForm(tab) {
   const isLogin = tab === "login";
   return `
-    ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
-    <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
-    <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
-    <div id="auth-error" class="auth-error" style="display:none"></div>
-    <button class="btn btn-acc auth-submit-btn" onclick="_submitAuthInCabinet('${tab}')">
-      ${isLogin ? "Увійти" : "Зареєструватись"}
-    </button>`;
+    <div class="auth-form">
+      ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
+      <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
+      <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
+      <div id="auth-error" class="auth-error" style="display:none"></div>
+      <button class="btn btn-acc auth-submit-btn" type="button" onclick="_submitAuthInCabinet('${tab}')">
+        ${isLogin ? "Увійти" : "Зареєструватись"}
+      </button>
+    </div>`;
 }
 
 function _switchAuthTab(tab) {
@@ -277,50 +345,160 @@ function _switchAuthTab(tab) {
   document.getElementById("auth-tab-body").innerHTML = _renderAuthForm(tab);
 }
 
+function _syncUserNamePreview(value) {
+  const nextName = (value || "").trim();
+  const avatarInitial = document.getElementById("um-avatar-initial");
+  if (avatarInitial) avatarInitial.textContent = (nextName || "?")[0].toUpperCase();
+}
+
+function _formatAuditEventLabel(eventType) {
+  const map = {
+    "task.created": "Створено задачу",
+    "task.updated": "Оновлено задачу",
+    "task.deleted": "Видалено задачу",
+    "project.settings_updated": "Оновлено налаштування проєкту",
+    "project.baseline_saved": "Збережено базовий план",
+    "project.baseline_cleared": "Видалено базовий план",
+    "share.granted": "Надано доступ",
+    "share.role_updated": "Оновлено роль доступу",
+    "share.revoked": "Скасовано доступ",
+  };
+  return map[eventType] || eventType || "Подія";
+}
+
+function _formatAuditSubject(entry) {
+  if (!entry) return "—";
+  if (entry.entity_type === "task") {
+    return entry.payload?.taskName || `Задача #${entry.payload?.taskN ?? "?"}`;
+  }
+  if (entry.entity_type === "share") {
+    return entry.payload?.email || entry.entity_id || "Спільний доступ";
+  }
+  return proj?.name || "Поточний проєкт";
+}
+
+async function openAuditLogModal() {
+  if (typeof canViewAuditLog === "function" && !canViewAuditLog()) {
+    Swal.fire({ icon: "info", title: "У вас немає прав на перегляд журналу змін" });
+    return;
+  }
+  if (typeof apiGetActivityLog !== "function") return;
+
+  let events = [];
+  try {
+    events = await apiGetActivityLog(25);
+  } catch (err) {
+    const hint = String(err?.message || "").includes("activity_log")
+      ? "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql."
+      : (err.message || "Спробуйте пізніше");
+    Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: hint });
+    return;
+  }
+
+  const list = events.length
+    ? events.map((entry) => `
+        <div class="audit-row">
+          <div class="audit-row-head">
+            <span class="audit-event">${_esc(_formatAuditEventLabel(entry.event_type))}</span>
+            <span class="audit-time">${_esc(new Date(entry.created_at).toLocaleString("uk-UA"))}</span>
+          </div>
+          <div class="audit-row-meta">
+            <span><b>Хто:</b> ${_esc(entry.actor_name || entry.actor_email || "—")}</span>
+            <span><b>Об'єкт:</b> ${_esc(_formatAuditSubject(entry))}</span>
+          </div>
+        </div>
+      `).join("")
+    : `<div class="audit-empty">Для поточного проєкту ще немає зафіксованих подій.</div>`;
+
+  await Swal.fire({
+    title: "Журнал змін",
+    html: `<div class="audit-list">${list}</div>`,
+    width: 760,
+    confirmButtonText: "Закрити",
+  });
+}
+
 async function _submitAuthInCabinet(tab) {
   const email = document.getElementById("auth-email")?.value?.trim();
   const pass = document.getElementById("auth-pass")?.value;
   const name = document.getElementById("auth-name")?.value?.trim();
   const errEl = document.getElementById("auth-error");
+  const setStage = (msg) => {
+    if (errEl) {
+      errEl.textContent = `[debug] ${msg}`;
+      errEl.style.display = "block";
+      errEl.style.color = "var(--txt2)";
+    }
+    console.log("[auth-debug]", msg);
+  };
   const showErr = (msg) => {
     if (errEl) {
       errEl.textContent = msg;
       errEl.style.display = "block";
+      errEl.style.color = "";
     }
   };
 
   try {
     if (tab === "login") {
+      setStage("calling apiLogin");
       await apiLogin(email, pass);
+      setStage("apiLogin success");
     } else {
       if (!name) { showErr("Введіть ім'я"); return; }
+      setStage("calling apiRegister");
       await apiRegister(name, email, pass);
+      setStage("apiRegister success");
     }
 
-    if (typeof _sbProfile !== "undefined" && _sbProfile) {
+    const activeProfile =
+      typeof apiGetMe === "function"
+        ? (await apiGetMe().catch(() => null)) || _sbProfile
+        : _sbProfile;
+    setStage(`profile resolved: ${activeProfile?.email || "none"}`);
+
+    if (activeProfile) {
       userProfile = {
         ...userProfile,
-        name: _sbProfile.name,
-        avatar: _sbProfile.avatar,
-        theme: _sbProfile.theme || userProfile.theme,
+        name: activeProfile.name,
+        avatar: activeProfile.avatar,
+        theme: activeProfile.theme || userProfile.theme,
         defaults: {
-          sm: _sbProfile.default_sm ?? userProfile.defaults.sm,
-          sy: _sbProfile.default_sy ?? userProfile.defaults.sy,
-          nm: _sbProfile.default_nm ?? userProfile.defaults.nm,
+          sm: activeProfile.default_sm ?? userProfile.defaults.sm,
+          sy: activeProfile.default_sy ?? userProfile.defaults.sy,
+          nm: activeProfile.default_nm ?? userProfile.defaults.nm,
         },
       };
       applyTheme(userProfile.theme);
       saveUser();
     }
 
-    updateUserBtn();
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+    else updateUserBtn();
+    setStage(`ui updated: loggedIn=${typeof isLoggedIn === "function" ? isLoggedIn() : "?"}`);
 
+    if (tab === "login" && typeof isLoggedIn === "function" && isLoggedIn()) {
+      setStage("closing modal after login");
+      closeUserModal();
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Вхід виконано",
+        showConfirmButton: false,
+        timer: 2200,
+      });
+    } else {
+      _renderUserModal();
+    }
+
+    const localProjectState = getProjectSyncState();
     const localUnsynced =
       currentId &&
-      allProjects[currentId] &&
-      !allProjects[currentId]._serverId &&
-      allProjects[currentId]._localUpdatedAt &&
-      allProjects[currentId].tasks?.length > 0;
+      localProjectState.snap &&
+      !localProjectState.hasServerCopy &&
+      localProjectState.updatedAt &&
+      localProjectState.snap.tasks?.length > 0;
 
     if (localUnsynced) {
       const { isConfirmed } = await Swal.fire({
@@ -330,7 +508,7 @@ async function _submitAuthInCabinet(tab) {
           <div class="swal-info-text">
             <p>Ви працювали без акаунту. Знайдено локальний проєкт:</p>
             <b>${proj.name || "Без назви"}</b>
-            <p class="swal-meta">Змінено: ${new Date(allProjects[currentId]._localUpdatedAt).toLocaleString("uk-UA")}</p>
+            <p class="swal-meta">Змінено: ${new Date(localProjectState.updatedAt).toLocaleString("uk-UA")}</p>
             <p>Що зробити з локальними даними?</p>
           </div>`,
         showCancelButton: true,
@@ -344,8 +522,24 @@ async function _submitAuthInCabinet(tab) {
       }
     }
 
-    await apiLoadProjects();
-    _renderUserModal();
+    try {
+      setStage("loading projects");
+      await apiLoadProjects();
+      setStage("projects loaded");
+    } catch (loadErr) {
+      setStage(`projects failed: ${loadErr?.message || "unknown error"}`);
+      console.error("Post-login project bootstrap failed", loadErr);
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: "Вхід виконано, але проєкти не завантажились",
+        text: loadErr?.message || "Перевірте стан бази даних і спробуйте оновити сторінку",
+        showConfirmButton: false,
+        timer: 4500,
+      });
+    }
+    if (tab !== "login") _renderUserModal();
 
     Swal.fire({
       toast: true, position: "top-end", icon: "success",
