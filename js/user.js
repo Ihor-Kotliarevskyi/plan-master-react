@@ -386,6 +386,7 @@ async function openAuditLogModal() {
 
   let events = [];
   try {
+    setStage("submit started");
     events = await apiGetActivityLog(25);
   } catch (err) {
     Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: err.message || "Спробуйте пізніше" });
@@ -420,38 +421,74 @@ async function _submitAuthInCabinet(tab) {
   const pass = document.getElementById("auth-pass")?.value;
   const name = document.getElementById("auth-name")?.value?.trim();
   const errEl = document.getElementById("auth-error");
+  const setStage = (msg) => {
+    if (errEl) {
+      errEl.textContent = `[debug] ${msg}`;
+      errEl.style.display = "block";
+      errEl.style.color = "var(--txt2)";
+    }
+    console.log("[auth-debug]", msg);
+  };
   const showErr = (msg) => {
     if (errEl) {
       errEl.textContent = msg;
       errEl.style.display = "block";
+      errEl.style.color = "";
     }
   };
 
   try {
     if (tab === "login") {
+      setStage("calling apiLogin");
       await apiLogin(email, pass);
+      setStage("apiLogin success");
     } else {
       if (!name) { showErr("Введіть ім'я"); return; }
+      setStage("calling apiRegister");
       await apiRegister(name, email, pass);
+      setStage("apiRegister success");
     }
 
-    if (typeof _sbProfile !== "undefined" && _sbProfile) {
+    const activeProfile =
+      typeof apiGetMe === "function"
+        ? (await apiGetMe().catch(() => null)) || _sbProfile
+        : _sbProfile;
+    setStage(`profile resolved: ${activeProfile?.email || "none"}`);
+
+    if (activeProfile) {
       userProfile = {
         ...userProfile,
-        name: _sbProfile.name,
-        avatar: _sbProfile.avatar,
-        theme: _sbProfile.theme || userProfile.theme,
+        name: activeProfile.name,
+        avatar: activeProfile.avatar,
+        theme: activeProfile.theme || userProfile.theme,
         defaults: {
-          sm: _sbProfile.default_sm ?? userProfile.defaults.sm,
-          sy: _sbProfile.default_sy ?? userProfile.defaults.sy,
-          nm: _sbProfile.default_nm ?? userProfile.defaults.nm,
+          sm: activeProfile.default_sm ?? userProfile.defaults.sm,
+          sy: activeProfile.default_sy ?? userProfile.defaults.sy,
+          nm: activeProfile.default_nm ?? userProfile.defaults.nm,
         },
       };
       applyTheme(userProfile.theme);
       saveUser();
     }
 
-    updateUserBtn();
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+    else updateUserBtn();
+    setStage(`ui updated: loggedIn=${typeof isLoggedIn === "function" ? isLoggedIn() : "?"}`);
+
+    if (tab === "login" && typeof isLoggedIn === "function" && isLoggedIn()) {
+      setStage("closing modal after login");
+      closeUserModal();
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "success",
+        title: "Вхід виконано",
+        showConfirmButton: false,
+        timer: 2200,
+      });
+    } else {
+      _renderUserModal();
+    }
 
     const localProjectState = getProjectSyncState();
     const localUnsynced =
@@ -483,8 +520,24 @@ async function _submitAuthInCabinet(tab) {
       }
     }
 
-    await apiLoadProjects();
-    _renderUserModal();
+    try {
+      setStage("loading projects");
+      await apiLoadProjects();
+      setStage("projects loaded");
+    } catch (loadErr) {
+      setStage(`projects failed: ${loadErr?.message || "unknown error"}`);
+      console.error("Post-login project bootstrap failed", loadErr);
+      Swal.fire({
+        toast: true,
+        position: "top-end",
+        icon: "warning",
+        title: "Вхід виконано, але проєкти не завантажились",
+        text: loadErr?.message || "Перевірте стан бази даних і спробуйте оновити сторінку",
+        showConfirmButton: false,
+        timer: 4500,
+      });
+    }
+    if (tab !== "login") _renderUserModal();
 
     Swal.fire({
       toast: true, position: "top-end", icon: "success",

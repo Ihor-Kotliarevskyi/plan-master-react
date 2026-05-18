@@ -131,20 +131,12 @@ alter table public.project_shares enable row level security;
 alter table public.tasks enable row level security;
 
 -- Profiles
-create policy "profiles_select_own_or_admin"
+create policy "profiles_select_own"
   on public.profiles
   for select
   using (
     auth.uid() is not null
-    and (
-      auth.uid() = id
-      or exists (
-        select 1
-        from public.profiles p
-        where p.id = auth.uid()
-          and p.role = 'admin'
-      )
-    )
+    and auth.uid() = id
   );
 
 create policy "profiles_update_own"
