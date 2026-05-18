@@ -598,6 +598,69 @@
   color: var(--ok);
   font-weight: 500;
 }
+.account-sync-details {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 90%, var(--txt) 10%);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  display: grid;
+  gap: 4px;
+}
+.account-sync-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--txt3);
+}
+.account-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.audit-list {
+  max-height: 420px;
+  overflow: auto;
+  text-align: left;
+  display: grid;
+  gap: 10px;
+}
+.audit-row {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--panel) 92%, var(--txt) 8%);
+}
+.audit-row-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.audit-event {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--txt);
+}
+.audit-time {
+  font-size: 12px;
+  color: var(--txt3);
+  white-space: nowrap;
+}
+.audit-row-meta {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--txt2);
+}
+.audit-empty {
+  padding: 18px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  color: var(--txt3);
+  text-align: center;
+}
 .baseline-empty-hint {
   font-size: 11px;
   color: var(--txt3);

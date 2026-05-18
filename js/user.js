@@ -263,9 +263,27 @@ function _renderUserModal() {
 function _renderAccountSection(loggedIn, sbp, p) {
   const syncBadge = getCurrentSyncBadge();
   const projectSync = getProjectSyncState();
+  const currentRole = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(currentId, "owner")
+    : "owner";
+  const roleLabel =
+    typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole;
   const syncMeta = projectSync.updatedAt
     ? `<div class="account-sync-meta">Остання локальна зміна: ${new Date(projectSync.updatedAt).toLocaleString("uk-UA")}</div>`
     : "";
+  const syncDetails = projectSync.snap
+    ? `<div class="account-sync-details">
+        <div><b>Проєкт:</b> ${_esc(projectSync.snap.proj?.name || "—")}</div>
+        <div><b>Роль:</b> ${_esc(roleLabel)}</div>
+        <div><b>Хмарна копія:</b> ${projectSync.hasServerCopy ? "так" : "ні"}</div>
+        <div><b>Локальна версія:</b> ${projectSync.localVersion}</div>
+        <div><b>Серверна версія:</b> ${projectSync.serverVersion}</div>
+      </div>`
+    : "";
+  const auditBtn =
+    typeof canViewAuditLog === "function" && canViewAuditLog()
+      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> Журнал змін</button>`
+      : "";
   if (loggedIn && sbp) {
     return `
     <div class="settings-section">
@@ -282,6 +300,8 @@ function _renderAccountSection(loggedIn, sbp, p) {
             Вийти
           </button>
         </div>
+        ${auditBtn ? `<div class="account-actions">${auditBtn}</div>` : ""}
+        ${syncDetails}
         ${syncMeta}
       </div>
     </div>`;
@@ -329,6 +349,70 @@ function _syncUserNamePreview(value) {
   const nextName = (value || "").trim();
   const avatarInitial = document.getElementById("um-avatar-initial");
   if (avatarInitial) avatarInitial.textContent = (nextName || "?")[0].toUpperCase();
+}
+
+function _formatAuditEventLabel(eventType) {
+  const map = {
+    "task.created": "Створено задачу",
+    "task.updated": "Оновлено задачу",
+    "task.deleted": "Видалено задачу",
+    "project.settings_updated": "Оновлено налаштування проєкту",
+    "project.baseline_saved": "Збережено базовий план",
+    "project.baseline_cleared": "Видалено базовий план",
+    "share.granted": "Надано доступ",
+    "share.role_updated": "Оновлено роль доступу",
+    "share.revoked": "Скасовано доступ",
+  };
+  return map[eventType] || eventType || "Подія";
+}
+
+function _formatAuditSubject(entry) {
+  if (!entry) return "—";
+  if (entry.entity_type === "task") {
+    return entry.payload?.taskName || `Задача #${entry.payload?.taskN ?? "?"}`;
+  }
+  if (entry.entity_type === "share") {
+    return entry.payload?.email || entry.entity_id || "Спільний доступ";
+  }
+  return proj?.name || "Поточний проєкт";
+}
+
+async function openAuditLogModal() {
+  if (typeof canViewAuditLog === "function" && !canViewAuditLog()) {
+    Swal.fire({ icon: "info", title: "У вас немає прав на перегляд журналу змін" });
+    return;
+  }
+  if (typeof apiGetActivityLog !== "function") return;
+
+  let events = [];
+  try {
+    events = await apiGetActivityLog(25);
+  } catch (err) {
+    Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: err.message || "Спробуйте пізніше" });
+    return;
+  }
+
+  const list = events.length
+    ? events.map((entry) => `
+        <div class="audit-row">
+          <div class="audit-row-head">
+            <span class="audit-event">${_esc(_formatAuditEventLabel(entry.event_type))}</span>
+            <span class="audit-time">${_esc(new Date(entry.created_at).toLocaleString("uk-UA"))}</span>
+          </div>
+          <div class="audit-row-meta">
+            <span><b>Хто:</b> ${_esc(entry.actor_name || entry.actor_email || "—")}</span>
+            <span><b>Об'єкт:</b> ${_esc(_formatAuditSubject(entry))}</span>
+          </div>
+        </div>
+      `).join("")
+    : `<div class="audit-empty">Для поточного проєкту ще немає зафіксованих подій.</div>`;
+
+  await Swal.fire({
+    title: "Журнал змін",
+    html: `<div class="audit-list">${list}</div>`,
+    width: 760,
+    confirmButtonText: "Закрити",
+  });
 }
 
 async function _submitAuthInCabinet(tab) {

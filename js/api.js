@@ -384,6 +384,15 @@ async function openShareModal() {
 
 let _syncTimer = null;
 function _showSyncIndicator() {
+  if (typeof setUserSyncStatus === "function") {
+    setUserSyncStatus("syncing");
+    clearTimeout(_syncTimer);
+    _syncTimer = setTimeout(() => {
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+      else setUserSyncStatus("ok");
+    }, 1800);
+    return;
+  }
   const el = document.getElementById("sync-indicator");
   if (!el) return;
   el.textContent = "☁ збережено";
@@ -440,7 +449,8 @@ async function _submitAuth(tab) {
         defaults: { ...userProfile.defaults, ...me.defaults },
       };
       saveUser?.();
-      updateUserBtn?.();
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+      else updateUserBtn?.();
     }
     await apiLoadProjects();
     Swal.fire({
@@ -483,6 +493,7 @@ function updateAuthBtn() {
   if (_authToken) {
     _apiUser = await apiGetMe();
     if (_apiUser) {
+      if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
       await apiLoadProjects();
     } else {
       apiLogout();
