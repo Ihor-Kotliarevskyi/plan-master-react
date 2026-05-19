@@ -310,6 +310,253 @@ async function apiLoadProjects() {
   } catch (_) {}
 }
 
+// Canonical Phase 2 overrides. Kept at EOF so legacy duplicate definitions above
+// cannot win through function hoisting while cleanup is still in progress.
+async function apiSyncProject(idToSync) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const snapId = idToSync || currentId;
+  if (!snapId) return;
+  const projectSnapshot = getProjectSnapshot(snapId);
+  if (!projectSnapshot) return;
+  const serverId = getProjectServerId(snapId);
+  if (!serverId) {
+    await apiCreateProject(snapId);
+    return;
+  }
+  const role = getStoredProjectRole(snapId, "viewer");
+  if (!canEditTasks(role)) return;
+
+  try {
+    const { data: existing, error: checkErr } = await sb
+      .from("projects")
+      .select("id")
+      .eq("id", serverId)
+      .maybeSingle();
+    if (checkErr) throw checkErr;
+
+    if (!existing) {
+      projectSnapshot._serverId = null;
+      await apiCreateProject(snapId);
+      return;
+    }
+
+    const [projRes, tasksRes] = await Promise.all([
+      sb.from("projects").update({
+        ...buildSupabaseProjectMutationPayload(projectSnapshot),
+        updated_at: new Date().toISOString(),
+      }).eq("id", serverId),
+      sb.rpc("upsert_tasks", {
+        p_project_id: serverId,
+        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
+      }),
+    ]);
+
+    if (projRes.error) throw projRes.error;
+    if (tasksRes.error) throw tasksRes.error;
+    await _assertSyncedTaskCount(serverId, (projectSnapshot.tasks || []).length);
+
+    if (allProjects[snapId]) {
+      allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+      _saveBuffer();
+    }
+    _showSyncIndicator();
+  } catch (_) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+  }
+}
+
+async function apiCreateProject(idToCreate) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const snapId = idToCreate || currentId;
+  const projectSnapshot = getProjectSnapshot(snapId);
+  if (!snapId || !projectSnapshot) return;
+
+  const projectPayload = buildSupabaseProjectInsertPayload(projectSnapshot, authUser.id);
+  const { error: insertError } = await sb
+    .from("projects")
+    .insert(projectPayload);
+
+  if (insertError) {
+    console.error("[supabase] apiCreateProject insert failed", {
+      authUserId: authUser.id,
+      ownerId: projectPayload.owner_id,
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint,
+    });
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("projects")
+    .select("id")
+    .eq("owner_id", authUser.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    console.error("[supabase] apiCreateProject lookup failed", {
+      authUserId: authUser.id,
+      code: error?.code || null,
+      message: error?.message || "Created project lookup returned no row",
+      details: error?.details || null,
+      hint: error?.hint || null,
+    });
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("warn");
+    return;
+  }
+
+  projectSnapshot._serverId = data.id;
+  setProjectOwnerRole(snapId);
+  _saveBuffer();
+
+  try {
+    if ((projectSnapshot.tasks || []).length > 0) {
+      const { error: tasksError } = await sb.rpc("upsert_tasks", {
+        p_project_id: data.id,
+        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
+      });
+      if (tasksError) throw tasksError;
+    }
+    await _assertSyncedTaskCount(data.id, (projectSnapshot.tasks || []).length);
+
+    allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+    _saveBuffer();
+    _showSyncIndicator();
+  } catch (_) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+  }
+}
+
+async function apiLogActivity(eventType, payload = {}) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const serverId = getCurrentProjectServerId();
+  if (!serverId) return;
+
+  const activityParts = splitSupabaseActivityPayload(payload || {});
+
+  const { error } = await sb.from("activity_log").insert({
+    project_id: serverId,
+    actor_id: authUser.id,
+    actor_name: _sbProfile?.name || authUser?.user_metadata?.name || null,
+    actor_email: authUser?.email || null,
+    event_type: eventType,
+    entity_type: activityParts.entityType,
+    entity_id: activityParts.entityId,
+    payload: activityParts.payload,
+  });
+
+  if (error) throw error;
+}
+
+async function apiGetShares() {
+  const authUser = await _getCurrentAuthUser();
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !authUser) return [];
+
+  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", {
+    p_project_id: serverId,
+  });
+  if (!rpcSharesError && Array.isArray(rpcShares)) {
+    return rpcShares.map(mapSupabaseShareRecord);
+  }
+
+  const { data, error } = await sb
+    .from("project_shares")
+    .select("id, role, user_id, created_at")
+    .eq("project_id", serverId)
+    .order("created_at", { ascending: true });
+
+  if (error) return [];
+  return (data || []).map(mapSupabaseFallbackShareRecord);
+}
+
+async function apiShareProject(email, role = "viewer") {
+  const authUser = await _getCurrentAuthUser();
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !authUser) return;
+  if (!canInviteUsers()) throw new Error("У вас немає прав на запрошення користувачів");
+
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) throw new Error("Введіть email");
+
+  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", {
+    p_email: normalizedEmail,
+  });
+  if (lookupError) throw new Error(lookupError.message);
+  if (!targetUserId) {
+    throw new Error("Користувача з таким email не знайдено. Він має спочатку зареєструватися.");
+  }
+  if (targetUserId === authUser.id) {
+    throw new Error("Ви вже маєте доступ до цього проєкту як власник.");
+  }
+
+  const sharePayload = buildSupabaseProjectShareUpsertPayload({
+    projectId: serverId,
+    userId: targetUserId,
+    role: shareRole,
+    invitedBy: authUser.id,
+  });
+
+  const { error } = await sb.from("project_shares").upsert(
+    sharePayload,
+    { onConflict: "project_id,user_id" },
+  );
+
+  if (error) throw new Error(error.message);
+  _showSyncIndicator();
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, targetUserId, {
+    email: normalizedEmail,
+    role: shareRole,
+  });
+  return {
+    userId: targetUserId,
+    email: normalizedEmail,
+    role: shareRole,
+  };
+}
+
+async function apiUpdateShareRole(shareId, role) {
+  if (!canManageShares()) throw new Error("У вас немає прав на зміну доступу");
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+
+  const { error } = await sb
+    .from("project_shares")
+    .update(buildSupabaseProjectShareRoleUpdatePayload(shareRole))
+    .eq("id", shareId);
+  if (error) throw new Error(error.message);
+  _showSyncIndicator();
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_ROLE_UPDATED, shareId, {
+    role: shareRole,
+  });
+  return shareRole;
+}
+
+async function apiGetActivityLog(limit = 100) {
+  const authUser = await _getCurrentAuthUser();
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !authUser) return [];
+
+  const { data, error } = await sb
+    .from("activity_log")
+    .select("id, project_id, actor_id, actor_name, actor_email, event_type, entity_type, entity_id, payload, created_at")
+    .eq("project_id", serverId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+
+  if (error) throw new Error(error.message);
+  return (data || []).map(mapSupabaseActivityRow);
+}
+
 async function apiSyncProject(idToSync) {
   const authUser = await _getCurrentAuthUser();
   if (!authUser) return;
