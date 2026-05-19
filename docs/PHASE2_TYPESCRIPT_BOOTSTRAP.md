@@ -46,6 +46,7 @@ and Supabase adapters happen against stable interfaces.
   - fallback accessible-project normalization
   - shared-vs-own project grouping for legacy UI lists
   - shared-project owner/inviter label extraction
+  - sync-state and sync-badge calculation
   - task row mapping
   - project snapshot building
   - project mutation/insert payload building
@@ -69,6 +70,10 @@ and Supabase adapters happen against stable interfaces.
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels
+- `js/user.js` now uses the generated helper layer for:
+  - project sync-state calculation
+  - sync-badge resolution
+  - preferred sync-status fallback logic
 
 ## Why this is the right next step
 

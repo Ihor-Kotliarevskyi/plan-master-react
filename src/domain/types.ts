@@ -106,6 +106,22 @@ export interface ProjectSnapshot extends ProjectSnapshotMeta {
   nextN: number;
 }
 
+export type SyncStatus = "offline" | "ok" | "syncing" | "error" | "warn";
+
+export interface ProjectSyncState<TSnapshot = ProjectSnapshot | null> {
+  snap: TSnapshot;
+  hasServerCopy: boolean;
+  hasLocalChanges: boolean;
+  localVersion: number;
+  serverVersion: number;
+  updatedAt: string | null;
+}
+
+export interface SyncBadge {
+  status: SyncStatus;
+  label: string;
+}
+
 export type AuditEventType =
   | "task.created"
   | "task.updated"

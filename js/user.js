@@ -10,6 +10,9 @@ function setUserSyncStatus(status) {
 
 function getProjectSyncState(projectId = currentId) {
   const snap = projectId && allProjects ? allProjects[projectId] : null;
+  if (typeof getRuntimeProjectSyncState === "function") {
+    return getRuntimeProjectSyncState(snap);
+  }
   const localVersion = snap?._localVersion || 0;
   const serverVersion = snap?._serverVersion || 0;
   const hasServerCopy = !!snap?._serverId;
@@ -28,10 +31,14 @@ function getProjectSyncState(projectId = currentId) {
 
 function getCurrentSyncBadge() {
   const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  const projectSyncState = getProjectSyncState();
+  if (typeof getRuntimeSyncBadge === "function") {
+    return getRuntimeSyncBadge(loggedIn, _userSyncStatus, projectSyncState);
+  }
   if (!loggedIn) return { status: "offline", label: "Синхронізація вимкнена" };
   if (_userSyncStatus === "error") return { status: "error", label: "Помилка синхронізації" };
   if (_userSyncStatus === "syncing") return { status: "syncing", label: "Триває синхронізація" };
-  if (getProjectSyncState().hasLocalChanges) {
+  if (projectSyncState.hasLocalChanges) {
     return { status: "warn", label: "Є локальні зміни, що ще не відправлені" };
   }
   return { status: "ok", label: "Синхронізація увімкнена" };
@@ -39,12 +46,21 @@ function getCurrentSyncBadge() {
 
 function refreshUserSyncStatus(preferredStatus = null) {
   const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  const projectSyncState = getProjectSyncState();
   let nextStatus = preferredStatus;
+
+  if (typeof resolveRuntimeSyncStatus === "function") {
+    nextStatus = resolveRuntimeSyncStatus(preferredStatus, {
+      loggedIn,
+      online: navigator.onLine,
+      projectSyncState,
+    });
+  }
 
   if (!nextStatus) {
     if (!loggedIn) nextStatus = "offline";
     else if (!navigator.onLine) nextStatus = "warn";
-    else nextStatus = getProjectSyncState().hasLocalChanges ? "warn" : "ok";
+    else nextStatus = projectSyncState.hasLocalChanges ? "warn" : "ok";
   }
 
   _userSyncStatus = nextStatus;

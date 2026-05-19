@@ -6,6 +6,11 @@ import {
   isSharedProjectEntry,
 } from "../domain/project-access";
 import {
+  getProjectSyncState as buildProjectSyncState,
+  getSyncBadge,
+  resolveSyncStatus,
+} from "../domain/sync";
+import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
@@ -153,6 +158,9 @@ const runtimeHelpers = {
   isSharedProjectEntry,
   groupProjectEntriesByAccess,
   getSharedProjectLabels,
+  getRuntimeProjectSyncState: buildProjectSyncState,
+  getRuntimeSyncBadge: getSyncBadge,
+  resolveRuntimeSyncStatus: resolveSyncStatus,
 };
 
 Object.assign(globalThis, runtimeHelpers);

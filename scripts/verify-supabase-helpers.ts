@@ -4,6 +4,11 @@ import {
   getSharedProjectLabels,
   groupProjectEntriesByAccess,
 } from "../src/domain/project-access";
+import {
+  getProjectSyncState,
+  getSyncBadge,
+  resolveSyncStatus,
+} from "../src/domain/sync";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -250,5 +255,21 @@ const sharedLabels = getSharedProjectLabels(shell._access);
 assert.equal(sharedLabels.isShared, true);
 assert.equal(sharedLabels.ownerLabel, "Owner Name");
 assert.equal(sharedLabels.invitedByLabel, "Manager Name");
+
+const syncState = getProjectSyncState(shell);
+assert.equal(syncState.hasServerCopy, true);
+assert.equal(syncState.localVersion, 3);
+assert.equal(syncState.serverVersion, 2);
+assert.equal(syncState.hasLocalChanges, true);
+
+const syncBadge = getSyncBadge(true, "ok", syncState);
+assert.equal(syncBadge.status, "warn");
+
+const resolvedSyncStatus = resolveSyncStatus(null, {
+  loggedIn: true,
+  online: true,
+  projectSyncState: syncState,
+});
+assert.equal(resolvedSyncStatus, "warn");
 
 console.log("Supabase helper verification passed.");
