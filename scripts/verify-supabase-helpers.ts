@@ -16,6 +16,7 @@ import {
 } from "../src/services/supabase/mappers";
 import {
   analyzeBufferedProjects,
+  buildAccessibleProjectsFromFallback,
   mergeAccessibleProjectsIntoLocalMap,
 } from "../src/services/supabase/project-list";
 import {
@@ -24,6 +25,7 @@ import {
   buildProjectShareRoleUpdatePayload,
   buildProjectShareUpsertPayload,
   buildProjectMutationPayload,
+  splitActivityPayload,
   buildUpsertTasksPayload,
 } from "../src/services/supabase/payloads";
 
@@ -188,6 +190,45 @@ const buffered = {
 const analysis = analyzeBufferedProjects(buffered, "user-1", "user-1");
 assert.ok(analysis.offlineNew.localOnly);
 assert.ok(analysis.localSynced.synced);
+
+const fallbackAccessible = buildAccessibleProjectsFromFallback(
+  [{
+    id: "project-own",
+    name: "Own Project",
+    sm: 4,
+    sy: 2026,
+    nm: 12,
+    is_archived: false,
+    updated_at: "2026-05-19T11:00:00.000Z",
+  }],
+  [{
+    role: "viewer",
+    invited_by: "owner-1",
+    project: {
+      id: "project-shared",
+      name: "Shared Fallback",
+      sm: 6,
+      sy: 2026,
+      nm: 12,
+      is_archived: false,
+      updated_at: "2026-05-19T11:15:00.000Z",
+      owner_id: "owner-2",
+    },
+  }],
+  { id: "owner-1", email: "owner@example.com" },
+);
+assert.equal(fallbackAccessible.length, 2);
+assert.equal(fallbackAccessible[0]?.role, "owner");
+assert.equal(fallbackAccessible[1]?.source, "shared");
+
+const splitActivity = splitActivityPayload({
+  entityType: "share",
+  entityId: "share-1",
+  role: "manager",
+});
+assert.equal(splitActivity.entityType, "share");
+assert.equal(splitActivity.entityId, "share-1");
+assert.equal(splitActivity.payload.role, "manager");
 
 const merged = mergeAccessibleProjectsIntoLocalMap(analysis.offlineNew, [accessibleRow]);
 assert.ok(merged.localOnly);

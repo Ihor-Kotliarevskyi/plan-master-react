@@ -56,6 +56,12 @@ export interface ProjectShareRoleUpdatePayload {
   role: string;
 }
 
+export interface ActivityPayloadParts {
+  entityType: string;
+  entityId: string | null;
+  payload: Record<string, unknown>;
+}
+
 export function buildUpsertTasksPayload(tasks: Task[]): UpsertTaskPayloadItem[] {
   return (tasks || []).map((task, index) => ({
     id: task.id || null,
@@ -117,6 +123,22 @@ export function buildActivityInsertPayload(input: {
     entity_type: input.entityType || "project",
     entity_id: input.entityId != null ? String(input.entityId) : null,
     payload,
+  };
+}
+
+export function splitActivityPayload(input: Record<string, unknown>): ActivityPayloadParts {
+  const details = { ...(input || {}) };
+  const entityType =
+    typeof details.entityType === "string" && details.entityType
+      ? details.entityType
+      : "project";
+  const entityId = details.entityId != null ? String(details.entityId) : null;
+  delete details.entityType;
+  delete details.entityId;
+  return {
+    entityType,
+    entityId,
+    payload: details,
   };
 }
 

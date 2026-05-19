@@ -15,6 +15,31 @@ export interface BufferedProjectAnalysis {
   localSynced: BufferedProjectMap;
 }
 
+export interface OwnProjectFallbackRow {
+  id: string;
+  name: string;
+  sm: number;
+  sy: number;
+  nm: number;
+  is_archived: boolean;
+  updated_at: string;
+}
+
+export interface SharedProjectFallbackRow {
+  role: ProjectSnapshot["_role"];
+  invited_by: string | null;
+  project: {
+    id: string;
+    name: string;
+    sm: number;
+    sy: number;
+    nm: number;
+    is_archived: boolean;
+    updated_at: string;
+    owner_id: string | null;
+  } | null;
+}
+
 export function analyzeBufferedProjects(
   allProjects: BufferedProjectMap,
   bufferUserId: string | null,
@@ -62,4 +87,49 @@ export function mergeAccessibleProjectsIntoLocalMap(
   }
 
   return nextProjects;
+}
+
+export function buildAccessibleProjectsFromFallback(
+  ownProjects: OwnProjectFallbackRow[],
+  sharedProjects: SharedProjectFallbackRow[],
+  authUser: { id: string; email?: string | null },
+): AccessibleProjectRow[] {
+  return [
+    ...(ownProjects || []).map((project) => ({
+      project_id: project.id,
+      name: project.name,
+      sm: project.sm,
+      sy: project.sy,
+      nm: project.nm,
+      is_archived: !!project.is_archived,
+      updated_at: project.updated_at,
+      role: "owner" as const,
+      source: "own" as const,
+      owner_id: authUser.id,
+      owner_name: "",
+      owner_email: authUser.email || "",
+      invited_by: null,
+      invited_by_name: "",
+      invited_by_email: "",
+    })),
+    ...(sharedProjects || [])
+      .filter((item): item is SharedProjectFallbackRow & { project: NonNullable<SharedProjectFallbackRow["project"]> } => !!item?.project?.id)
+      .map((item) => ({
+        project_id: item.project.id,
+        name: item.project.name,
+        sm: item.project.sm,
+        sy: item.project.sy,
+        nm: item.project.nm,
+        is_archived: !!item.project.is_archived,
+        updated_at: item.project.updated_at,
+        role: normalizeProjectRole(item.role || "viewer"),
+        source: "shared" as const,
+        owner_id: item.project.owner_id || null,
+        owner_name: "",
+        owner_email: "",
+        invited_by: item.invited_by || null,
+        invited_by_name: "",
+        invited_by_email: "",
+      })),
+  ];
 }

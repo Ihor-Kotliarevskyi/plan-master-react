@@ -75,6 +75,47 @@ function mergeAccessibleProjectsIntoLocalState(offlineNew, localSynced, accessib
   return mergedProjects;
 }
 
+function buildAccessibleProjectsFromFallback(ownProjects, sharedProjects, authUser) {
+  return [
+    ...((ownProjects || []).map((project) => ({
+      project_id: project.id,
+      name: project.name,
+      sm: project.sm,
+      sy: project.sy,
+      nm: project.nm,
+      is_archived: !!project.is_archived,
+      updated_at: project.updated_at,
+      role: "owner",
+      source: "own",
+      owner_id: authUser.id,
+      owner_name: "",
+      owner_email: authUser.email || "",
+      invited_by: null,
+      invited_by_name: "",
+      invited_by_email: "",
+    }))),
+    ...((sharedProjects || [])
+      .filter((item) => item?.project?.id)
+      .map((item) => ({
+        project_id: item.project.id,
+        name: item.project.name,
+        sm: item.project.sm,
+        sy: item.project.sy,
+        nm: item.project.nm,
+        is_archived: !!item.project.is_archived,
+        updated_at: item.project.updated_at,
+        role: normalizeProjectRole(item.role || "viewer"),
+        source: "shared",
+        owner_id: item.project.owner_id || null,
+        owner_name: "",
+        owner_email: "",
+        invited_by: item.invited_by || null,
+        invited_by_name: "",
+        invited_by_email: "",
+      }))),
+  ];
+}
+
 function mapSupabaseTaskRow(taskRow) {
   return {
     id: taskRow.id,
@@ -179,6 +220,21 @@ function buildSupabaseActivityInsertPayload({
     entity_type: entityType,
     entity_id: entityId != null ? String(entityId) : null,
     payload: { ...payload },
+  };
+}
+
+function splitSupabaseActivityPayload(payload) {
+  const details = { ...(payload || {}) };
+  const entityType = typeof details.entityType === "string" && details.entityType
+    ? details.entityType
+    : "project";
+  const entityId = details.entityId != null ? String(details.entityId) : null;
+  delete details.entityType;
+  delete details.entityId;
+  return {
+    entityType,
+    entityId,
+    payload: details,
   };
 }
 

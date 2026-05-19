@@ -41,6 +41,7 @@ and Supabase adapters happen against stable interfaces.
 - `js/supabase-runtime-helpers.js` mirrors the first pure helper layer for:
   - buffered project analysis
   - accessible project merging
+  - fallback accessible-project normalization
   - task row mapping
   - project snapshot building
   - project mutation/insert payload building
@@ -48,6 +49,7 @@ and Supabase adapters happen against stable interfaces.
   - activity row mapping
   - activity insert payload building
   - share upsert/update payload building
+  - activity payload splitting
   - `upsert_tasks(...)` payload building
 - `js/supabase-api.js` now uses that runtime helper layer in:
   - `apiLoadProjects()`

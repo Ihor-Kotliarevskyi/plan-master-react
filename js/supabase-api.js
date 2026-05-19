@@ -840,11 +840,7 @@ async function apiLogActivity(eventType, payload = {}) {
   const serverId = getCurrentProjectServerId();
   if (!serverId) return;
 
-  const entityType = payload.entityType || "project";
-  const entityId = payload.entityId != null ? String(payload.entityId) : null;
-  const details = { ...payload };
-  delete details.entityType;
-  delete details.entityId;
+  const activityParts = splitSupabaseActivityPayload(payload || {});
 
   const { error } = await sb.from("activity_log").insert({
     project_id: serverId,
@@ -852,9 +848,9 @@ async function apiLogActivity(eventType, payload = {}) {
     actor_name: _sbProfile?.name || authUser?.user_metadata?.name || null,
     actor_email: authUser?.email || null,
     event_type: eventType,
-    entity_type: entityType,
-    entity_id: entityId,
-    payload: details,
+    entity_type: activityParts.entityType,
+    entity_id: activityParts.entityId,
+    payload: activityParts.payload,
   });
 
   if (error) throw error;
@@ -1315,44 +1311,7 @@ async function apiLoadProjects() {
         .eq("user_id", authUser.id);
       if (e2) throw e2;
 
-      accessibleList = [
-        ...((ownProjects || []).map((project) => ({
-          project_id: project.id,
-          name: project.name,
-          sm: project.sm,
-          sy: project.sy,
-          nm: project.nm,
-          is_archived: !!project.is_archived,
-          updated_at: project.updated_at,
-          role: "owner",
-          source: "own",
-          owner_id: authUser.id,
-          owner_name: "",
-          owner_email: authUser.email || "",
-          invited_by: null,
-          invited_by_name: "",
-          invited_by_email: "",
-        }))),
-        ...((sharedProjects || [])
-          .filter((item) => item?.project?.id)
-          .map((item) => ({
-            project_id: item.project.id,
-            name: item.project.name,
-            sm: item.project.sm,
-            sy: item.project.sy,
-            nm: item.project.nm,
-            is_archived: !!item.project.is_archived,
-            updated_at: item.project.updated_at,
-            role: item.role,
-            source: "shared",
-            owner_id: item.project.owner_id || null,
-            owner_name: "",
-            owner_email: "",
-            invited_by: item.invited_by || null,
-            invited_by_name: "",
-            invited_by_email: "",
-          }))),
-      ];
+      accessibleList = buildAccessibleProjectsFromFallback(ownProjects || [], sharedProjects || [], authUser);
     }
 
     if (seq !== _apiLoadProjectsSeq) return;
