@@ -1275,24 +1275,28 @@ function openProjManager() {
   };
   const roleLabels = typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS : {};
   const entries = Object.entries(allProjects || {});
-  const own = [];
-  const shared = [];
-
-  entries.forEach(([id, p]) => {
-    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
-    (isShared ? shared : own).push([id, p]);
-  });
+  const grouped = typeof groupProjectEntriesByAccess === "function"
+    ? groupProjectEntriesByAccess(entries)
+    : { own: entries, shared: [] };
+  const own = grouped.own || [];
+  const shared = grouped.shared || [];
 
   const renderProjectRow = ([id, p]) => {
     const canManageProjectEntry = getManagePermission(id);
     const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
-    const roleLabel = roleLabels[role] || role;
-    const ownerLabel = p?._access?.ownerName || p?._access?.ownerEmail || "";
-    const invitedByLabel = p?._access?.invitedByName || p?._access?.invitedByEmail || "";
-    const sharedMeta =
-      p?._access?.source === "shared"
-        ? `<div class="pj-meta">${ownerLabel ? `Власник: ${ownerLabel}` : ""}${invitedByLabel ? `${ownerLabel ? " · " : ""}Поділився: ${invitedByLabel}` : ""}</div>`
-        : `<div class="pj-meta">Власний проєкт</div>`;
+    const roleLabel = typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (roleLabels[role] || role);
+    const shareLabels = typeof getSharedProjectLabels === "function"
+      ? getSharedProjectLabels(p?._access || null)
+      : {
+          isShared: p?._access?.source === "shared",
+          ownerLabel: p?._access?.ownerName || p?._access?.ownerEmail || "",
+          invitedByLabel: p?._access?.invitedByName || p?._access?.invitedByEmail || "",
+        };
+    const sharedMeta = `<div class="pj-meta">${typeof buildRuntimeSharedProjectMetaLine === "function"
+      ? buildRuntimeSharedProjectMetaLine(p?._access || null)
+      : (shareLabels.isShared
+          ? `${shareLabels.ownerLabel ? `Власник: ${shareLabels.ownerLabel}` : ""}${shareLabels.invitedByLabel ? `${shareLabels.ownerLabel ? " · " : ""}Поділився: ${shareLabels.invitedByLabel}` : ""}`
+          : "Власний проєкт")}</div>`;
     return `<div class="pj-row${id === currentId ? " active" : ""}">
        <div class="pj-main">
          <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
@@ -1349,10 +1353,20 @@ async function loadDemoProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: DEF_TASKS.map((t) => ({ ...t })),
     nextN: DEF_TASKS.length + 1,
-    _localUpdatedAt: new Date().toISOString(),
-    _localVersion: 1, _serverVersion: 0,
+    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+      ? buildRuntimeInitialProjectSnapshotMeta()
+      : {
+          _localUpdatedAt: new Date().toISOString(),
+          _localVersion: 1,
+          _serverVersion: 0,
+        }),
   };
-  try { localStorage.setItem(SK_BUF, JSON.stringify({ allProjects, currentId })); } catch (_) {}
+  try {
+    const payload = typeof buildRuntimeStorageBufferPayload === "function"
+      ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
+      : { allProjects, currentId };
+    localStorage.setItem(SK_BUF, JSON.stringify(payload));
+  } catch (_) {}
   switchProject(id);
   closeProjMgr();
   Swal.fire({
@@ -1387,7 +1401,9 @@ async function createProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: [],
     nextN: 1,
-    _localUpdatedAt: new Date().toISOString(),
+    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+      ? buildRuntimeInitialProjectSnapshotMeta()
+      : { _localUpdatedAt: new Date().toISOString(), _localVersion: 1, _serverVersion: 0 }),
   };
   saveAll();
   switchProject(id);

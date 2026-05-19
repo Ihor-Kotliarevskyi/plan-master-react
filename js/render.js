@@ -19,21 +19,19 @@ function updateProjSel() {
   const sel = document.getElementById("proj-sel");
   if (!sel) return;
   const entries = Object.entries(allProjects || {});
-  const own = [];
-  const shared = [];
-
-  entries.forEach(([id, p]) => {
-    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
-    (isShared ? shared : own).push([id, p]);
-  });
+  const grouped = typeof groupProjectEntriesByAccess === "function"
+    ? groupProjectEntriesByAccess(entries)
+    : { own: entries, shared: [] };
+  const own = grouped.own || [];
+  const shared = grouped.shared || [];
 
   const renderOptions = (list, isShared = false) =>
     list
       .map(([id, p]) => {
         const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
         const roleLabel =
-          isShared && typeof PROJECT_ROLE_LABELS !== "undefined"
-            ? ` · ${PROJECT_ROLE_LABELS[role] || role}`
+          isShared
+            ? ` · ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[role] || role : role)}`
             : "";
         return `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}${roleLabel}</option>`;
       })

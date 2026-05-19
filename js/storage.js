@@ -16,30 +16,38 @@ function saveAll() {
 
   const snapId  = currentId; // захоплюємо до будь-яких async операцій
   const prev    = allProjects[snapId];
+  const nextMeta = typeof buildRuntimeProjectSnapshotMeta === "function"
+    ? buildRuntimeProjectSnapshotMeta(prev)
+    : null;
 
   allProjects[snapId] = {
     proj:  { ...proj },
     cats:  cats.map((c) => ({ ...c })),
     tasks: tasks.map((t) => ({ ...t })),
     nextN,
-    _localUpdatedAt: new Date().toISOString(),
-    _localVersion:  (prev?._localVersion  || 0) + 1,
-    _serverVersion: prev?._serverVersion  || 0,
-    ...(prev?._serverId ? { _serverId: prev._serverId } : {}),
-    ...(prev?._role
-      ? {
-          _role:
-            typeof normalizeProjectRole === "function"
-              ? normalizeProjectRole(prev._role, prev._role)
-              : prev._role,
-        }
-      : {}),
+    ...(nextMeta || {
+      _localUpdatedAt: new Date().toISOString(),
+      _localVersion:  (prev?._localVersion  || 0) + 1,
+      _serverVersion: prev?._serverVersion  || 0,
+      ...(prev?._serverId ? { _serverId: prev._serverId } : {}),
+      ...(prev?._role
+        ? {
+            _role:
+              typeof normalizeProjectRole === "function"
+                ? normalizeProjectRole(prev._role, prev._role)
+                : prev._role,
+          }
+        : {}),
+    }),
   };
 
   try {
     const _userId = (typeof isLoggedIn === "function" && isLoggedIn() && typeof _sbUser !== "undefined")
       ? _sbUser?.id : null;
-    localStorage.setItem(SK_BUF, JSON.stringify({ allProjects, currentId, _userId }));
+    const payload = typeof buildRuntimeStorageBufferPayload === "function"
+      ? buildRuntimeStorageBufferPayload(allProjects, currentId, _userId)
+      : { allProjects, currentId, _userId };
+    localStorage.setItem(SK_BUF, JSON.stringify(payload));
   } catch (_) {}
 
   if (typeof apiSyncProject === "function" &&
@@ -83,7 +91,9 @@ function loadAll() {
     const d = JSON.parse(localStorage.getItem(SK_BUF));
     if (d?.allProjects && Object.keys(d.allProjects).length) {
       allProjects = d.allProjects;
-      if (typeof normalizeProjectRole === "function") {
+      if (typeof normalizeRuntimeBufferedProjectRoles === "function") {
+        normalizeRuntimeBufferedProjectRoles(allProjects);
+      } else if (typeof normalizeProjectRole === "function") {
         Object.values(allProjects).forEach((projectSnap) => {
           if (projectSnap && projectSnap._role) {
             projectSnap._role = normalizeProjectRole(projectSnap._role, projectSnap._role);
@@ -109,9 +119,13 @@ function initDefaultProject() {
       cats:  DEF_CATS.map((c) => ({ ...c })),
       tasks: [],
       nextN: 1,
-      _localUpdatedAt: new Date().toISOString(),
-      _localVersion:  1,
-      _serverVersion: 0,
+      ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+        ? buildRuntimeInitialProjectSnapshotMeta()
+        : {
+            _localUpdatedAt: new Date().toISOString(),
+            _localVersion:  1,
+            _serverVersion: 0,
+          }),
     },
   };
   currentId = id;
