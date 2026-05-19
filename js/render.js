@@ -19,13 +19,11 @@ function updateProjSel() {
   const sel = document.getElementById("proj-sel");
   if (!sel) return;
   const entries = Object.entries(allProjects || {});
-  const own = [];
-  const shared = [];
-
-  entries.forEach(([id, p]) => {
-    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
-    (isShared ? shared : own).push([id, p]);
-  });
+  const grouped = typeof groupProjectEntriesByAccess === "function"
+    ? groupProjectEntriesByAccess(entries)
+    : { own: entries, shared: [] };
+  const own = grouped.own || [];
+  const shared = grouped.shared || [];
 
   const renderOptions = (list, isShared = false) =>
     list

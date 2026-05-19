@@ -22,6 +22,28 @@
     return fallbackRole;
   }
 
+  // src/domain/project-access.ts
+  function isSharedProjectEntry(projectSnapshot) {
+    if (!projectSnapshot) return false;
+    return projectSnapshot._access?.source === "shared" || normalizeProjectRole(projectSnapshot._role || "owner") !== "owner";
+  }
+  function groupProjectEntriesByAccess(entries) {
+    const own = [];
+    const shared = [];
+    for (const entry of entries || []) {
+      const [, projectSnapshot] = entry;
+      (isSharedProjectEntry(projectSnapshot) ? shared : own).push(entry);
+    }
+    return { own, shared };
+  }
+  function getSharedProjectLabels(accessMeta) {
+    return {
+      isShared: accessMeta?.source === "shared",
+      ownerLabel: accessMeta?.ownerName || accessMeta?.ownerEmail || "",
+      invitedByLabel: accessMeta?.invitedByName || accessMeta?.invitedByEmail || ""
+    };
+  }
+
   // src/domain/audit.ts
   function formatAuditEntry(entry) {
     return {
@@ -346,7 +368,10 @@
     mapSupabaseActivityRow,
     buildSupabaseProjectShareUpsertPayload: buildProjectShareUpsertPayload,
     buildSupabaseProjectShareRoleUpdatePayload: buildProjectShareRoleUpdatePayload,
-    buildAccessibleProjectsFromFallback
+    buildAccessibleProjectsFromFallback,
+    isSharedProjectEntry,
+    groupProjectEntriesByAccess,
+    getSharedProjectLabels
   };
   Object.assign(globalThis, runtimeHelpers);
 })();

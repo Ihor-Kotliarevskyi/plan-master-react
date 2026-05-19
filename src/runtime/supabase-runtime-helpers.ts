@@ -1,6 +1,11 @@
 import { normalizeProjectRole } from "../domain/permissions";
 import type { ProjectRole } from "../domain/types";
 import {
+  getSharedProjectLabels,
+  groupProjectEntriesByAccess,
+  isSharedProjectEntry,
+} from "../domain/project-access";
+import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
@@ -145,6 +150,9 @@ const runtimeHelpers = {
   buildSupabaseProjectShareUpsertPayload: buildProjectShareUpsertPayload,
   buildSupabaseProjectShareRoleUpdatePayload: buildProjectShareRoleUpdatePayload,
   buildAccessibleProjectsFromFallback,
+  isSharedProjectEntry,
+  groupProjectEntriesByAccess,
+  getSharedProjectLabels,
 };
 
 Object.assign(globalThis, runtimeHelpers);

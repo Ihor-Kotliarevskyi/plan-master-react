@@ -1275,22 +1275,27 @@ function openProjManager() {
   };
   const roleLabels = typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS : {};
   const entries = Object.entries(allProjects || {});
-  const own = [];
-  const shared = [];
-
-  entries.forEach(([id, p]) => {
-    const isShared = p?._access?.source === "shared" || (p?._role && p._role !== "owner");
-    (isShared ? shared : own).push([id, p]);
-  });
+  const grouped = typeof groupProjectEntriesByAccess === "function"
+    ? groupProjectEntriesByAccess(entries)
+    : { own: entries, shared: [] };
+  const own = grouped.own || [];
+  const shared = grouped.shared || [];
 
   const renderProjectRow = ([id, p]) => {
     const canManageProjectEntry = getManagePermission(id);
     const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
     const roleLabel = roleLabels[role] || role;
-    const ownerLabel = p?._access?.ownerName || p?._access?.ownerEmail || "";
-    const invitedByLabel = p?._access?.invitedByName || p?._access?.invitedByEmail || "";
+    const shareLabels = typeof getSharedProjectLabels === "function"
+      ? getSharedProjectLabels(p?._access || null)
+      : {
+          isShared: p?._access?.source === "shared",
+          ownerLabel: p?._access?.ownerName || p?._access?.ownerEmail || "",
+          invitedByLabel: p?._access?.invitedByName || p?._access?.invitedByEmail || "",
+        };
+    const ownerLabel = shareLabels.ownerLabel;
+    const invitedByLabel = shareLabels.invitedByLabel;
     const sharedMeta =
-      p?._access?.source === "shared"
+      shareLabels.isShared
         ? `<div class="pj-meta">${ownerLabel ? `Власник: ${ownerLabel}` : ""}${invitedByLabel ? `${ownerLabel ? " · " : ""}Поділився: ${invitedByLabel}` : ""}</div>`
         : `<div class="pj-meta">Власний проєкт</div>`;
     return `<div class="pj-row${id === currentId ? " active" : ""}">

@@ -44,6 +44,8 @@ and Supabase adapters happen against stable interfaces.
   - buffered project analysis
   - accessible project merging
   - fallback accessible-project normalization
+  - shared-vs-own project grouping for legacy UI lists
+  - shared-project owner/inviter label extraction
   - task row mapping
   - project snapshot building
   - project mutation/insert payload building
@@ -64,6 +66,9 @@ and Supabase adapters happen against stable interfaces.
   - `apiShareProject()`
   - `apiUpdateShareRole()`
   - `_buildTasksPayload()`
+- `js/render.js` and `js/modal.js` now use the generated helper layer for:
+  - grouping project lists into own/shared sections
+  - deriving shared-project owner/inviter labels
 
 ## Why this is the right next step
 
@@ -74,10 +79,10 @@ and Supabase adapters happen against stable interfaces.
 
 ## Next recommended steps
 
-1. Decide when to swap the runtime helper file from plain JS to module-based generated output.
-2. Keep extending fixture coverage as more pure helpers are extracted.
-3. Move the remaining duplicated fallback/lookup helpers into the runtime helper layer.
-4. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
+1. Keep extending fixture coverage as more pure helpers are extracted.
+2. Move the remaining duplicated fallback/lookup helpers into the runtime helper layer.
+3. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
+4. Decide when enough UI/domain helpers are extracted to justify a broader module bootstrap.
 
 ## Notes
 

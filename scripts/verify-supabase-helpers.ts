@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
 
+import {
+  getSharedProjectLabels,
+  groupProjectEntriesByAccess,
+} from "../src/domain/project-access";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -234,5 +238,17 @@ const merged = mergeAccessibleProjectsIntoLocalMap(analysis.offlineNew, [accessi
 assert.ok(merged.localOnly);
 assert.ok(merged["project-1"]);
 assert.equal(merged["project-1"]?._role, "editor");
+
+const groupedProjects = groupProjectEntriesByAccess([
+  ["local-only", buffered.localOnly],
+  ["shared-shell", shell],
+]);
+assert.equal(groupedProjects.own.length, 1);
+assert.equal(groupedProjects.shared.length, 1);
+
+const sharedLabels = getSharedProjectLabels(shell._access);
+assert.equal(sharedLabels.isShared, true);
+assert.equal(sharedLabels.ownerLabel, "Owner Name");
+assert.equal(sharedLabels.invitedByLabel, "Manager Name");
 
 console.log("Supabase helper verification passed.");
