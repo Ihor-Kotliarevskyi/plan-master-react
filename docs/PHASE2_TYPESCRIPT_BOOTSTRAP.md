@@ -25,6 +25,9 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/mappers.ts`
   - `src/services/supabase/payloads.ts`
   - `src/services/supabase/project-list.ts`
+- fixture-based verification script:
+  - `npm run verify:supabase-helpers`
+  - `scripts/verify-supabase-helpers.ts`
 
 ## What this does not change yet
 
@@ -43,7 +46,7 @@ and Supabase adapters happen against stable interfaces.
 
 1. Start using the new typed helpers when touching `js/supabase-api.js` paths.
 2. Extract stable wrappers around project list, project load, sharing, and audit reads.
-3. Add typed tests or fixture-based verification for payload/mapping helpers.
+3. Keep extending fixture coverage as more pure helpers are extracted.
 4. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
 
 ## Notes
