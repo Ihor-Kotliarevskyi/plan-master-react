@@ -310,6 +310,127 @@ async function apiLoadProjects() {
   } catch (_) {}
 }
 
+async function apiSyncProject(idToSync) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const snapId = idToSync || currentId;
+  if (!snapId) return;
+  const projectSnapshot = getProjectSnapshot(snapId);
+  if (!projectSnapshot) return;
+  const serverId = getProjectServerId(snapId);
+  if (!serverId) {
+    await apiCreateProject(snapId);
+    return;
+  }
+  const role = getStoredProjectRole(snapId, "viewer");
+  if (!canEditTasks(role)) return;
+
+  try {
+    const { data: existing, error: checkErr } = await sb
+      .from("projects")
+      .select("id")
+      .eq("id", serverId)
+      .maybeSingle();
+    if (checkErr) throw checkErr;
+
+    if (!existing) {
+      projectSnapshot._serverId = null;
+      await apiCreateProject(snapId);
+      return;
+    }
+
+    const [projRes, tasksRes] = await Promise.all([
+      sb.from("projects").update({
+        ...buildSupabaseProjectMutationPayload(projectSnapshot),
+        updated_at: new Date().toISOString(),
+      }).eq("id", serverId),
+      sb.rpc("upsert_tasks", {
+        p_project_id: serverId,
+        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
+      }),
+    ]);
+
+    if (projRes.error) throw projRes.error;
+    if (tasksRes.error) throw tasksRes.error;
+    await _assertSyncedTaskCount(serverId, (projectSnapshot.tasks || []).length);
+
+    if (allProjects[snapId]) {
+      allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+      _saveBuffer();
+    }
+    _showSyncIndicator();
+  } catch (_) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+  }
+}
+
+async function apiCreateProject(idToCreate) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const snapId = idToCreate || currentId;
+  const projectSnapshot = getProjectSnapshot(snapId);
+  if (!snapId || !projectSnapshot) return;
+
+  const projectPayload = buildSupabaseProjectInsertPayload(projectSnapshot, authUser.id);
+  const { error: insertError } = await sb
+    .from("projects")
+    .insert(projectPayload);
+
+  if (insertError) {
+    console.error("[supabase] apiCreateProject insert failed", {
+      authUserId: authUser.id,
+      ownerId: projectPayload.owner_id,
+      code: insertError.code,
+      message: insertError.message,
+      details: insertError.details,
+      hint: insertError.hint,
+    });
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+    return;
+  }
+
+  const { data, error } = await sb
+    .from("projects")
+    .select("id")
+    .eq("owner_id", authUser.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data?.id) {
+    console.error("[supabase] apiCreateProject lookup failed", {
+      authUserId: authUser.id,
+      code: error?.code || null,
+      message: error?.message || "Created project lookup returned no row",
+      details: error?.details || null,
+      hint: error?.hint || null,
+    });
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("warn");
+    return;
+  }
+
+  projectSnapshot._serverId = data.id;
+  setProjectOwnerRole(snapId);
+  _saveBuffer();
+
+  try {
+    if ((projectSnapshot.tasks || []).length > 0) {
+      const { error: tasksError } = await sb.rpc("upsert_tasks", {
+        p_project_id: data.id,
+        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
+      });
+      if (tasksError) throw tasksError;
+    }
+    await _assertSyncedTaskCount(data.id, (projectSnapshot.tasks || []).length);
+
+    allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+    _saveBuffer();
+    _showSyncIndicator();
+  } catch (_) {
+    if (typeof setUserSyncStatus === "function") setUserSyncStatus("error");
+  }
+}
+
 /**
  * Будує payload для upsert_tasks.
  * Імена ключів JSON відповідають тому, що читає SQL-функція (t->>'...').

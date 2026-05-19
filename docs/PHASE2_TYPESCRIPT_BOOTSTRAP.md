@@ -43,10 +43,13 @@ and Supabase adapters happen against stable interfaces.
   - accessible project merging
   - task row mapping
   - project snapshot building
+  - project mutation/insert payload building
   - `upsert_tasks(...)` payload building
 - `js/supabase-api.js` now uses that runtime helper layer in:
   - `apiLoadProjects()`
   - `apiLoadProject()`
+  - `apiSyncProject()`
+  - `apiCreateProject()`
   - `_buildTasksPayload()`
 
 ## Why this is the right next step

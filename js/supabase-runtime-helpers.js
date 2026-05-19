@@ -139,3 +139,23 @@ function buildSupabaseTasksPayload(tasks) {
     notes: task.notes || [],
   }));
 }
+
+function buildSupabaseProjectMutationPayload(projectSnapshot) {
+  return {
+    name: projectSnapshot.proj.name,
+    sm: projectSnapshot.proj.sm,
+    sy: projectSnapshot.proj.sy,
+    nm: projectSnapshot.proj.nm,
+    cats: projectSnapshot.cats,
+    next_n: projectSnapshot.nextN,
+    baseline: projectSnapshot.proj.baseline || null,
+    baseline_date: projectSnapshot.proj.baselineDate || null,
+  };
+}
+
+function buildSupabaseProjectInsertPayload(projectSnapshot, ownerId) {
+  return {
+    owner_id: ownerId,
+    ...buildSupabaseProjectMutationPayload(projectSnapshot),
+  };
+}
