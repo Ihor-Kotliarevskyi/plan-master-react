@@ -159,3 +159,68 @@ function buildSupabaseProjectInsertPayload(projectSnapshot, ownerId) {
     ...buildSupabaseProjectMutationPayload(projectSnapshot),
   };
 }
+
+function buildSupabaseActivityInsertPayload({
+  projectId,
+  actorId,
+  actorName = null,
+  actorEmail = null,
+  eventType,
+  entityType = "project",
+  entityId = null,
+  payload = {},
+}) {
+  return {
+    project_id: projectId,
+    actor_id: actorId,
+    actor_name: actorName,
+    actor_email: actorEmail,
+    event_type: eventType,
+    entity_type: entityType,
+    entity_id: entityId != null ? String(entityId) : null,
+    payload: { ...payload },
+  };
+}
+
+function mapSupabaseShareRecord(shareRow) {
+  return {
+    id: shareRow.id,
+    role: normalizeProjectRole(shareRow.role),
+    user: {
+      id: shareRow.user_id,
+      name: shareRow.user_name || shareRow.user_email || shareRow.user_id,
+      email: shareRow.user_email || "",
+    },
+    invitedByName: shareRow.invited_by_name || "",
+    invitedByEmail: shareRow.invited_by_email || "",
+  };
+}
+
+function mapSupabaseFallbackShareRecord(shareRow) {
+  return {
+    id: shareRow.id,
+    role: normalizeProjectRole(shareRow.role),
+    user: {
+      id: shareRow.user_id,
+      name: shareRow.user_id,
+      email: "",
+    },
+    invitedByName: "",
+    invitedByEmail: "",
+  };
+}
+
+function mapSupabaseActivityRow(activityRow) {
+  return {
+    id: activityRow.id,
+    projectId: activityRow.project_id,
+    actorId: activityRow.actor_id,
+    actorName: activityRow.actor_name,
+    actorEmail: activityRow.actor_email,
+    eventType: activityRow.event_type,
+    entityType: activityRow.entity_type,
+    entityId: activityRow.entity_id,
+    payload: activityRow.payload || {},
+    createdAt: activityRow.created_at,
+  };
+}

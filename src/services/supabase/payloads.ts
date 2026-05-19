@@ -34,6 +34,17 @@ export interface ProjectInsertPayload extends ProjectMutationPayload {
   owner_id: string;
 }
 
+export interface ActivityInsertPayload {
+  project_id: string;
+  actor_id: string;
+  actor_name: string | null;
+  actor_email: string | null;
+  event_type: string;
+  entity_type: string;
+  entity_id: string | null;
+  payload: Record<string, unknown>;
+}
+
 export function buildUpsertTasksPayload(tasks: Task[]): UpsertTaskPayloadItem[] {
   return (tasks || []).map((task, index) => ({
     id: task.id || null,
@@ -72,5 +83,28 @@ export function buildProjectInsertPayload(snapshot: ProjectSnapshot, ownerId: st
   return {
     owner_id: ownerId,
     ...buildProjectMutationPayload(snapshot),
+  };
+}
+
+export function buildActivityInsertPayload(input: {
+  projectId: string;
+  actorId: string;
+  actorName?: string | null;
+  actorEmail?: string | null;
+  eventType: string;
+  entityType?: string;
+  entityId?: string | number | null;
+  payload?: Record<string, unknown>;
+}): ActivityInsertPayload {
+  const payload = { ...(input.payload || {}) };
+  return {
+    project_id: input.projectId,
+    actor_id: input.actorId,
+    actor_name: input.actorName ?? null,
+    actor_email: input.actorEmail ?? null,
+    event_type: input.eventType,
+    entity_type: input.entityType || "project",
+    entity_id: input.entityId != null ? String(input.entityId) : null,
+    payload,
   };
 }

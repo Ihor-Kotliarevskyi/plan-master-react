@@ -431,6 +431,67 @@ async function apiCreateProject(idToCreate) {
   }
 }
 
+async function apiLogActivity(eventType, payload = {}) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const serverId = getCurrentProjectServerId();
+  if (!serverId) return;
+
+  const activityPayload = buildSupabaseActivityInsertPayload({
+    projectId: serverId,
+    actorId: authUser.id,
+    actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
+    actorEmail: authUser?.email || null,
+    eventType,
+    entityType: payload.entityType || "project",
+    entityId: payload.entityId,
+    payload: Object.fromEntries(
+      Object.entries(payload || {}).filter(([key]) => key !== "entityType" && key !== "entityId"),
+    ),
+  });
+
+  const { error } = await sb.from("activity_log").insert(activityPayload);
+  if (error) throw error;
+}
+
+async function apiGetShares() {
+  const authUser = await _getCurrentAuthUser();
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !authUser) return [];
+
+  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", {
+    p_project_id: serverId,
+  });
+  if (!rpcSharesError && Array.isArray(rpcShares)) {
+    return rpcShares.map(mapSupabaseShareRecord);
+  }
+
+  const { data, error } = await sb
+    .from("project_shares")
+    .select("id, role, user_id, created_at")
+    .eq("project_id", serverId)
+    .order("created_at", { ascending: true });
+
+  if (error) return [];
+  return (data || []).map(mapSupabaseFallbackShareRecord);
+}
+
+async function apiGetActivityLog(limit = 100) {
+  const authUser = await _getCurrentAuthUser();
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !authUser) return [];
+
+  const { data, error } = await sb
+    .from("activity_log")
+    .select("id, project_id, actor_id, actor_name, actor_email, event_type, entity_type, entity_id, payload, created_at")
+    .eq("project_id", serverId)
+    .order("created_at", { ascending: false })
+    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+
+  if (error) throw new Error(error.message);
+  return (data || []).map(mapSupabaseActivityRow);
+}
+
 /**
  * Будує payload для upsert_tasks.
  * Імена ключів JSON відповідають тому, що читає SQL-функція (t->>'...').

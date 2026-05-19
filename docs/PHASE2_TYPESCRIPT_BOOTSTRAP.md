@@ -44,12 +44,18 @@ and Supabase adapters happen against stable interfaces.
   - task row mapping
   - project snapshot building
   - project mutation/insert payload building
+  - share row mapping
+  - activity row mapping
+  - activity insert payload building
   - `upsert_tasks(...)` payload building
 - `js/supabase-api.js` now uses that runtime helper layer in:
   - `apiLoadProjects()`
   - `apiLoadProject()`
   - `apiSyncProject()`
   - `apiCreateProject()`
+  - `apiGetShares()`
+  - `apiGetActivityLog()`
+  - `apiLogActivity()`
   - `_buildTasksPayload()`
 
 ## Why this is the right next step
@@ -61,8 +67,8 @@ and Supabase adapters happen against stable interfaces.
 
 ## Next recommended steps
 
-1. Continue replacing duplicated project/share/audit mapping code in `js/supabase-api.js`.
-2. Extract stable wrappers around sharing and audit reads/writes.
+1. Continue replacing the remaining duplicated share mutation helpers in `js/supabase-api.js`.
+2. Decide when to swap the runtime helper file from plain JS to module-based generated output.
 3. Keep extending fixture coverage as more pure helpers are extracted.
 4. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
 

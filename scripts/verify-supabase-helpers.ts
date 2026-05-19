@@ -20,6 +20,7 @@ import {
 } from "../src/services/supabase/project-list";
 import {
   buildProjectInsertPayload,
+  buildActivityInsertPayload,
   buildProjectMutationPayload,
   buildUpsertTasksPayload,
 } from "../src/services/supabase/payloads";
@@ -133,6 +134,20 @@ assert.equal(projectMutation.name, "Shared Project");
 
 const projectInsert = buildProjectInsertPayload(snapshot, "owner-1");
 assert.equal(projectInsert.owner_id, "owner-1");
+
+const activityInsert = buildActivityInsertPayload({
+  projectId: "project-1",
+  actorId: "owner-1",
+  actorName: "Owner Name",
+  actorEmail: "owner@example.com",
+  eventType: "task.updated",
+  entityType: "task",
+  entityId: "task-1",
+  payload: { field: "name" },
+});
+assert.equal(activityInsert.project_id, "project-1");
+assert.equal(activityInsert.entity_id, "task-1");
+assert.equal(activityInsert.payload.field, "name");
 
 const shareView = mapProjectShareRow(shareRow);
 assert.equal(shareView.role, "manager");
