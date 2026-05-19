@@ -21,6 +21,9 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/audit.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
+- typed Supabase extraction helpers in:
+  - `src/services/supabase/mappers.ts`
+  - `src/services/supabase/payloads.ts`
 
 ## What this does not change yet
 
@@ -37,7 +40,7 @@ and Supabase adapters happen against stable interfaces.
 
 ## Next recommended steps
 
-1. Move project/share/audit payload builders into `src/domain/*` modules.
-2. Mirror active Supabase RPC responses with typed mappers.
-3. Extract pure transformation helpers from `js/supabase-api.js` into `src/services/supabase/*`.
+1. Start using the new typed helpers when touching `js/supabase-api.js` paths.
+2. Extract stable wrappers around project list, project load, sharing, and audit reads.
+3. Add typed tests or fixture-based verification for payload/mapping helpers.
 4. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.

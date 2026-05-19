@@ -69,6 +69,7 @@
 - `docs/ROLES_AND_SHARING_PLAN.md` — продуктовий план по ролях, sharing, audit і org-напрямку
 - `docs/TECH_MIGRATION_PLAN.md` — технічна послідовність міграції та модернізації
 - `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` — деталізований backlog поточного етапу `owner/manager/editor/viewer`
+- `docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md` — статус стартового TypeScript-шару для нових модулів
 - `docs/STABILIZATION_CHECKLIST.md` — фінальний checklist для комплексного auth/sync/roles/audit прогону
 
 ## Структура Проєкту
@@ -164,6 +165,7 @@ const SUPABASE_KEY = "your-public-key";
 - **[docs/ROLES_AND_SHARING_PLAN.md](docs/ROLES_AND_SHARING_PLAN.md)** — контроль доступу та спільний доступ
 - **[docs/TECH_MIGRATION_PLAN.md](docs/TECH_MIGRATION_PLAN.md)** — технічний план міграції та поетапної модернізації
 - **[docs/PHASE1_IMPLEMENTATION_BACKLOG.md](docs/PHASE1_IMPLEMENTATION_BACKLOG.md)** — backlog найближчої реалізації granular project roles
+- **[docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md](docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md)** — статус і межі першого TypeScript bootstrap етапу
 
 ## PWA та Офлайн
 

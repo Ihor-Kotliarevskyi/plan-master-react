@@ -1,4 +1,38 @@
-import type { ProjectRole } from "../../domain/types";
+import type { AuditEventType, ProjectRole, TaskCostItem, TaskPhase } from "../../domain/types";
+
+export interface ProjectRow {
+  id: string;
+  owner_id: string;
+  name: string;
+  sm: number;
+  sy: number;
+  nm: number;
+  cats: unknown[] | null;
+  next_n: number | null;
+  baseline: unknown;
+  baseline_date: string | null;
+  is_archived?: boolean;
+  updated_at?: string;
+}
+
+export interface TaskRow {
+  id: string;
+  n: number;
+  order: number;
+  name: string;
+  cat: number;
+  ms: number;
+  ws: number;
+  me: number;
+  we: number;
+  prog: number;
+  budget: number | string | null;
+  spent: number | string | null;
+  deps: unknown[] | null;
+  phases: TaskPhase[] | null;
+  cost_items: TaskCostItem[] | null;
+  notes: unknown[] | null;
+}
 
 export interface AccessibleProjectRow {
   project_id: string;
@@ -36,7 +70,7 @@ export interface ActivityLogRow {
   actor_id: string | null;
   actor_name: string | null;
   actor_email: string | null;
-  event_type: string;
+  event_type: AuditEventType;
   entity_type: "task" | "project" | "share";
   entity_id: string | null;
   payload: Record<string, unknown>;
