@@ -965,3 +965,181 @@ document.addEventListener("DOMContentLoaded", () => {
     updateUserBtn();
   });
 });
+
+function _buildTasksPayload(tasks) {
+  return buildSupabaseTasksPayload(tasks);
+}
+
+async function apiLoadProject(localId) {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const localProject = getProjectSnapshot(localId);
+  const serverId = getProjectServerId(localId);
+  if (!serverId) return;
+
+  const lv = localProject?._localVersion || 0;
+  const sv = localProject?._serverVersion || 0;
+
+  if (lv > sv) {
+    await apiSyncProject(localId);
+    return;
+  }
+
+  try {
+    const { data, error } = await sb
+      .from("projects")
+      .select("id,name,sm,sy,nm,cats,next_n,baseline,baseline_date,owner_id")
+      .eq("id", serverId)
+      .single();
+    if (error) throw error;
+
+    let resolvedRole = "owner";
+    if (data.owner_id !== authUser.id) {
+      const { data: share } = await sb
+        .from("project_shares")
+        .select("role")
+        .eq("project_id", serverId)
+        .eq("user_id", authUser.id)
+        .single();
+      resolvedRole = normalizeProjectRole(share?.role || "viewer");
+    }
+    setProjectRole(localId, resolvedRole);
+
+    const { data: taskRows, error: te } = await sb
+      .from("tasks")
+      .select("id,n,order,name,cat,ms,ws,me,we,prog,budget,spent,deps,phases,cost_items,notes")
+      .eq("project_id", serverId)
+      .order("order", { ascending: true });
+    if (te) throw te;
+
+    allProjects[localId] = buildSupabaseProjectSnapshot(
+      localId,
+      data,
+      taskRows || [],
+      localProject,
+      resolvedRole,
+    );
+    _saveBuffer();
+    loadCurrent();
+    render();
+    _updateReadOnlyUI();
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+  } catch (_) {}
+}
+
+async function apiLoadProjects() {
+  const authUser = await _getCurrentAuthUser();
+  if (!authUser) return;
+  const seq = ++_apiLoadProjectsSeq;
+  const bufferAtStart = (() => {
+    try { return localStorage.getItem(SK_BUF) || ""; } catch (_) { return ""; }
+  })();
+
+  try {
+    let bufUserId = null;
+    let bufCurrentId = null;
+    const offlineNew = {};
+    const localSynced = {};
+
+    try {
+      const buf = JSON.parse(localStorage.getItem(SK_BUF) || "{}");
+      bufUserId = buf._userId || null;
+      bufCurrentId = buf.currentId || null;
+      const analyzedBuffer = analyzeBufferedProjectsForUser(buf.allProjects || {}, bufUserId, authUser.id);
+      Object.assign(offlineNew, analyzedBuffer.offlineNew);
+      Object.assign(localSynced, analyzedBuffer.localSynced);
+    } catch (_) {}
+
+    let accessibleList = [];
+    const { data: accessibleProjects, error: accessibleProjectsError } = await sb.rpc("list_accessible_projects");
+    if (!accessibleProjectsError && Array.isArray(accessibleProjects)) {
+      accessibleList = accessibleProjects.filter((item) => !!item?.project_id);
+    } else {
+      const { data: ownProjects, error: e1 } = await sb
+        .from("projects")
+        .select("id,name,sm,sy,nm,is_archived,updated_at")
+        .eq("owner_id", authUser.id)
+        .eq("is_archived", false)
+        .order("updated_at", { ascending: false });
+      if (e1) throw e1;
+
+      const { data: sharedProjects, error: e2 } = await sb
+        .from("project_shares")
+        .select("role, invited_by, project:projects(id,name,sm,sy,nm,is_archived,updated_at,owner_id)")
+        .eq("user_id", authUser.id);
+      if (e2) throw e2;
+
+      accessibleList = [
+        ...((ownProjects || []).map((project) => ({
+          project_id: project.id,
+          name: project.name,
+          sm: project.sm,
+          sy: project.sy,
+          nm: project.nm,
+          is_archived: !!project.is_archived,
+          updated_at: project.updated_at,
+          role: "owner",
+          source: "own",
+          owner_id: authUser.id,
+          owner_name: "",
+          owner_email: authUser.email || "",
+          invited_by: null,
+          invited_by_name: "",
+          invited_by_email: "",
+        }))),
+        ...((sharedProjects || [])
+          .filter((item) => item?.project?.id)
+          .map((item) => ({
+            project_id: item.project.id,
+            name: item.project.name,
+            sm: item.project.sm,
+            sy: item.project.sy,
+            nm: item.project.nm,
+            is_archived: !!item.project.is_archived,
+            updated_at: item.project.updated_at,
+            role: item.role,
+            source: "shared",
+            owner_id: item.project.owner_id || null,
+            owner_name: "",
+            owner_email: "",
+            invited_by: item.invited_by || null,
+            invited_by_name: "",
+            invited_by_email: "",
+          }))),
+      ];
+    }
+
+    if (seq !== _apiLoadProjectsSeq) return;
+    const bufferNow = (() => {
+      try { return localStorage.getItem(SK_BUF) || ""; } catch (_) { return ""; }
+    })();
+    if (bufferNow !== bufferAtStart) {
+      await apiLoadProjects();
+      return;
+    }
+
+    allProjects = mergeAccessibleProjectsIntoLocalState(
+      offlineNew,
+      localSynced,
+      accessibleList,
+      authUser.id,
+    );
+
+    if (!Object.keys(allProjects).length) initDefaultProject();
+    if (bufCurrentId && allProjects[bufCurrentId]) currentId = bufCurrentId;
+    else if (!currentId || !allProjects[currentId]) currentId = Object.keys(allProjects)[0];
+
+    updateProjSel();
+    loadCurrent();
+    render();
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+
+    if (currentId && allProjects[currentId]) {
+      await apiLoadProject(currentId);
+    }
+
+    for (const id of Object.keys(offlineNew)) {
+      await apiCreateProject(id);
+    }
+  } catch (_) {}
+}

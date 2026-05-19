@@ -34,6 +34,20 @@ and Supabase adapters happen against stable interfaces.
 - the app still runs through legacy `<script>` files in `index.html`
 - current runtime permissions still execute from `js/permissions.js`
 - current Supabase runtime still executes from `js/supabase-api.js`
+- there is still no module-based runtime switch for the app bootstrap
+
+## What is partially integrated now
+
+- `js/supabase-runtime-helpers.js` mirrors the first pure helper layer for:
+  - buffered project analysis
+  - accessible project merging
+  - task row mapping
+  - project snapshot building
+  - `upsert_tasks(...)` payload building
+- `js/supabase-api.js` now uses that runtime helper layer in:
+  - `apiLoadProjects()`
+  - `apiLoadProject()`
+  - `_buildTasksPayload()`
 
 ## Why this is the right next step
 
@@ -44,8 +58,8 @@ and Supabase adapters happen against stable interfaces.
 
 ## Next recommended steps
 
-1. Start using the new typed helpers when touching `js/supabase-api.js` paths.
-2. Extract stable wrappers around project list, project load, sharing, and audit reads.
+1. Continue replacing duplicated project/share/audit mapping code in `js/supabase-api.js`.
+2. Extract stable wrappers around sharing and audit reads/writes.
 3. Keep extending fixture coverage as more pure helpers are extracted.
 4. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
 
