@@ -475,9 +475,14 @@ function importJSON(e) {
           cats: d.cats || DEF_CATS.map((c) => ({ ...c })),
           tasks: importedTasks,
           nextN: maxN + 1,
-          _localUpdatedAt: new Date().toISOString(),
-          _localVersion: 1, _serverVersion: 0,
-          _role: "owner",
+          ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+            ? buildRuntimeInitialProjectSnapshotMeta({ _role: "owner" })
+            : {
+                _localUpdatedAt: new Date().toISOString(),
+                _localVersion: 1,
+                _serverVersion: 0,
+                _role: "owner",
+              }),
         };
         currentId = id;
         if (typeof _projectRole !== "undefined") _projectRole = "owner";

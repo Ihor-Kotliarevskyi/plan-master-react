@@ -47,6 +47,9 @@ and Supabase adapters happen against stable interfaces.
   - shared-vs-own project grouping for legacy UI lists
   - shared-project owner/inviter label extraction
   - sync-state and sync-badge calculation
+  - local snapshot meta/version calculation
+  - storage buffer payload building
+  - buffered project role normalization
   - task row mapping
   - project snapshot building
   - project mutation/insert payload building
@@ -74,6 +77,10 @@ and Supabase adapters happen against stable interfaces.
   - project sync-state calculation
   - sync-badge resolution
   - preferred sync-status fallback logic
+- `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
+  - initial local snapshot meta creation
+  - persisted buffer payload shape
+  - buffered role normalization
 
 ## Why this is the right next step
 

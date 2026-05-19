@@ -81,6 +81,45 @@
     return options.projectSyncState.hasLocalChanges ? "warn" : "ok";
   }
 
+  // src/domain/storage.ts
+  function buildProjectSnapshotMeta(previousSnapshot, overrides = {}) {
+    return {
+      _localUpdatedAt: overrides._localUpdatedAt || (/* @__PURE__ */ new Date()).toISOString(),
+      _localVersion: overrides._localVersion ?? (previousSnapshot?._localVersion || 0) + 1,
+      _serverVersion: overrides._serverVersion ?? (previousSnapshot?._serverVersion || 0),
+      ...previousSnapshot?._serverId ? { _serverId: previousSnapshot._serverId } : {},
+      ...previousSnapshot?._role ? { _role: normalizeProjectRole(previousSnapshot._role, previousSnapshot._role) } : {},
+      ...previousSnapshot?._access ? { _access: previousSnapshot._access } : {},
+      ...overrides
+    };
+  }
+  function buildInitialProjectSnapshotMeta(overrides = {}) {
+    return {
+      _localUpdatedAt: overrides._localUpdatedAt || (/* @__PURE__ */ new Date()).toISOString(),
+      _localVersion: overrides._localVersion ?? 1,
+      _serverVersion: overrides._serverVersion ?? 0,
+      ...overrides
+    };
+  }
+  function buildStorageBufferPayload(allProjects, currentId, userId) {
+    return {
+      allProjects,
+      currentId,
+      _userId: userId
+    };
+  }
+  function normalizeBufferedProjectRoles(allProjects) {
+    Object.values(allProjects || {}).forEach((projectSnapshot) => {
+      if (projectSnapshot && projectSnapshot._role) {
+        projectSnapshot._role = normalizeProjectRole(
+          projectSnapshot._role,
+          projectSnapshot._role
+        );
+      }
+    });
+    return allProjects;
+  }
+
   // src/domain/audit.ts
   function formatAuditEntry(entry) {
     return {
@@ -411,7 +450,11 @@
     getSharedProjectLabels,
     getRuntimeProjectSyncState: getProjectSyncState,
     getRuntimeSyncBadge: getSyncBadge,
-    resolveRuntimeSyncStatus: resolveSyncStatus
+    resolveRuntimeSyncStatus: resolveSyncStatus,
+    buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
+    buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
+    buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
+    normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles
   };
   Object.assign(globalThis, runtimeHelpers);
 })();

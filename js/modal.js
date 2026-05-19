@@ -1354,10 +1354,20 @@ async function loadDemoProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: DEF_TASKS.map((t) => ({ ...t })),
     nextN: DEF_TASKS.length + 1,
-    _localUpdatedAt: new Date().toISOString(),
-    _localVersion: 1, _serverVersion: 0,
+    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+      ? buildRuntimeInitialProjectSnapshotMeta()
+      : {
+          _localUpdatedAt: new Date().toISOString(),
+          _localVersion: 1,
+          _serverVersion: 0,
+        }),
   };
-  try { localStorage.setItem(SK_BUF, JSON.stringify({ allProjects, currentId })); } catch (_) {}
+  try {
+    const payload = typeof buildRuntimeStorageBufferPayload === "function"
+      ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
+      : { allProjects, currentId };
+    localStorage.setItem(SK_BUF, JSON.stringify(payload));
+  } catch (_) {}
   switchProject(id);
   closeProjMgr();
   Swal.fire({
@@ -1392,7 +1402,9 @@ async function createProject() {
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: [],
     nextN: 1,
-    _localUpdatedAt: new Date().toISOString(),
+    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+      ? buildRuntimeInitialProjectSnapshotMeta()
+      : { _localUpdatedAt: new Date().toISOString(), _localVersion: 1, _serverVersion: 0 }),
   };
   saveAll();
   switchProject(id);

@@ -11,6 +11,12 @@ import {
   resolveSyncStatus,
 } from "../domain/sync";
 import {
+  buildInitialProjectSnapshotMeta,
+  buildProjectSnapshotMeta,
+  buildStorageBufferPayload,
+  normalizeBufferedProjectRoles,
+} from "../domain/storage";
+import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
@@ -161,6 +167,10 @@ const runtimeHelpers = {
   getRuntimeProjectSyncState: buildProjectSyncState,
   getRuntimeSyncBadge: getSyncBadge,
   resolveRuntimeSyncStatus: resolveSyncStatus,
+  buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
+  buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
+  buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
+  normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
 };
 
 Object.assign(globalThis, runtimeHelpers);

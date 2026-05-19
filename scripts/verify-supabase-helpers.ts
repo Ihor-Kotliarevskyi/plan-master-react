@@ -9,6 +9,12 @@ import {
   getSyncBadge,
   resolveSyncStatus,
 } from "../src/domain/sync";
+import {
+  buildInitialProjectSnapshotMeta,
+  buildProjectSnapshotMeta,
+  buildStorageBufferPayload,
+  normalizeBufferedProjectRoles,
+} from "../src/domain/storage";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -271,5 +277,26 @@ const resolvedSyncStatus = resolveSyncStatus(null, {
   projectSyncState: syncState,
 });
 assert.equal(resolvedSyncStatus, "warn");
+
+const updatedMeta = buildProjectSnapshotMeta(shell, { _localUpdatedAt: "2026-05-19T12:00:00.000Z" });
+assert.equal(updatedMeta._localVersion, 4);
+assert.equal(updatedMeta._serverVersion, 2);
+assert.equal(updatedMeta._role, "editor");
+
+const initialMeta = buildInitialProjectSnapshotMeta({ _role: "owner" });
+assert.equal(initialMeta._localVersion, 1);
+assert.equal(initialMeta._serverVersion, 0);
+assert.equal(initialMeta._role, "owner");
+
+const normalizedProjects = normalizeBufferedProjectRoles({
+  a: { _role: "admin" },
+  b: { _role: "viewer" },
+});
+assert.equal(normalizedProjects.a?._role, "manager");
+assert.equal(normalizedProjects.b?._role, "viewer");
+
+const storagePayload = buildStorageBufferPayload({ shell }, "shell", "user-1");
+assert.equal(storagePayload.currentId, "shell");
+assert.equal(storagePayload._userId, "user-1");
 
 console.log("Supabase helper verification passed.");
