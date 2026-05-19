@@ -38,7 +38,9 @@ and Supabase adapters happen against stable interfaces.
 
 ## What is partially integrated now
 
-- `js/supabase-runtime-helpers.js` mirrors the first pure helper layer for:
+- `src/runtime/supabase-runtime-helpers.ts` is bundled into:
+  - `js/generated/supabase-runtime-helpers.generated.js`
+- the generated bridge exposes the first runtime helper layer for:
   - buffered project analysis
   - accessible project merging
   - fallback accessible-project normalization
@@ -83,3 +85,5 @@ and Supabase adapters happen against stable interfaces.
   `<script>` tags without `type="module"`.
 - This does not modernize the runtime yet; it only removes noisy expected output
   while the app still bootstraps through legacy scripts.
+- `npm run build` and `npm run dev` now generate the runtime bridge before
+  starting Vite work, so the legacy app consumes a current typed helper bundle.

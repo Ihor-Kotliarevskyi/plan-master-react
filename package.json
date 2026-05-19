@@ -4,8 +4,9 @@
   "description": "Сучасний веб-застосунок для управління проєктами за допомогою інтерактивних діаграм Ганта. Працює як PWA з офлайн-доступом, хмарною синхронізацією та підтримкою аналізу освоєного обсягу (EVM).",
   "main": "sw.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "build:runtime-helpers": "node scripts/build-runtime-helpers.mjs",
+    "dev": "npm run build:runtime-helpers && vite",
+    "build": "npm run build:runtime-helpers && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "verify:supabase-helpers": "tsx scripts/verify-supabase-helpers.ts"
@@ -23,6 +24,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz"
   },
   "devDependencies": {
+    "esbuild": "^0.28.0",
     "tsx": "^4.22.3",
     "typescript": "^6.0.3",
     "vite": "^5.0.0"
