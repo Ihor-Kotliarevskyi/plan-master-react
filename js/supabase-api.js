@@ -492,6 +492,70 @@ async function apiGetActivityLog(limit = 100) {
   return (data || []).map(mapSupabaseActivityRow);
 }
 
+async function apiShareProject(email, role = "viewer") {
+  const authUser = await _getCurrentAuthUser();
+  const serverId = getCurrentProjectServerId();
+  if (!serverId || !authUser) return;
+  if (!canInviteUsers()) throw new Error("У вас немає прав на запрошення користувачів");
+
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+  const normalizedEmail = String(email || "").trim().toLowerCase();
+  if (!normalizedEmail) throw new Error("Введіть email");
+
+  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", {
+    p_email: normalizedEmail,
+  });
+  if (lookupError) throw new Error(lookupError.message);
+  if (!targetUserId) {
+    throw new Error("Користувача з таким email не знайдено. Він має спочатку зареєструватися.");
+  }
+  if (targetUserId === authUser.id) {
+    throw new Error("Ви вже маєте доступ до цього проєкту як власник.");
+  }
+
+  const sharePayload = buildSupabaseProjectShareUpsertPayload({
+    projectId: serverId,
+    userId: targetUserId,
+    role: shareRole,
+    invitedBy: authUser.id,
+  });
+
+  const { error } = await sb.from("project_shares").upsert(
+    sharePayload,
+    { onConflict: "project_id,user_id" },
+  );
+
+  if (error) throw new Error(error.message);
+  _showSyncIndicator();
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, targetUserId, {
+    email: normalizedEmail,
+    role: shareRole,
+  });
+  return {
+    userId: targetUserId,
+    email: normalizedEmail,
+    role: shareRole,
+  };
+}
+
+async function apiUpdateShareRole(shareId, role) {
+  if (!canManageShares()) throw new Error("У вас немає прав на зміну доступу");
+  const shareRole = normalizeProjectRole(role);
+  if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+
+  const { error } = await sb
+    .from("project_shares")
+    .update(buildSupabaseProjectShareRoleUpdatePayload(shareRole))
+    .eq("id", shareId);
+  if (error) throw new Error(error.message);
+  _showSyncIndicator();
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_ROLE_UPDATED, shareId, {
+    role: shareRole,
+  });
+  return shareRole;
+}
+
 /**
  * Будує payload для upsert_tasks.
  * Імена ключів JSON відповідають тому, що читає SQL-функція (t->>'...').

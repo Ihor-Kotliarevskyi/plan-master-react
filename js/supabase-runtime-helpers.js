@@ -224,3 +224,21 @@ function mapSupabaseActivityRow(activityRow) {
     createdAt: activityRow.created_at,
   };
 }
+
+function buildSupabaseProjectShareUpsertPayload({
+  projectId,
+  userId,
+  role,
+  invitedBy,
+}) {
+  return {
+    project_id: projectId,
+    user_id: userId,
+    role,
+    invited_by: invitedBy,
+  };
+}
+
+function buildSupabaseProjectShareRoleUpdatePayload(role) {
+  return { role };
+}

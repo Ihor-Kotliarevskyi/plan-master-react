@@ -45,6 +45,17 @@ export interface ActivityInsertPayload {
   payload: Record<string, unknown>;
 }
 
+export interface ProjectShareUpsertPayload {
+  project_id: string;
+  user_id: string;
+  role: string;
+  invited_by: string;
+}
+
+export interface ProjectShareRoleUpdatePayload {
+  role: string;
+}
+
 export function buildUpsertTasksPayload(tasks: Task[]): UpsertTaskPayloadItem[] {
   return (tasks || []).map((task, index) => ({
     id: task.id || null,
@@ -107,4 +118,22 @@ export function buildActivityInsertPayload(input: {
     entity_id: input.entityId != null ? String(input.entityId) : null,
     payload,
   };
+}
+
+export function buildProjectShareUpsertPayload(input: {
+  projectId: string;
+  userId: string;
+  role: string;
+  invitedBy: string;
+}): ProjectShareUpsertPayload {
+  return {
+    project_id: input.projectId,
+    user_id: input.userId,
+    role: input.role,
+    invited_by: input.invitedBy,
+  };
+}
+
+export function buildProjectShareRoleUpdatePayload(role: string): ProjectShareRoleUpdatePayload {
+  return { role };
 }

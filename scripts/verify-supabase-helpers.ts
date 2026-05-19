@@ -21,6 +21,8 @@ import {
 import {
   buildProjectInsertPayload,
   buildActivityInsertPayload,
+  buildProjectShareRoleUpdatePayload,
+  buildProjectShareUpsertPayload,
   buildProjectMutationPayload,
   buildUpsertTasksPayload,
 } from "../src/services/supabase/payloads";
@@ -148,6 +150,19 @@ const activityInsert = buildActivityInsertPayload({
 assert.equal(activityInsert.project_id, "project-1");
 assert.equal(activityInsert.entity_id, "task-1");
 assert.equal(activityInsert.payload.field, "name");
+
+const shareUpsert = buildProjectShareUpsertPayload({
+  projectId: "project-1",
+  userId: "user-2",
+  role: "manager",
+  invitedBy: "owner-1",
+});
+assert.equal(shareUpsert.project_id, "project-1");
+assert.equal(shareUpsert.user_id, "user-2");
+assert.equal(shareUpsert.role, "manager");
+
+const shareRoleUpdate = buildProjectShareRoleUpdatePayload("viewer");
+assert.equal(shareRoleUpdate.role, "viewer");
 
 const shareView = mapProjectShareRow(shareRow);
 assert.equal(shareView.role, "manager");
