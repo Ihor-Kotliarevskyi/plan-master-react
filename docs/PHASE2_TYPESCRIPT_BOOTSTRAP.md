@@ -50,6 +50,7 @@ and Supabase adapters happen against stable interfaces.
   - local snapshot meta/version calculation
   - storage buffer payload building
   - buffered project role normalization
+  - access/role presentation helpers for legacy UI
   - task row mapping
   - project snapshot building
   - project mutation/insert payload building
@@ -81,6 +82,10 @@ and Supabase adapters happen against stable interfaces.
   - initial local snapshot meta creation
   - persisted buffer payload shape
   - buffered role normalization
+- `js/supabase-api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
+  - role labels
+  - shared-project presentation text
+  - access banner display model
 
 ## Why this is the right next step
 

@@ -6,6 +6,12 @@ import {
   isSharedProjectEntry,
 } from "../domain/project-access";
 import {
+  buildAccessBannerModel,
+  buildSharedProjectMetaLine,
+  buildSharedProjectMetaText,
+  getProjectRoleLabel,
+} from "../domain/access-ui";
+import {
   getProjectSyncState as buildProjectSyncState,
   getSyncBadge,
   resolveSyncStatus,
@@ -171,6 +177,10 @@ const runtimeHelpers = {
   buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
+  getRuntimeProjectRoleLabel: getProjectRoleLabel,
+  buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
+  buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
+  buildRuntimeAccessBannerModel: buildAccessBannerModel,
 };
 
 Object.assign(globalThis, runtimeHelpers);

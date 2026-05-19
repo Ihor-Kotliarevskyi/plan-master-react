@@ -30,8 +30,8 @@ function updateProjSel() {
       .map(([id, p]) => {
         const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
         const roleLabel =
-          isShared && typeof PROJECT_ROLE_LABELS !== "undefined"
-            ? ` · ${PROJECT_ROLE_LABELS[role] || role}`
+          isShared
+            ? ` · ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[role] || role : role)}`
             : "";
         return `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}${roleLabel}</option>`;
       })

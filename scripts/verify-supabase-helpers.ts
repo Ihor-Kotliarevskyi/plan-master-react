@@ -5,6 +5,12 @@ import {
   groupProjectEntriesByAccess,
 } from "../src/domain/project-access";
 import {
+  buildAccessBannerModel,
+  buildSharedProjectMetaLine,
+  buildSharedProjectMetaText,
+  getProjectRoleLabel,
+} from "../src/domain/access-ui";
+import {
   getProjectSyncState,
   getSyncBadge,
   resolveSyncStatus,
@@ -261,6 +267,15 @@ const sharedLabels = getSharedProjectLabels(shell._access);
 assert.equal(sharedLabels.isShared, true);
 assert.equal(sharedLabels.ownerLabel, "Owner Name");
 assert.equal(sharedLabels.invitedByLabel, "Manager Name");
+
+assert.equal(getProjectRoleLabel("manager"), "Менеджер");
+assert.equal(buildSharedProjectMetaText(shell._access), "Owner Name · Manager Name");
+assert.equal(buildSharedProjectMetaLine(shell._access), "Власник: Owner Name · Поділився: Manager Name");
+
+const accessBanner = buildAccessBannerModel("viewer", shell._access);
+assert.equal(accessBanner.shouldShow, true);
+assert.equal(accessBanner.roleLabel, "Перегляд");
+assert.equal(accessBanner.sharedMetaText, "Owner Name · Manager Name");
 
 const syncState = getProjectSyncState(shell);
 assert.equal(syncState.hasServerCopy, true);

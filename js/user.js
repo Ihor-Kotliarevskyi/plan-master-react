@@ -283,7 +283,9 @@ function _renderAccountSection(loggedIn, sbp, p) {
     ? getStoredProjectRole(currentId, "owner")
     : "owner";
   const roleLabel =
-    typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole;
+    typeof getRuntimeProjectRoleLabel === "function"
+      ? getRuntimeProjectRoleLabel(currentRole)
+      : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole);
   const syncMeta = projectSync.updatedAt
     ? `<div class="account-sync-meta">Остання локальна зміна: ${new Date(projectSync.updatedAt).toLocaleString("uk-UA")}</div>`
     : "";

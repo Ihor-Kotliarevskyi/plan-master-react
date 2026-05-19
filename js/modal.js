@@ -1284,7 +1284,7 @@ function openProjManager() {
   const renderProjectRow = ([id, p]) => {
     const canManageProjectEntry = getManagePermission(id);
     const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
-    const roleLabel = roleLabels[role] || role;
+    const roleLabel = typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (roleLabels[role] || role);
     const shareLabels = typeof getSharedProjectLabels === "function"
       ? getSharedProjectLabels(p?._access || null)
       : {
@@ -1292,12 +1292,11 @@ function openProjManager() {
           ownerLabel: p?._access?.ownerName || p?._access?.ownerEmail || "",
           invitedByLabel: p?._access?.invitedByName || p?._access?.invitedByEmail || "",
         };
-    const ownerLabel = shareLabels.ownerLabel;
-    const invitedByLabel = shareLabels.invitedByLabel;
-    const sharedMeta =
-      shareLabels.isShared
-        ? `<div class="pj-meta">${ownerLabel ? `Власник: ${ownerLabel}` : ""}${invitedByLabel ? `${ownerLabel ? " · " : ""}Поділився: ${invitedByLabel}` : ""}</div>`
-        : `<div class="pj-meta">Власний проєкт</div>`;
+    const sharedMeta = `<div class="pj-meta">${typeof buildRuntimeSharedProjectMetaLine === "function"
+      ? buildRuntimeSharedProjectMetaLine(p?._access || null)
+      : (shareLabels.isShared
+          ? `${shareLabels.ownerLabel ? `Власник: ${shareLabels.ownerLabel}` : ""}${shareLabels.invitedByLabel ? `${shareLabels.ownerLabel ? " · " : ""}Поділився: ${shareLabels.invitedByLabel}` : ""}`
+          : "Власний проєкт")}</div>`;
     return `<div class="pj-row${id === currentId ? " active" : ""}">
        <div class="pj-main">
          <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}

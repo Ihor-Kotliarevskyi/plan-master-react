@@ -8,6 +8,18 @@
     EDITOR: "editor",
     VIEWER: "viewer"
   };
+  var PROJECT_ROLE_LABELS = {
+    owner: "Власник",
+    manager: "Менеджер",
+    editor: "Редактор",
+    viewer: "Перегляд"
+  };
+  var PROJECT_ROLE_HINTS = {
+    owner: "Повний доступ до проєкту, ролей і змін.",
+    manager: "Може змінювати проєкт і керувати доступом користувачів.",
+    editor: "Може редагувати задачі, але не керує доступом і налаштуваннями проєкту.",
+    viewer: "Може лише переглядати проєкт без внесення змін."
+  };
   var SHAREABLE_PROJECT_ROLES = [
     PROJECT_ROLES.VIEWER,
     PROJECT_ROLES.EDITOR,
@@ -20,6 +32,9 @@
     if (role === PROJECT_ROLES.EDITOR) return PROJECT_ROLES.EDITOR;
     if (role === PROJECT_ROLES.VIEWER) return PROJECT_ROLES.VIEWER;
     return fallbackRole;
+  }
+  function getProjectRoleHint(role) {
+    return PROJECT_ROLE_HINTS[normalizeProjectRole(role)];
   }
 
   // src/domain/project-access.ts
@@ -41,6 +56,34 @@
       isShared: accessMeta?.source === "shared",
       ownerLabel: accessMeta?.ownerName || accessMeta?.ownerEmail || "",
       invitedByLabel: accessMeta?.invitedByName || accessMeta?.invitedByEmail || ""
+    };
+  }
+
+  // src/domain/access-ui.ts
+  function getProjectRoleLabel(role) {
+    const normalizedRole = normalizeProjectRole(role);
+    return PROJECT_ROLE_LABELS[normalizedRole] || normalizedRole;
+  }
+  function buildSharedProjectMetaText(accessMeta) {
+    const labels = getSharedProjectLabels(accessMeta || null);
+    if (!labels.isShared) return "";
+    return [labels.ownerLabel, labels.invitedByLabel].filter(Boolean).join(" · ");
+  }
+  function buildSharedProjectMetaLine(accessMeta) {
+    const labels = getSharedProjectLabels(accessMeta || null);
+    if (!labels.isShared) return "Власний проєкт";
+    const ownerText = labels.ownerLabel ? `Власник: ${labels.ownerLabel}` : "";
+    const invitedByText = labels.invitedByLabel ? `Поділився: ${labels.invitedByLabel}` : "";
+    return [ownerText, invitedByText].filter(Boolean).join(" · ");
+  }
+  function buildAccessBannerModel(role, accessMeta) {
+    const normalizedRole = normalizeProjectRole(role, "owner");
+    return {
+      shouldShow: normalizedRole !== "owner",
+      role: normalizedRole,
+      roleLabel: getProjectRoleLabel(normalizedRole),
+      roleHint: getProjectRoleHint(normalizedRole),
+      sharedMetaText: buildSharedProjectMetaText(accessMeta || null)
     };
   }
 
@@ -454,7 +497,11 @@
     buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
     buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
-    normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles
+    normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
+    getRuntimeProjectRoleLabel: getProjectRoleLabel,
+    buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
+    buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
+    buildRuntimeAccessBannerModel: buildAccessBannerModel
   };
   Object.assign(globalThis, runtimeHelpers);
 })();
