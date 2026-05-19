@@ -24,6 +24,7 @@ and Supabase adapters happen against stable interfaces.
 - typed Supabase extraction helpers in:
   - `src/services/supabase/mappers.ts`
   - `src/services/supabase/payloads.ts`
+  - `src/services/supabase/project-list.ts`
 
 ## What this does not change yet
 
@@ -44,3 +45,10 @@ and Supabase adapters happen against stable interfaces.
 2. Extract stable wrappers around project list, project load, sharing, and audit reads.
 3. Add typed tests or fixture-based verification for payload/mapping helpers.
 4. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
+
+## Notes
+
+- `vite.config.mjs` now suppresses the known legacy warning about classic
+  `<script>` tags without `type="module"`.
+- This does not modernize the runtime yet; it only removes noisy expected output
+  while the app still bootstraps through legacy scripts.
