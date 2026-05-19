@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [],
   "author": "Ihor-Kotliarevskyi <jagor0707@gmail.com>",
@@ -21,6 +22,7 @@
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.0/xlsx-0.20.0.tgz"
   },
   "devDependencies": {
+    "typescript": "^6.0.3",
     "vite": "^5.0.0"
   }
 }
