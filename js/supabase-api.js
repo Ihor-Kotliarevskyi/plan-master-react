@@ -585,25 +585,29 @@ function _updateReadOnlyUI() {
   const readonly = !canEditTasks();
   const canShare = canManageShares();
   const role = typeof getProjectRole === "function" ? getProjectRole() : (allProjects?.[currentId]?._role || "owner");
-  const roleLabel = typeof PROJECT_ROLE_LABELS !== "undefined" ? (PROJECT_ROLE_LABELS[role] || role) : role;
-  const roleHint = typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "";
   const accessMeta = allProjects?.[currentId]?._access || null;
-  const sharedMeta = accessMeta?.source === "shared"
-    ? [accessMeta.ownerName || accessMeta.ownerEmail, accessMeta.invitedByName || accessMeta.invitedByEmail]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  const bannerModel = typeof buildRuntimeAccessBannerModel === "function"
+    ? buildRuntimeAccessBannerModel(role, accessMeta)
+    : {
+        shouldShow: role !== "owner",
+        roleLabel: typeof PROJECT_ROLE_LABELS !== "undefined" ? (PROJECT_ROLE_LABELS[role] || role) : role,
+        roleHint: typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "",
+        sharedMetaText: accessMeta?.source === "shared"
+          ? [accessMeta.ownerName || accessMeta.ownerEmail, accessMeta.invitedByName || accessMeta.invitedByEmail]
+              .filter(Boolean)
+              .join(" ? ")
+          : "",
+      };
 
   const banner = document.getElementById("readonly-banner");
   if (banner) banner.style.display = readonly ? "flex" : "none";
 
   const headerBanner = document.getElementById("project-access-banner");
   if (headerBanner) {
-    const shouldShow = role !== "owner";
-    headerBanner.style.display = shouldShow ? "flex" : "none";
+    headerBanner.style.display = bannerModel.shouldShow ? "flex" : "none";
     headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
-    headerBanner.innerHTML = shouldShow
-      ? `<span class="project-access-pill">${roleLabel}</span><span class="project-access-text">${roleHint}${sharedMeta ? ` ${sharedMeta}` : ""}</span>`
+    headerBanner.innerHTML = bannerModel.shouldShow
+      ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
       : "";
   }
 
