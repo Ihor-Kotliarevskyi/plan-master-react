@@ -209,36 +209,54 @@ function _renderUserModal() {
     ? `<img src="${identity.avatarUrl}" alt="avatar" class="user-avatar-large-img" />`
     : `<span id="um-avatar-initial">${identity.initial}</span>`;
 
+  const defaultsPanel =
+    typeof buildRuntimeProjectDefaultsPanelModel === "function"
+      ? buildRuntimeProjectDefaultsPanelModel()
+      : {
+          sectionTitle: "Project defaults",
+          startMonthLabel: "Start month",
+          startYearLabel: "Start year",
+          durationLabel: "Duration (months)",
+        };
+
+  const themePanel =
+    typeof buildRuntimeThemePanelModel === "function"
+      ? buildRuntimeThemePanelModel()
+      : {
+          sectionTitle: "Appearance",
+          themeLabel: "Theme",
+        };
+
   document.getElementById("user-modal-body").innerHTML = `
     <div class="um-cols">
 
       <!-- Ліворуч: налаштування -->
       <div class="um-col">
         <div class="settings-section">
-          <div class="settings-section-title">Нові проєкти за замовчуванням</div>
+          <div class="settings-section-title">${defaultsPanel.sectionTitle}</div>
           <div class="settings-section-body">
             <div class="setting-row">
-              <label>Початковий місяць</label>
+              <label>${defaultsPanel.startMonthLabel}</label>
               <select id="um-sm">
                 ${MN.map((m, i) => `<option value="${i}"${p.defaults.sm === i ? " selected" : ""}>${m}</option>`).join("")}
               </select>
             </div>
             <div class="setting-row">
-              <label>Початковий рік</label>
+              <label>${defaultsPanel.startYearLabel}</label>
               <input type="number" id="um-sy" value="${p.defaults.sy}" min="2020" max="2040" />
             </div>
             <div class="setting-row">
-              <label>Тривалість (міс.)</label>
+              <label>${defaultsPanel.durationLabel}</label>
               <input type="number" id="um-nm" value="${p.defaults.nm}" min="3" max="120" />
             </div>
           </div>
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Зовнішній вигляд</div>
+          <div class="settings-section-title">${themePanel.sectionTitle}</div>
           <div class="settings-section-body">
             <div class="setting-row">
-              <label>Кольорова тема</label>
+              <label>${themePanel.themeLabel}</label>
               <button class="theme-toggle" style="border:none" onclick="toggleTheme();_renderUserModal()">
                 <span class="theme-icon"><i data-lucide="${identity.themeToggle.icon}"></i></span>
                 <span class="theme-label">${identity.themeToggle.label}</span>

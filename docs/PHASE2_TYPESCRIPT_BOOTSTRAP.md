@@ -24,6 +24,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/auth-ui.ts`
   - `src/domain/profile-ui.ts`
   - `src/domain/baseline-ui.ts`
+  - `src/domain/settings-ui.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -88,6 +89,7 @@ and Supabase adapters happen against stable interfaces.
   - auth form/tab model building
   - user identity and theme-toggle model building
   - baseline panel model building
+  - defaults/theme settings panel model building
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape

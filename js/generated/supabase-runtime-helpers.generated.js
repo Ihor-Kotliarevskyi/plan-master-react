@@ -157,6 +157,22 @@
     };
   }
 
+  // src/domain/settings-ui.ts
+  function buildProjectDefaultsPanelModel() {
+    return {
+      sectionTitle: "Project defaults",
+      startMonthLabel: "Start month",
+      startYearLabel: "Start year",
+      durationLabel: "Duration (months)"
+    };
+  }
+  function buildThemePanelModel() {
+    return {
+      sectionTitle: "Appearance",
+      themeLabel: "Theme"
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -616,6 +632,8 @@
     buildRuntimeThemeToggleModel: buildThemeToggleModel,
     buildRuntimeUserIdentityModel: buildUserIdentityModel,
     buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+    buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
+    buildRuntimeThemePanelModel: buildThemePanelModel,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,

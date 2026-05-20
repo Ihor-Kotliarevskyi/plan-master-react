@@ -14,6 +14,7 @@ import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
 import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
+import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -342,6 +343,14 @@ const baselinePanel = buildBaselinePanelModel({
 assert.equal(baselinePanel.savedLabel, "Saved: 2026-05-01");
 assert.equal(baselinePanel.toggleLabel, "Show");
 assert.equal(baselinePanel.saveActionLabel, "Overwrite");
+
+const defaultsPanel = buildProjectDefaultsPanelModel();
+assert.equal(defaultsPanel.sectionTitle, "Project defaults");
+assert.equal(defaultsPanel.startMonthLabel, "Start month");
+
+const themePanel = buildThemePanelModel();
+assert.equal(themePanel.sectionTitle, "Appearance");
+assert.equal(themePanel.themeLabel, "Theme");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
