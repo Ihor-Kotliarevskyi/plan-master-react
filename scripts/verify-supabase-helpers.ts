@@ -16,8 +16,10 @@ import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/pro
 import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
+import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
+  buildAuditLogModalModel,
   getAuditActorLabel,
   getAuditEventLabel,
   getAuditSubjectLabel,
@@ -341,6 +343,7 @@ const baselinePanel = buildBaselinePanelModel({
   baselineDate: "2026-05-01",
   showBaseline: false,
 });
+assert.equal(baselinePanel.sectionTitle, "Baseline");
 assert.equal(baselinePanel.savedLabel, "Saved: 2026-05-01");
 assert.equal(baselinePanel.toggleLabel, "Show");
 assert.equal(baselinePanel.saveActionLabel, "Overwrite");
@@ -357,6 +360,18 @@ const accountSection = buildAccountSectionModel();
 assert.equal(accountSection.sectionTitle, "Cloud account");
 assert.equal(accountSection.logoutLabel, "Log out");
 assert.equal(accountSection.lastLocalChangeLabel, "Last local change");
+
+const authFlowMessages = buildAuthFlowMessages();
+assert.equal(authFlowMessages.loginSuccessTitle, "Вхід виконано");
+assert.equal(authFlowMessages.projectsBootstrapWarningTitle, "Вхід виконано, але проєкти не завантажились");
+
+const profileFeedback = buildProfileFeedbackMessages();
+assert.equal(profileFeedback.profileSavedTitle, "Профіль збережено");
+assert.equal(profileFeedback.avatarTooLargeText, "Максимум 2 МБ.");
+
+const auditModal = buildAuditLogModalModel();
+assert.equal(auditModal.modalTitle, "Журнал змін");
+assert.equal(auditModal.actorCaption, "Хто");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

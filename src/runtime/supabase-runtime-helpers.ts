@@ -19,10 +19,15 @@ import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/
 import { buildAccountSectionModel } from "../domain/account-section-ui";
 import {
   buildAuditEntryViewModel,
+  buildAuditLogModalModel,
   getAuditActorLabel,
   getAuditEventLabel,
   getAuditSubjectLabel,
 } from "../domain/audit-ui";
+import {
+  buildAuthFlowMessages,
+  buildProfileFeedbackMessages,
+} from "../domain/user-feedback-ui";
 import {
   getProjectSyncState as buildProjectSyncState,
   getSyncBadge,
@@ -199,6 +204,8 @@ const runtimeHelpers = {
   buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
   buildRuntimeThemePanelModel: buildThemePanelModel,
   buildRuntimeAccountSectionModel: buildAccountSectionModel,
+  buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
+  buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
   buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
   buildRuntimeAccessBannerModel: buildAccessBannerModel,
@@ -206,6 +213,7 @@ const runtimeHelpers = {
   getRuntimeAuditSubjectLabel: getAuditSubjectLabel,
   getRuntimeAuditActorLabel: getAuditActorLabel,
   buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel,
+  buildRuntimeAuditLogModalModel: buildAuditLogModalModel,
 };
 
 Object.assign(globalThis, runtimeHelpers);

@@ -147,6 +147,7 @@
   function buildBaselinePanelModel(options) {
     const savedDate = options.baselineDate || "-";
     return {
+      sectionTitle: "Baseline",
       hasBaseline: options.hasBaseline,
       savedLabel: `Saved: ${savedDate}`,
       toggleLabel: options.showBaseline ? "Hide" : "Show",
@@ -227,6 +228,43 @@
       eventLabel: getAuditEventLabel(entry.eventType),
       actorLabel: getAuditActorLabel(entry),
       subjectLabel: getAuditSubjectLabel(entry, fallbackProjectName)
+    };
+  }
+  function buildAuditLogModalModel() {
+    return {
+      accessDeniedTitle: "У вас немає прав на перегляд журналу змін",
+      loadFailedTitle: "Не вдалося завантажити журнал",
+      missingMigrationHint: "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql.",
+      retryHint: "Спробуйте пізніше",
+      actorCaption: "Хто",
+      subjectCaption: "Об'єкт",
+      emptyHint: "Для поточного проєкту ще немає зафіксованих подій.",
+      modalTitle: "Журнал змін",
+      closeButtonLabel: "Закрити"
+    };
+  }
+
+  // src/domain/user-feedback-ui.ts
+  function buildAuthFlowMessages() {
+    return {
+      nameRequired: "Введіть ім'я",
+      loginSuccessTitle: "Вхід виконано",
+      localDataFoundTitle: "Знайдено локальні дані",
+      localProjectIntro: "Ви працювали без акаунту. Знайдено локальний проєкт:",
+      modifiedLabel: "Змінено",
+      localDataQuestion: "Що зробити з локальними даними?",
+      loadCloudConfirmLabel: "☁ Завантажити з хмари",
+      saveLocalToCloudLabel: "📱 Зберегти локальні в хмару",
+      projectsBootstrapWarningTitle: "Вхід виконано, але проєкти не завантажились",
+      projectsBootstrapWarningText: "Перевірте стан бази даних і спробуйте оновити сторінку",
+      syncEnabledTitle: "Вітаємо! ☁ Синхронізацію увімкнено"
+    };
+  }
+  function buildProfileFeedbackMessages() {
+    return {
+      profileSavedTitle: "Профіль збережено",
+      avatarTooLargeTitle: "Файл завеликий",
+      avatarTooLargeText: "Максимум 2 МБ."
     };
   }
 
@@ -651,13 +689,16 @@
     buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
     buildRuntimeThemePanelModel: buildThemePanelModel,
     buildRuntimeAccountSectionModel: buildAccountSectionModel,
+    buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
+    buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,
     getRuntimeAuditEventLabel: getAuditEventLabel,
     getRuntimeAuditSubjectLabel: getAuditSubjectLabel,
     getRuntimeAuditActorLabel: getAuditActorLabel,
-    buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel
+    buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel,
+    buildRuntimeAuditLogModalModel: buildAuditLogModalModel
   };
   Object.assign(globalThis, runtimeHelpers);
 })();

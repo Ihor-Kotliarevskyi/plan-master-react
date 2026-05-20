@@ -1,4 +1,5 @@
 export interface BaselinePanelModel {
+  sectionTitle: string;
   hasBaseline: boolean;
   savedLabel: string;
   toggleLabel: string;
@@ -15,6 +16,7 @@ export function buildBaselinePanelModel(options: {
 }): BaselinePanelModel {
   const savedDate = options.baselineDate || "-";
   return {
+    sectionTitle: "Baseline",
     hasBaseline: options.hasBaseline,
     savedLabel: `Saved: ${savedDate}`,
     toggleLabel: options.showBaseline ? "Hide" : "Show",

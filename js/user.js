@@ -227,6 +227,25 @@ function _renderUserModal() {
           themeLabel: "Theme",
         };
 
+  const baselinePanel =
+    typeof buildRuntimeBaselinePanelModel === "function"
+      ? buildRuntimeBaselinePanelModel({
+          hasBaseline: !!proj.baseline,
+          baselineDate: proj.baselineDate || null,
+          showBaseline: !!showBaseline,
+        })
+      : {
+          sectionTitle: "Baseline",
+          hasBaseline: !!proj.baseline,
+          savedLabel: `Saved: ${proj.baselineDate || "-"}`,
+          toggleLabel: showBaseline ? "Hide" : "Show",
+          saveActionLabel: proj.baseline ? "Overwrite" : "Save baseline",
+          deleteActionLabel: "Delete",
+          emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
+          showBaseline: !!showBaseline,
+        };
+
+
   document.getElementById("user-modal-body").innerHTML = `
     <div class="um-cols">
 
@@ -266,26 +285,9 @@ function _renderUserModal() {
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Baseline</div>
+          <div class="settings-section-title">${baselinePanel.sectionTitle}</div>
           <div class="settings-section-body">
             ${(() => {
-              const baselinePanel =
-                typeof buildRuntimeBaselinePanelModel === "function"
-                  ? buildRuntimeBaselinePanelModel({
-                      hasBaseline: !!proj.baseline,
-                      baselineDate: proj.baselineDate || null,
-                      showBaseline: !!showBaseline,
-                    })
-                  : {
-                      hasBaseline: !!proj.baseline,
-                      savedLabel: `Saved: ${proj.baselineDate || "-"}`,
-                      toggleLabel: showBaseline ? "Hide" : "Show",
-                      saveActionLabel: proj.baseline ? "Overwrite" : "Save baseline",
-                      deleteActionLabel: "Delete",
-                      emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
-                      showBaseline: !!showBaseline,
-                    };
-
               return baselinePanel.hasBaseline
                 ? `
               <div class="setting-row">
@@ -405,7 +407,7 @@ function _renderAccountSection(loggedIn, sbp, p) {
           <label class="sync-enabled-lbl">● ${_esc(syncBadge.label)}</label>
           <button class="btn btn-sm btn-danger"
             onclick="closeUserModal();apiLogout().then(()=>{ updateUserBtn(); })">
-            4{accountSection.logoutLabel}
+            ${accountSection.logoutLabel}
           </button>
         </div>
         ${auditBtn ? `<div class="account-actions">${auditBtn}</div>` : ""}
@@ -417,7 +419,7 @@ function _renderAccountSection(loggedIn, sbp, p) {
 
   return `
     <div class="settings-section">
-      <div class="settings-section-title">? ${accountSection.sectionTitle}</div>
+      <div class="settings-section-title">${accountSection.sectionTitle}</div>
       <div class="settings-section-body">
         <p class="auth-hint">
           ${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").hintText : "Sign in to save projects in the cloud and access them from any device.")}
@@ -497,9 +499,57 @@ function _formatAuditSubject(entry) {
   return proj?.name || "Поточний проєкт";
 }
 
+function _getAuditLogModalModel() {
+  if (typeof buildRuntimeAuditLogModalModel === "function") {
+    return buildRuntimeAuditLogModalModel();
+  }
+  return {
+    accessDeniedTitle: "? ??? ????? ???? ?? ???????? ??????? ????",
+    loadFailedTitle: "?? ??????? ??????????? ??????",
+    missingMigrationHint: "?????, ?? ?? ???????? ???????? 003_activity_log_foundation.sql.",
+    retryHint: "????????? ???????",
+    actorCaption: "???",
+    subjectCaption: "??'???",
+    emptyHint: "??? ????????? ??????? ?? ????? ???????????? ?????.",
+    modalTitle: "?????? ????",
+    closeButtonLabel: "???????",
+  };
+}
+
+function _getAuthFlowMessages() {
+  if (typeof buildRuntimeAuthFlowMessages === "function") {
+    return buildRuntimeAuthFlowMessages();
+  }
+  return {
+    nameRequired: "??????? ??'?",
+    loginSuccessTitle: "???? ????????",
+    localDataFoundTitle: "???????? ???????? ????",
+    localProjectIntro: "?? ????????? ??? ???????. ???????? ????????? ??????:",
+    modifiedLabel: "???????",
+    localDataQuestion: "?? ??????? ? ?????????? ???????",
+    loadCloudConfirmLabel: "? ??????????? ? ?????",
+    saveLocalToCloudLabel: "?? ???????? ???????? ? ?????",
+    projectsBootstrapWarningTitle: "???? ????????, ??? ??????? ?? ?????????????",
+    projectsBootstrapWarningText: "????????? ???? ???? ????? ? ????????? ??????? ????????",
+    syncEnabledTitle: "???????! ? ????????????? ?????????",
+  };
+}
+
+function _getProfileFeedbackMessages() {
+  if (typeof buildRuntimeProfileFeedbackMessages === "function") {
+    return buildRuntimeProfileFeedbackMessages();
+  }
+  return {
+    profileSavedTitle: "??????? ?????????",
+    avatarTooLargeTitle: "???? ?????????",
+    avatarTooLargeText: "???????? 2 ??.",
+  };
+}
+
 async function openAuditLogModal() {
+  const auditModal = _getAuditLogModalModel();
   if (typeof canViewAuditLog === "function" && !canViewAuditLog()) {
-    Swal.fire({ icon: "info", title: "У вас немає прав на перегляд журналу змін" });
+    Swal.fire({ icon: "info", title: auditModal.accessDeniedTitle });
     return;
   }
   if (typeof apiGetActivityLog !== "function") return;
@@ -509,9 +559,9 @@ async function openAuditLogModal() {
     events = await apiGetActivityLog(25);
   } catch (err) {
     const hint = String(err?.message || "").includes("activity_log")
-      ? "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql."
-      : (err.message || "Спробуйте пізніше");
-    Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: hint });
+      ? auditModal.missingMigrationHint
+      : (err.message || auditModal.retryHint);
+    Swal.fire({ icon: "error", title: auditModal.loadFailedTitle, text: hint });
     return;
   }
 
@@ -523,18 +573,18 @@ async function openAuditLogModal() {
             <span class="audit-time">${_esc(new Date(entry.created_at).toLocaleString("uk-UA"))}</span>
           </div>
           <div class="audit-row-meta">
-            <span><b>Хто:</b> ${_esc(_getAuditActorLabel(entry))}</span>
-            <span><b>Об'єкт:</b> ${_esc(_formatAuditSubject(entry))}</span>
+            <span><b>${_esc(auditModal.actorCaption)}:</b> ${_esc(_getAuditActorLabel(entry))}</span>
+            <span><b>${_esc(auditModal.subjectCaption)}:</b> ${_esc(_formatAuditSubject(entry))}</span>
           </div>
         </div>
       `).join("")
-    : `<div class="audit-empty">Для поточного проєкту ще немає зафіксованих подій.</div>`;
+    : `<div class="audit-empty">${_esc(auditModal.emptyHint)}</div>`;
 
   await Swal.fire({
-    title: "Журнал змін",
+    title: auditModal.modalTitle,
     html: `<div class="audit-list">${list}</div>`,
     width: 760,
-    confirmButtonText: "Закрити",
+    confirmButtonText: auditModal.closeButtonLabel,
   });
 }
 
@@ -543,6 +593,7 @@ async function _submitAuthInCabinet(tab) {
   const pass = document.getElementById("auth-pass")?.value;
   const name = document.getElementById("auth-name")?.value?.trim();
   const errEl = document.getElementById("auth-error");
+  const authMessages = _getAuthFlowMessages();
   const setStage = (msg) => {
     if (errEl) {
       errEl.textContent = `[debug] ${msg}`;
@@ -565,7 +616,7 @@ async function _submitAuthInCabinet(tab) {
       await apiLogin(email, pass);
       setStage("apiLogin success");
     } else {
-      if (!name) { showErr("Введіть ім'я"); return; }
+      if (!name) { showErr(authMessages.nameRequired); return; }
       setStage("calling apiRegister");
       await apiRegister(name, email, pass);
       setStage("apiRegister success");
@@ -604,7 +655,7 @@ async function _submitAuthInCabinet(tab) {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Вхід виконано",
+        title: authMessages.loginSuccessTitle,
         showConfirmButton: false,
         timer: 2200,
       });
@@ -623,17 +674,17 @@ async function _submitAuthInCabinet(tab) {
     if (localUnsynced) {
       const { isConfirmed } = await Swal.fire({
         icon: "question",
-        title: "Знайдено локальні дані",
+        title: authMessages.localDataFoundTitle,
         html: `
           <div class="swal-info-text">
-            <p>Ви працювали без акаунту. Знайдено локальний проєкт:</p>
-            <b>${proj.name || "Без назви"}</b>
-            <p class="swal-meta">Змінено: ${new Date(localProjectState.updatedAt).toLocaleString("uk-UA")}</p>
-            <p>Що зробити з локальними даними?</p>
+            <p>${authMessages.localProjectIntro}</p>
+            <b>${proj.name || "??? ?????"}</b>
+            <p class="swal-meta">${authMessages.modifiedLabel}: ${new Date(localProjectState.updatedAt).toLocaleString("uk-UA")}</p>
+            <p>${authMessages.localDataQuestion}</p>
           </div>`,
         showCancelButton: true,
-        confirmButtonText: "☁ Завантажити з хмари",
-        cancelButtonText: "📱 Зберегти локальні в хмару",
+        confirmButtonText: authMessages.loadCloudConfirmLabel,
+        cancelButtonText: authMessages.saveLocalToCloudLabel,
         reverseButtons: true,
       });
 
@@ -653,8 +704,8 @@ async function _submitAuthInCabinet(tab) {
         toast: true,
         position: "top-end",
         icon: "warning",
-        title: "Вхід виконано, але проєкти не завантажились",
-        text: loadErr?.message || "Перевірте стан бази даних і спробуйте оновити сторінку",
+        title: authMessages.projectsBootstrapWarningTitle,
+        text: loadErr?.message || authMessages.projectsBootstrapWarningText,
         showConfirmButton: false,
         timer: 4500,
       });
@@ -663,16 +714,16 @@ async function _submitAuthInCabinet(tab) {
 
     Swal.fire({
       toast: true, position: "top-end", icon: "success",
-      title: "Вітаємо! ☁ Синхронізацію увімкнено",
+      title: authMessages.syncEnabledTitle,
       showConfirmButton: false, timer: 3000,
     });
   } catch (err) {
-    showErr(err.message || "Помилка");
+    showErr(err.message || "???????");
   }
 }
 
-/** Зберігає зміни профілю користувача. */
 async function saveUserProfile() {
+  const profileFeedback = _getProfileFeedbackMessages();
   const nameVal = document.getElementById("um-name")?.value.trim();
   if (nameVal) userProfile.name = nameVal;
   userProfile.defaults.sm = +document.getElementById("um-sm").value;
@@ -690,16 +741,17 @@ async function saveUserProfile() {
 
   Swal.fire({
     toast: true, position: "top-end", icon: "success",
-    title: "Профіль збережено",
+    title: profileFeedback.profileSavedTitle,
     showConfirmButton: false, timer: 2000,
   });
 }
 
 function handleAvatarUpload(e) {
+  const profileFeedback = _getProfileFeedbackMessages();
   const file = e.target.files[0];
   if (!file) return;
   if (file.size > 2 * 1024 * 1024) {
-    Swal.fire({ icon: "warning", title: "Файл завеликий", text: "Максимум 2 МБ." });
+    Swal.fire({ icon: "warning", title: profileFeedback.avatarTooLargeTitle, text: profileFeedback.avatarTooLargeText });
     return;
   }
   const reader = new FileReader();

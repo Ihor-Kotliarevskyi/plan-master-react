@@ -6,6 +6,18 @@ export interface AuditEntryViewModel {
   subjectLabel: string;
 }
 
+export interface AuditLogModalModel {
+  accessDeniedTitle: string;
+  loadFailedTitle: string;
+  missingMigrationHint: string;
+  retryHint: string;
+  actorCaption: string;
+  subjectCaption: string;
+  emptyHint: string;
+  modalTitle: string;
+  closeButtonLabel: string;
+}
+
 const AUDIT_EVENT_LABELS: Record<AuditEventType, string> = {
   "task.created": "Created task",
   "task.updated": "Updated task",
@@ -60,5 +72,19 @@ export function buildAuditEntryViewModel(
     eventLabel: getAuditEventLabel(entry.eventType),
     actorLabel: getAuditActorLabel(entry),
     subjectLabel: getAuditSubjectLabel(entry, fallbackProjectName),
+  };
+}
+
+export function buildAuditLogModalModel(): AuditLogModalModel {
+  return {
+    accessDeniedTitle: "У вас немає прав на перегляд журналу змін",
+    loadFailedTitle: "Не вдалося завантажити журнал",
+    missingMigrationHint: "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql.",
+    retryHint: "Спробуйте пізніше",
+    actorCaption: "Хто",
+    subjectCaption: "Об'єкт",
+    emptyHint: "Для поточного проєкту ще немає зафіксованих подій.",
+    modalTitle: "Журнал змін",
+    closeButtonLabel: "Закрити",
   };
 }
