@@ -1,6 +1,6 @@
 # Phase 2: TypeScript Bootstrap
 
-Status: `started` on `2026-05-19`
+Status: `completed` on `2026-05-20`
 
 ## Purpose
 
@@ -19,6 +19,14 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/types.ts`
   - `src/domain/permissions.ts`
   - `src/domain/audit.ts`
+  - `src/domain/audit-ui.ts`
+  - `src/domain/account-ui.ts`
+  - `src/domain/auth-ui.ts`
+  - `src/domain/profile-ui.ts`
+  - `src/domain/baseline-ui.ts`
+  - `src/domain/settings-ui.ts`
+  - `src/domain/account-section-ui.ts`
+  - `src/domain/user-feedback-ui.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -36,7 +44,7 @@ and Supabase adapters happen against stable interfaces.
 - current Supabase runtime still executes from `js/supabase-api.js`
 - there is still no module-based runtime switch for the app bootstrap
 
-## What is partially integrated now
+## What is integrated now
 
 - `src/runtime/supabase-runtime-helpers.ts` is bundled into:
   - `js/generated/supabase-runtime-helpers.generated.js`
@@ -78,11 +86,21 @@ and Supabase adapters happen against stable interfaces.
   - project sync-state calculation
   - sync-badge resolution
   - preferred sync-status fallback logic
+  - audit event and subject presentation helpers
+  - account sync panel model building
+  - auth form/tab model building
+  - user identity and theme-toggle model building
+  - baseline panel model building
+  - defaults/theme settings panel model building
+  - cloud account section labels and sync detail captions
+  - baseline section title model building
+  - audit modal labels and empty/error copy
+  - auth/profile toast and dialog copy
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape
   - buffered role normalization
-- `js/supabase-api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
+- `js/supabase-api.js`, `js/api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
   - role labels
   - shared-project presentation text
   - access banner display model
@@ -96,10 +114,9 @@ and Supabase adapters happen against stable interfaces.
 
 ## Next recommended steps
 
-1. Keep extending fixture coverage as more pure helpers are extracted.
-2. Move the remaining duplicated fallback/lookup helpers into the runtime helper layer.
-3. Keep the legacy UI calling stable wrappers until enough code is migrated to justify a runtime switch.
-4. Decide when enough UI/domain helpers are extracted to justify a broader module bootstrap.
+1. Start the next migration stage from a stable helper bridge instead of adding new ad-hoc global logic.
+2. Decide when enough runtime slices are isolated to justify a broader module bootstrap.
+3. Keep extending fixture coverage as new pure helpers are extracted beyond the bootstrap scope.
 
 ## Notes
 

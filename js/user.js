@@ -111,9 +111,16 @@ function applyTheme(theme) {
   userProfile.theme = theme;
   const btn = document.getElementById("theme-toggle");
   if (btn) {
+    const themeToggle =
+      typeof buildRuntimeThemeToggleModel === "function"
+        ? buildRuntimeThemeToggleModel(theme)
+        : {
+            icon: theme === "dark" ? "sun" : "moon",
+            label: theme === "dark" ? "Light" : "Dark",
+          };
     btn.querySelector(".theme-icon").innerHTML =
-      `<i data-lucide="${theme === "dark" ? "sun" : "moon"}"></i>`;
-    btn.querySelector(".theme-label").textContent = theme === "dark" ? "Світла" : "Темна";
+      `<i data-lucide="${themeToggle.icon}"></i>`;
+    btn.querySelector(".theme-label").textContent = themeToggle.label;
     lucide.createIcons({ nodes: [btn] });
   }
 }
@@ -133,20 +140,30 @@ function updateUserBtn() {
 
   const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
   const profile = loggedIn && typeof _sbProfile !== "undefined" ? _sbProfile : null;
-  const name = profile?.name || userProfile.name || "Профіль";
-  const avatar = profile?.avatar || userProfile.avatar;
-  const initial = (name || "?")[0].toUpperCase();
+  const identity =
+    typeof buildRuntimeUserIdentityModel === "function"
+      ? buildRuntimeUserIdentityModel({
+          name: profile?.name || userProfile.name,
+          email: profile?.email || userProfile.email,
+          avatar: profile?.avatar || userProfile.avatar,
+          theme: userProfile.theme,
+        }, "Profile")
+      : {
+          displayName: profile?.name || userProfile.name || "Profile",
+          initial: ((profile?.name || userProfile.name || "?")[0] || "?").toUpperCase(),
+          avatarUrl: profile?.avatar || userProfile.avatar || null,
+        };
 
-  const avatarHTML = avatar
-    ? `<img src="${avatar}" alt="avatar" class="user-avatar-img" />`
-    : initial;
+  const avatarHTML = identity.avatarUrl
+    ? `<img src="${identity.avatarUrl}" alt="avatar" class="user-avatar-img" />`
+    : identity.initial;
 
   const status = getCurrentSyncBadge().status;
   btn.innerHTML = `
     <div class="user-avatar-wrap">
       <div class="user-avatar">${avatarHTML}</div>
     </div>
-    <span>${name}</span>`;
+    <span>${identity.displayName}</span>`;
   btn.className = `user-btn status-${status}${status === "syncing" ? " syncing" : ""}`;
 }
 
@@ -174,10 +191,60 @@ function _renderUserModal() {
     defaults: userProfile.defaults,
   };
 
-  const initial = (p.name || "?")[0].toUpperCase();
-  const avatarLarge = p.avatar
-    ? `<img src="${p.avatar}" alt="avatar" class="user-avatar-large-img" />`
-    : `<span id="um-avatar-initial">${initial}</span>`;
+  const identity =
+    typeof buildRuntimeUserIdentityModel === "function"
+      ? buildRuntimeUserIdentityModel(p, "Profile")
+      : {
+          displayName: p.name || "Profile",
+          emailText: p.email || "",
+          initial: ((p.name || "?")[0] || "?").toUpperCase(),
+          avatarUrl: p.avatar || null,
+          themeToggle: {
+            icon: p.theme === "dark" ? "sun" : "moon",
+            label: p.theme === "dark" ? "Light" : "Dark",
+          },
+        };
+
+  const avatarLarge = identity.avatarUrl
+    ? `<img src="${identity.avatarUrl}" alt="avatar" class="user-avatar-large-img" />`
+    : `<span id="um-avatar-initial">${identity.initial}</span>`;
+
+  const defaultsPanel =
+    typeof buildRuntimeProjectDefaultsPanelModel === "function"
+      ? buildRuntimeProjectDefaultsPanelModel()
+      : {
+          sectionTitle: "Project defaults",
+          startMonthLabel: "Start month",
+          startYearLabel: "Start year",
+          durationLabel: "Duration (months)",
+        };
+
+  const themePanel =
+    typeof buildRuntimeThemePanelModel === "function"
+      ? buildRuntimeThemePanelModel()
+      : {
+          sectionTitle: "Appearance",
+          themeLabel: "Theme",
+        };
+
+  const baselinePanel =
+    typeof buildRuntimeBaselinePanelModel === "function"
+      ? buildRuntimeBaselinePanelModel({
+          hasBaseline: !!proj.baseline,
+          baselineDate: proj.baselineDate || null,
+          showBaseline: !!showBaseline,
+        })
+      : {
+          sectionTitle: "Baseline",
+          hasBaseline: !!proj.baseline,
+          savedLabel: `Saved: ${proj.baselineDate || "-"}`,
+          toggleLabel: showBaseline ? "Hide" : "Show",
+          saveActionLabel: proj.baseline ? "Overwrite" : "Save baseline",
+          deleteActionLabel: "Delete",
+          emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
+          showBaseline: !!showBaseline,
+        };
+
 
   document.getElementById("user-modal-body").innerHTML = `
     <div class="um-cols">
@@ -185,61 +252,61 @@ function _renderUserModal() {
       <!-- Ліворуч: налаштування -->
       <div class="um-col">
         <div class="settings-section">
-          <div class="settings-section-title">Нові проєкти за замовчуванням</div>
+          <div class="settings-section-title">${defaultsPanel.sectionTitle}</div>
           <div class="settings-section-body">
             <div class="setting-row">
-              <label>Початковий місяць</label>
+              <label>${defaultsPanel.startMonthLabel}</label>
               <select id="um-sm">
                 ${MN.map((m, i) => `<option value="${i}"${p.defaults.sm === i ? " selected" : ""}>${m}</option>`).join("")}
               </select>
             </div>
             <div class="setting-row">
-              <label>Початковий рік</label>
+              <label>${defaultsPanel.startYearLabel}</label>
               <input type="number" id="um-sy" value="${p.defaults.sy}" min="2020" max="2040" />
             </div>
             <div class="setting-row">
-              <label>Тривалість (міс.)</label>
+              <label>${defaultsPanel.durationLabel}</label>
               <input type="number" id="um-nm" value="${p.defaults.nm}" min="3" max="120" />
             </div>
           </div>
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Зовнішній вигляд</div>
+          <div class="settings-section-title">${themePanel.sectionTitle}</div>
           <div class="settings-section-body">
             <div class="setting-row">
-              <label>Кольорова тема</label>
+              <label>${themePanel.themeLabel}</label>
               <button class="theme-toggle" style="border:none" onclick="toggleTheme();_renderUserModal()">
-                <span class="theme-icon"><i data-lucide="${p.theme === "dark" ? "sun" : "moon"}"></i></span>
-                <span class="theme-label">${p.theme === "dark" ? "Світла" : "Темна"}</span>
+                <span class="theme-icon"><i data-lucide="${identity.themeToggle.icon}"></i></span>
+                <span class="theme-label">${identity.themeToggle.label}</span>
               </button>
             </div>
           </div>
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Базовий план проєкту</div>
+          <div class="settings-section-title">${baselinePanel.sectionTitle}</div>
           <div class="settings-section-body">
-            ${
-              proj.baseline
+            ${(() => {
+              return baselinePanel.hasBaseline
                 ? `
               <div class="setting-row">
-                <label class="baseline-saved-lbl">✅ Збережено: ${proj.baselineDate || "—"}</label>
-                <button class="btn btn-sm btn-tog${showBaseline ? " on" : ""}"
+                <label class="baseline-saved-lbl">${baselinePanel.savedLabel}</label>
+                <button class="btn btn-sm btn-tog${baselinePanel.showBaseline ? " on" : ""}"
                         onclick="toggleBaseline();_renderUserModal()">
-                  ${showBaseline ? '<i data-lucide="eye-off"></i> Приховати' : '<i data-lucide="eye"></i> Показати'}
+                  ${baselinePanel.showBaseline ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>'} ${baselinePanel.toggleLabel}
                 </button>
               </div>
               <div class="baseline-actions">
-                <button class="btn btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="rotate-ccw"></i> Перезаписати</button>
-                <button class="btn btn-sm btn-danger" onclick="clearBaseline();_renderUserModal()"><i data-lucide="trash-2"></i> Видалити</button>
+                <button class="btn btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="rotate-ccw"></i> ${baselinePanel.saveActionLabel}</button>
+                <button class="btn btn-sm btn-danger" onclick="clearBaseline();_renderUserModal()"><i data-lucide="trash-2"></i> ${baselinePanel.deleteActionLabel}</button>
               </div>`
                 : `
               <div class="baseline-empty-hint">
-                Базовий план не збережено. Зафіксуйте поточні позиції задач для порівняння план/факт.
+                ${baselinePanel.emptyHint}
               </div>
-              <button class="btn btn-acc btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="save"></i> Зберегти базовий план</button>`
-            }
+              <button class="btn btn-acc btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="save"></i> ${baselinePanel.saveActionLabel}</button>`;
+            })()}
           </div>
         </div>
       </div>
@@ -253,7 +320,7 @@ function _renderUserModal() {
             <input
               id="um-name"
               class="user-inline-input"
-              value="${_esc(p.name)}"
+              value="${_esc(identity.displayName)}"
               placeholder="Введіть ім'я"
               oninput="_syncUserNamePreview(this.value)"
             />
@@ -282,40 +349,65 @@ function _renderAccountSection(loggedIn, sbp, p) {
   const currentRole = typeof getStoredProjectRole === "function"
     ? getStoredProjectRole(currentId, "owner")
     : "owner";
-  const roleLabel =
-    typeof getRuntimeProjectRoleLabel === "function"
-      ? getRuntimeProjectRoleLabel(currentRole)
-      : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole);
-  const syncMeta = projectSync.updatedAt
-    ? `<div class="account-sync-meta">Остання локальна зміна: ${new Date(projectSync.updatedAt).toLocaleString("uk-UA")}</div>`
+  const syncPanel =
+    typeof buildRuntimeAccountSyncPanelModel === "function"
+      ? buildRuntimeAccountSyncPanelModel(projectSync, currentRole, "-")
+      : {
+          roleLabel:
+            typeof getRuntimeProjectRoleLabel === "function"
+              ? getRuntimeProjectRoleLabel(currentRole)
+              : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole),
+          projectName: projectSync.snap?.proj?.name || "-",
+          hasServerCopyText: projectSync.hasServerCopy ? "yes" : "no",
+          localVersionText: String(projectSync.localVersion),
+          serverVersionText: String(projectSync.serverVersion),
+          updatedAtText: projectSync.updatedAt || "",
+        };
+  const accountSection =
+    typeof buildRuntimeAccountSectionModel === "function"
+      ? buildRuntimeAccountSectionModel()
+      : {
+          sectionTitle: "Cloud account",
+          emailLabel: "Email",
+          logoutLabel: "Log out",
+          auditLogLabel: "Activity log",
+          projectLabel: "Project",
+          roleLabel: "Role",
+          cloudCopyLabel: "Cloud copy",
+          localVersionLabel: "Local version",
+          serverVersionLabel: "Server version",
+          lastLocalChangeLabel: "Last local change",
+        };
+  const syncMeta = syncPanel.updatedAtText
+    ? `<div class="account-sync-meta">${accountSection.lastLocalChangeLabel}: ${new Date(syncPanel.updatedAtText).toLocaleString("uk-UA")}</div>`
     : "";
   const syncDetails = projectSync.snap
     ? `<div class="account-sync-details">
-        <div><b>Проєкт:</b> ${_esc(projectSync.snap.proj?.name || "—")}</div>
-        <div><b>Роль:</b> ${_esc(roleLabel)}</div>
-        <div><b>Хмарна копія:</b> ${projectSync.hasServerCopy ? "так" : "ні"}</div>
-        <div><b>Локальна версія:</b> ${projectSync.localVersion}</div>
-        <div><b>Серверна версія:</b> ${projectSync.serverVersion}</div>
+        <div><b>${accountSection.projectLabel}:</b> ${_esc(syncPanel.projectName)}</div>
+        <div><b>${accountSection.roleLabel}:</b> ${_esc(syncPanel.roleLabel)}</div>
+        <div><b>${accountSection.cloudCopyLabel}:</b> ${syncPanel.hasServerCopyText}</div>
+        <div><b>${accountSection.localVersionLabel}:</b> ${syncPanel.localVersionText}</div>
+        <div><b>${accountSection.serverVersionLabel}:</b> ${syncPanel.serverVersionText}</div>
       </div>`
     : "";
   const auditBtn =
     typeof canViewAuditLog === "function" && canViewAuditLog()
-      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> Журнал змін</button>`
+      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> ${accountSection.auditLogLabel}</button>`
       : "";
   if (loggedIn && sbp) {
     return `
     <div class="settings-section">
-      <div class="settings-section-title">☁ Хмарний акаунт</div>
+      <div class="settings-section-title">${accountSection.sectionTitle}</div>
       <div class="settings-section-body">
         <div class="setting-row">
-          <label>Email</label>
+          <label>${accountSection.emailLabel}</label>
           <span class="account-email">${_esc(p.email)}</span>
         </div>
         <div class="setting-row" style="margin-top:8px">
           <label class="sync-enabled-lbl">● ${_esc(syncBadge.label)}</label>
           <button class="btn btn-sm btn-danger"
             onclick="closeUserModal();apiLogout().then(()=>{ updateUserBtn(); })">
-            Вийти
+            ${accountSection.logoutLabel}
           </button>
         </div>
         ${auditBtn ? `<div class="account-actions">${auditBtn}</div>` : ""}
@@ -327,14 +419,14 @@ function _renderAccountSection(loggedIn, sbp, p) {
 
   return `
     <div class="settings-section">
-      <div class="settings-section-title">☁ Хмарний акаунт</div>
+      <div class="settings-section-title">${accountSection.sectionTitle}</div>
       <div class="settings-section-body">
         <p class="auth-hint">
-          Увійдіть щоб зберігати проєкти на сервері та мати доступ з будь-якого пристрою.
+          ${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").hintText : "Sign in to save projects in the cloud and access them from any device.")}
         </p>
         <div class="auth-tabs">
-          <button id="atab-login" class="btn btn-sm btn-acc" onclick="_switchAuthTab('login')" style="flex:1">Увійти</button>
-          <button id="atab-register" class="btn btn-sm" onclick="_switchAuthTab('register')" style="flex:1">Реєстрація</button>
+          <button id="atab-login" class="btn btn-sm btn-acc" onclick="_switchAuthTab('login')" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").loginTabLabel : "Sign in")}</button>
+          <button id="atab-register" class="btn btn-sm" onclick="_switchAuthTab('register')" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").registerTabLabel : "Register")}</button>
         </div>
         <div id="auth-tab-body">${_renderAuthForm("login")}</div>
       </div>
@@ -342,24 +434,36 @@ function _renderAccountSection(loggedIn, sbp, p) {
 }
 
 function _renderAuthForm(tab) {
-  const isLogin = tab === "login";
+  const model =
+    typeof buildRuntimeAuthFormModel === "function"
+      ? buildRuntimeAuthFormModel(tab)
+      : {
+          isLogin: tab === "login",
+          nameLabel: "Name",
+          namePlaceholder: "Your name",
+          emailLabel: "Email",
+          emailPlaceholder: "example@mail.com",
+          passwordLabel: "Password",
+          passwordPlaceholder: "Minimum 6 characters",
+          submitLabel: tab === "login" ? "Sign in" : "Register",
+        };
   return `
     <div class="auth-form">
-      ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
-      <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
-      <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
+      ${!model.isLogin ? `<div class="fg"><label>${_esc(model.nameLabel)}</label><input id="auth-name" placeholder="${_esc(model.namePlaceholder)}"/></div>` : ""}
+      <div class="fg"><label>${_esc(model.emailLabel)}</label><input id="auth-email" type="email" placeholder="${_esc(model.emailPlaceholder)}"/></div>
+      <div class="fg"><label>${_esc(model.passwordLabel)}</label><input id="auth-pass" type="password" placeholder="${_esc(model.passwordPlaceholder)}"/></div>
       <div id="auth-error" class="auth-error" style="display:none"></div>
       <button class="btn btn-acc auth-submit-btn" type="button" onclick="_submitAuthInCabinet('${tab}')">
-        ${isLogin ? "Увійти" : "Зареєструватись"}
+        ${_esc(model.submitLabel)}
       </button>
     </div>`;
 }
 
 function _switchAuthTab(tab) {
   document.getElementById("atab-login").className =
-    "btn btn-sm" + (tab === "login" ? " btn-acc" : "");
+    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("login", tab) : ("btn btn-sm" + (tab === "login" ? " btn-acc" : "")));
   document.getElementById("atab-register").className =
-    "btn btn-sm" + (tab === "register" ? " btn-acc" : "");
+    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("register", tab) : ("btn btn-sm" + (tab === "register" ? " btn-acc" : "")));
   document.getElementById("auth-tab-body").innerHTML = _renderAuthForm(tab);
 }
 
@@ -395,9 +499,57 @@ function _formatAuditSubject(entry) {
   return proj?.name || "Поточний проєкт";
 }
 
+function _getAuditLogModalModel() {
+  if (typeof buildRuntimeAuditLogModalModel === "function") {
+    return buildRuntimeAuditLogModalModel();
+  }
+  return {
+    accessDeniedTitle: "? ??? ????? ???? ?? ???????? ??????? ????",
+    loadFailedTitle: "?? ??????? ??????????? ??????",
+    missingMigrationHint: "?????, ?? ?? ???????? ???????? 003_activity_log_foundation.sql.",
+    retryHint: "????????? ???????",
+    actorCaption: "???",
+    subjectCaption: "??'???",
+    emptyHint: "??? ????????? ??????? ?? ????? ???????????? ?????.",
+    modalTitle: "?????? ????",
+    closeButtonLabel: "???????",
+  };
+}
+
+function _getAuthFlowMessages() {
+  if (typeof buildRuntimeAuthFlowMessages === "function") {
+    return buildRuntimeAuthFlowMessages();
+  }
+  return {
+    nameRequired: "??????? ??'?",
+    loginSuccessTitle: "???? ????????",
+    localDataFoundTitle: "???????? ???????? ????",
+    localProjectIntro: "?? ????????? ??? ???????. ???????? ????????? ??????:",
+    modifiedLabel: "???????",
+    localDataQuestion: "?? ??????? ? ?????????? ???????",
+    loadCloudConfirmLabel: "? ??????????? ? ?????",
+    saveLocalToCloudLabel: "?? ???????? ???????? ? ?????",
+    projectsBootstrapWarningTitle: "???? ????????, ??? ??????? ?? ?????????????",
+    projectsBootstrapWarningText: "????????? ???? ???? ????? ? ????????? ??????? ????????",
+    syncEnabledTitle: "???????! ? ????????????? ?????????",
+  };
+}
+
+function _getProfileFeedbackMessages() {
+  if (typeof buildRuntimeProfileFeedbackMessages === "function") {
+    return buildRuntimeProfileFeedbackMessages();
+  }
+  return {
+    profileSavedTitle: "??????? ?????????",
+    avatarTooLargeTitle: "???? ?????????",
+    avatarTooLargeText: "???????? 2 ??.",
+  };
+}
+
 async function openAuditLogModal() {
+  const auditModal = _getAuditLogModalModel();
   if (typeof canViewAuditLog === "function" && !canViewAuditLog()) {
-    Swal.fire({ icon: "info", title: "У вас немає прав на перегляд журналу змін" });
+    Swal.fire({ icon: "info", title: auditModal.accessDeniedTitle });
     return;
   }
   if (typeof apiGetActivityLog !== "function") return;
@@ -407,9 +559,9 @@ async function openAuditLogModal() {
     events = await apiGetActivityLog(25);
   } catch (err) {
     const hint = String(err?.message || "").includes("activity_log")
-      ? "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql."
-      : (err.message || "Спробуйте пізніше");
-    Swal.fire({ icon: "error", title: "Не вдалося завантажити журнал", text: hint });
+      ? auditModal.missingMigrationHint
+      : (err.message || auditModal.retryHint);
+    Swal.fire({ icon: "error", title: auditModal.loadFailedTitle, text: hint });
     return;
   }
 
@@ -421,18 +573,18 @@ async function openAuditLogModal() {
             <span class="audit-time">${_esc(new Date(entry.created_at).toLocaleString("uk-UA"))}</span>
           </div>
           <div class="audit-row-meta">
-            <span><b>Хто:</b> ${_esc(entry.actor_name || entry.actor_email || "—")}</span>
-            <span><b>Об'єкт:</b> ${_esc(_formatAuditSubject(entry))}</span>
+            <span><b>${_esc(auditModal.actorCaption)}:</b> ${_esc(_getAuditActorLabel(entry))}</span>
+            <span><b>${_esc(auditModal.subjectCaption)}:</b> ${_esc(_formatAuditSubject(entry))}</span>
           </div>
         </div>
       `).join("")
-    : `<div class="audit-empty">Для поточного проєкту ще немає зафіксованих подій.</div>`;
+    : `<div class="audit-empty">${_esc(auditModal.emptyHint)}</div>`;
 
   await Swal.fire({
-    title: "Журнал змін",
+    title: auditModal.modalTitle,
     html: `<div class="audit-list">${list}</div>`,
     width: 760,
-    confirmButtonText: "Закрити",
+    confirmButtonText: auditModal.closeButtonLabel,
   });
 }
 
@@ -441,6 +593,7 @@ async function _submitAuthInCabinet(tab) {
   const pass = document.getElementById("auth-pass")?.value;
   const name = document.getElementById("auth-name")?.value?.trim();
   const errEl = document.getElementById("auth-error");
+  const authMessages = _getAuthFlowMessages();
   const setStage = (msg) => {
     if (errEl) {
       errEl.textContent = `[debug] ${msg}`;
@@ -463,7 +616,7 @@ async function _submitAuthInCabinet(tab) {
       await apiLogin(email, pass);
       setStage("apiLogin success");
     } else {
-      if (!name) { showErr("Введіть ім'я"); return; }
+      if (!name) { showErr(authMessages.nameRequired); return; }
       setStage("calling apiRegister");
       await apiRegister(name, email, pass);
       setStage("apiRegister success");
@@ -502,7 +655,7 @@ async function _submitAuthInCabinet(tab) {
         toast: true,
         position: "top-end",
         icon: "success",
-        title: "Вхід виконано",
+        title: authMessages.loginSuccessTitle,
         showConfirmButton: false,
         timer: 2200,
       });
@@ -521,17 +674,17 @@ async function _submitAuthInCabinet(tab) {
     if (localUnsynced) {
       const { isConfirmed } = await Swal.fire({
         icon: "question",
-        title: "Знайдено локальні дані",
+        title: authMessages.localDataFoundTitle,
         html: `
           <div class="swal-info-text">
-            <p>Ви працювали без акаунту. Знайдено локальний проєкт:</p>
-            <b>${proj.name || "Без назви"}</b>
-            <p class="swal-meta">Змінено: ${new Date(localProjectState.updatedAt).toLocaleString("uk-UA")}</p>
-            <p>Що зробити з локальними даними?</p>
+            <p>${authMessages.localProjectIntro}</p>
+            <b>${proj.name || "??? ?????"}</b>
+            <p class="swal-meta">${authMessages.modifiedLabel}: ${new Date(localProjectState.updatedAt).toLocaleString("uk-UA")}</p>
+            <p>${authMessages.localDataQuestion}</p>
           </div>`,
         showCancelButton: true,
-        confirmButtonText: "☁ Завантажити з хмари",
-        cancelButtonText: "📱 Зберегти локальні в хмару",
+        confirmButtonText: authMessages.loadCloudConfirmLabel,
+        cancelButtonText: authMessages.saveLocalToCloudLabel,
         reverseButtons: true,
       });
 
@@ -551,8 +704,8 @@ async function _submitAuthInCabinet(tab) {
         toast: true,
         position: "top-end",
         icon: "warning",
-        title: "Вхід виконано, але проєкти не завантажились",
-        text: loadErr?.message || "Перевірте стан бази даних і спробуйте оновити сторінку",
+        title: authMessages.projectsBootstrapWarningTitle,
+        text: loadErr?.message || authMessages.projectsBootstrapWarningText,
         showConfirmButton: false,
         timer: 4500,
       });
@@ -561,16 +714,16 @@ async function _submitAuthInCabinet(tab) {
 
     Swal.fire({
       toast: true, position: "top-end", icon: "success",
-      title: "Вітаємо! ☁ Синхронізацію увімкнено",
+      title: authMessages.syncEnabledTitle,
       showConfirmButton: false, timer: 3000,
     });
   } catch (err) {
-    showErr(err.message || "Помилка");
+    showErr(err.message || "???????");
   }
 }
 
-/** Зберігає зміни профілю користувача. */
 async function saveUserProfile() {
+  const profileFeedback = _getProfileFeedbackMessages();
   const nameVal = document.getElementById("um-name")?.value.trim();
   if (nameVal) userProfile.name = nameVal;
   userProfile.defaults.sm = +document.getElementById("um-sm").value;
@@ -588,16 +741,17 @@ async function saveUserProfile() {
 
   Swal.fire({
     toast: true, position: "top-end", icon: "success",
-    title: "Профіль збережено",
+    title: profileFeedback.profileSavedTitle,
     showConfirmButton: false, timer: 2000,
   });
 }
 
 function handleAvatarUpload(e) {
+  const profileFeedback = _getProfileFeedbackMessages();
   const file = e.target.files[0];
   if (!file) return;
   if (file.size > 2 * 1024 * 1024) {
-    Swal.fire({ icon: "warning", title: "Файл завеликий", text: "Максимум 2 МБ." });
+    Swal.fire({ icon: "warning", title: profileFeedback.avatarTooLargeTitle, text: profileFeedback.avatarTooLargeText });
     return;
   }
   const reader = new FileReader();
@@ -625,5 +779,33 @@ function clearAvatar() {
 
 /** Перенаправляє виклики зі старих посилань на openUserModal. */
 function openAuthModal() { openUserModal(); }
+
+_formatAuditEventLabel = function(eventType) {
+  if (typeof getRuntimeAuditEventLabel === "function") {
+    return getRuntimeAuditEventLabel(eventType);
+  }
+  return eventType || "Event";
+};
+
+_formatAuditSubject = function(entry) {
+  if (typeof getRuntimeAuditSubjectLabel === "function") {
+    return getRuntimeAuditSubjectLabel({
+      entityType: entry?.entity_type,
+      entityId: entry?.entity_id,
+      payload: entry?.payload || {},
+    }, proj?.name || "Current project");
+  }
+  return proj?.name || "Current project";
+};
+
+function _getAuditActorLabel(entry) {
+  if (typeof getRuntimeAuditActorLabel === "function") {
+    return getRuntimeAuditActorLabel({
+      actorName: entry?.actor_name,
+      actorEmail: entry?.actor_email,
+    });
+  }
+  return entry?.actor_name || entry?.actor_email || "-";
+}
 
 loadUser();

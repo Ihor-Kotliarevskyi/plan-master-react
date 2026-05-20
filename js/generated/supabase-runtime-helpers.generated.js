@@ -87,6 +87,187 @@
     };
   }
 
+  // src/domain/account-ui.ts
+  function buildAccountSyncPanelModel(projectSyncState, currentRole, fallbackProjectName = "-") {
+    const projectName = projectSyncState.snap?.proj?.name || fallbackProjectName || "-";
+    return {
+      roleLabel: getProjectRoleLabel(currentRole),
+      projectName,
+      hasServerCopyText: projectSyncState.hasServerCopy ? "yes" : "no",
+      localVersionText: String(projectSyncState.localVersion ?? 0),
+      serverVersionText: String(projectSyncState.serverVersion ?? 0),
+      updatedAtText: projectSyncState.updatedAt || ""
+    };
+  }
+
+  // src/domain/auth-ui.ts
+  function buildAuthFormModel(tab) {
+    const isLogin = tab === "login";
+    return {
+      tab,
+      isLogin,
+      hintText: "Sign in to save projects in the cloud and access them from any device.",
+      loginTabLabel: "Sign in",
+      registerTabLabel: "Register",
+      nameLabel: "Name",
+      namePlaceholder: "Your name",
+      emailLabel: "Email",
+      emailPlaceholder: "example@mail.com",
+      passwordLabel: "Password",
+      passwordPlaceholder: "Minimum 6 characters",
+      submitLabel: isLogin ? "Sign in" : "Register"
+    };
+  }
+  function getAuthTabButtonClass(tab, activeTab) {
+    return "btn btn-sm" + (tab === activeTab ? " btn-acc" : "");
+  }
+
+  // src/domain/profile-ui.ts
+  function buildThemeToggleModel(theme) {
+    const normalizedTheme = theme === "dark" ? "dark" : "light";
+    return {
+      theme: normalizedTheme,
+      icon: normalizedTheme === "dark" ? "sun" : "moon",
+      label: normalizedTheme === "dark" ? "Light" : "Dark"
+    };
+  }
+  function buildUserIdentityModel(input, fallbackName = "Profile") {
+    const displayName = (input.name || "").trim() || fallbackName;
+    const emailText = (input.email || "").trim();
+    return {
+      displayName,
+      emailText,
+      initial: (displayName || "?")[0].toUpperCase(),
+      avatarUrl: input.avatar || null,
+      themeToggle: buildThemeToggleModel(input.theme)
+    };
+  }
+
+  // src/domain/baseline-ui.ts
+  function buildBaselinePanelModel(options) {
+    const savedDate = options.baselineDate || "-";
+    return {
+      sectionTitle: "Baseline",
+      hasBaseline: options.hasBaseline,
+      savedLabel: `Saved: ${savedDate}`,
+      toggleLabel: options.showBaseline ? "Hide" : "Show",
+      saveActionLabel: options.hasBaseline ? "Overwrite" : "Save baseline",
+      deleteActionLabel: "Delete",
+      emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
+      showBaseline: options.showBaseline
+    };
+  }
+
+  // src/domain/settings-ui.ts
+  function buildProjectDefaultsPanelModel() {
+    return {
+      sectionTitle: "Project defaults",
+      startMonthLabel: "Start month",
+      startYearLabel: "Start year",
+      durationLabel: "Duration (months)"
+    };
+  }
+  function buildThemePanelModel() {
+    return {
+      sectionTitle: "Appearance",
+      themeLabel: "Theme"
+    };
+  }
+
+  // src/domain/account-section-ui.ts
+  function buildAccountSectionModel() {
+    return {
+      sectionTitle: "Cloud account",
+      emailLabel: "Email",
+      logoutLabel: "Log out",
+      auditLogLabel: "Activity log",
+      projectLabel: "Project",
+      roleLabel: "Role",
+      cloudCopyLabel: "Cloud copy",
+      localVersionLabel: "Local version",
+      serverVersionLabel: "Server version",
+      lastLocalChangeLabel: "Last local change"
+    };
+  }
+
+  // src/domain/audit-ui.ts
+  var AUDIT_EVENT_LABELS = {
+    "task.created": "Created task",
+    "task.updated": "Updated task",
+    "task.deleted": "Deleted task",
+    "project.settings_updated": "Updated project settings",
+    "project.baseline_saved": "Saved baseline",
+    "project.baseline_cleared": "Cleared baseline",
+    "share.granted": "Granted access",
+    "share.role_updated": "Updated access role",
+    "share.revoked": "Revoked access"
+  };
+  function getAuditEventLabel(eventType) {
+    if (!eventType) return "Event";
+    return AUDIT_EVENT_LABELS[eventType] || eventType;
+  }
+  function getAuditSubjectLabel(entry, fallbackProjectName = "Current project") {
+    if (!entry) return "-";
+    if (entry.entityType === "task") {
+      const taskName = typeof entry.payload?.taskName === "string" ? entry.payload.taskName : "";
+      const taskN = typeof entry.payload?.taskN === "number" || typeof entry.payload?.taskN === "string" ? entry.payload.taskN : "?";
+      return taskName || `Task #${taskN}`;
+    }
+    if (entry.entityType === "share") {
+      const email = typeof entry.payload?.email === "string" ? entry.payload.email : "";
+      return email || entry.entityId || "Shared access";
+    }
+    return fallbackProjectName || "Current project";
+  }
+  function getAuditActorLabel(entry) {
+    if (!entry) return "-";
+    return entry.actorName || entry.actorEmail || "-";
+  }
+  function buildAuditEntryViewModel(entry, fallbackProjectName) {
+    return {
+      eventLabel: getAuditEventLabel(entry.eventType),
+      actorLabel: getAuditActorLabel(entry),
+      subjectLabel: getAuditSubjectLabel(entry, fallbackProjectName)
+    };
+  }
+  function buildAuditLogModalModel() {
+    return {
+      accessDeniedTitle: "У вас немає прав на перегляд журналу змін",
+      loadFailedTitle: "Не вдалося завантажити журнал",
+      missingMigrationHint: "Схоже, ще не виконано міграцію 003_activity_log_foundation.sql.",
+      retryHint: "Спробуйте пізніше",
+      actorCaption: "Хто",
+      subjectCaption: "Об'єкт",
+      emptyHint: "Для поточного проєкту ще немає зафіксованих подій.",
+      modalTitle: "Журнал змін",
+      closeButtonLabel: "Закрити"
+    };
+  }
+
+  // src/domain/user-feedback-ui.ts
+  function buildAuthFlowMessages() {
+    return {
+      nameRequired: "Введіть ім'я",
+      loginSuccessTitle: "Вхід виконано",
+      localDataFoundTitle: "Знайдено локальні дані",
+      localProjectIntro: "Ви працювали без акаунту. Знайдено локальний проєкт:",
+      modifiedLabel: "Змінено",
+      localDataQuestion: "Що зробити з локальними даними?",
+      loadCloudConfirmLabel: "☁ Завантажити з хмари",
+      saveLocalToCloudLabel: "📱 Зберегти локальні в хмару",
+      projectsBootstrapWarningTitle: "Вхід виконано, але проєкти не завантажились",
+      projectsBootstrapWarningText: "Перевірте стан бази даних і спробуйте оновити сторінку",
+      syncEnabledTitle: "Вітаємо! ☁ Синхронізацію увімкнено"
+    };
+  }
+  function buildProfileFeedbackMessages() {
+    return {
+      profileSavedTitle: "Профіль збережено",
+      avatarTooLargeTitle: "Файл завеликий",
+      avatarTooLargeText: "Максимум 2 МБ."
+    };
+  }
+
   // src/domain/sync.ts
   var SYNC_BADGE_LABELS = {
     offline: "Синхронізація вимкнена",
@@ -499,9 +680,25 @@
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
+    buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+    buildRuntimeAuthFormModel: buildAuthFormModel,
+    getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
+    buildRuntimeThemeToggleModel: buildThemeToggleModel,
+    buildRuntimeUserIdentityModel: buildUserIdentityModel,
+    buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+    buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
+    buildRuntimeThemePanelModel: buildThemePanelModel,
+    buildRuntimeAccountSectionModel: buildAccountSectionModel,
+    buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
+    buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
-    buildRuntimeAccessBannerModel: buildAccessBannerModel
+    buildRuntimeAccessBannerModel: buildAccessBannerModel,
+    getRuntimeAuditEventLabel: getAuditEventLabel,
+    getRuntimeAuditSubjectLabel: getAuditSubjectLabel,
+    getRuntimeAuditActorLabel: getAuditActorLabel,
+    buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel,
+    buildRuntimeAuditLogModalModel: buildAuditLogModalModel
   };
   Object.assign(globalThis, runtimeHelpers);
 })();

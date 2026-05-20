@@ -585,25 +585,29 @@ function _updateReadOnlyUI() {
   const readonly = !canEditTasks();
   const canShare = canManageShares();
   const role = typeof getProjectRole === "function" ? getProjectRole() : (allProjects?.[currentId]?._role || "owner");
-  const roleLabel = typeof PROJECT_ROLE_LABELS !== "undefined" ? (PROJECT_ROLE_LABELS[role] || role) : role;
-  const roleHint = typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "";
   const accessMeta = allProjects?.[currentId]?._access || null;
-  const sharedMeta = accessMeta?.source === "shared"
-    ? [accessMeta.ownerName || accessMeta.ownerEmail, accessMeta.invitedByName || accessMeta.invitedByEmail]
-        .filter(Boolean)
-        .join(" · ")
-    : "";
+  const bannerModel = typeof buildRuntimeAccessBannerModel === "function"
+    ? buildRuntimeAccessBannerModel(role, accessMeta)
+    : {
+        shouldShow: role !== "owner",
+        roleLabel: typeof PROJECT_ROLE_LABELS !== "undefined" ? (PROJECT_ROLE_LABELS[role] || role) : role,
+        roleHint: typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "",
+        sharedMetaText: accessMeta?.source === "shared"
+          ? [accessMeta.ownerName || accessMeta.ownerEmail, accessMeta.invitedByName || accessMeta.invitedByEmail]
+              .filter(Boolean)
+              .join(" ? ")
+          : "",
+      };
 
   const banner = document.getElementById("readonly-banner");
   if (banner) banner.style.display = readonly ? "flex" : "none";
 
   const headerBanner = document.getElementById("project-access-banner");
   if (headerBanner) {
-    const shouldShow = role !== "owner";
-    headerBanner.style.display = shouldShow ? "flex" : "none";
+    headerBanner.style.display = bannerModel.shouldShow ? "flex" : "none";
     headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
-    headerBanner.innerHTML = shouldShow
-      ? `<span class="project-access-pill">${roleLabel}</span><span class="project-access-text">${roleHint}${sharedMeta ? ` ${sharedMeta}` : ""}</span>`
+    headerBanner.innerHTML = bannerModel.shouldShow
+      ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
       : "";
   }
 
@@ -628,7 +632,7 @@ async function handleShareRoleChange(shareId, role) {
       toast: true,
       position: "top-end",
       icon: "success",
-      title: `Role updated: ${PROJECT_ROLE_LABELS[nextRole] || nextRole}`,
+      title: `Role updated: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole)}`,
       showConfirmButton: false,
       timer: 2600,
     });
@@ -672,7 +676,7 @@ async function openShareModal() {
   }
 
   const roleOptions = SHAREABLE_PROJECT_ROLES.map(
-    (role) => `<option value="${role}">${PROJECT_ROLE_LABELS[role]}</option>`,
+    (role) => `<option value="${role}">${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
   ).join("");
   const roleGuide = `
     <div class="share-role-guide">
@@ -690,7 +694,7 @@ async function openShareModal() {
           <span>${shareLabel}</span>
           <select class="cost-sel" onchange="handleShareRoleChange('${share.id}',this.value)">
             ${SHAREABLE_PROJECT_ROLES.map(
-              (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${PROJECT_ROLE_LABELS[role]}</option>`,
+              (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
             ).join("")}
           </select>
           <button class="cost-act-btn del" onclick="handleShareRemoval('${share.id}')">✕</button>
@@ -731,7 +735,7 @@ async function openShareModal() {
           toast: true,
           position: "top-end",
           icon: "success",
-          title: `Access granted: ${PROJECT_ROLE_LABELS[result.role] || result.role}`,
+          title: `Access granted: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role)}`,
           text: result.email,
           showConfirmButton: false,
           timer: 2800,

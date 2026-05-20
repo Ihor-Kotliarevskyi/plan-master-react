@@ -11,6 +11,23 @@ import {
   buildSharedProjectMetaText,
   getProjectRoleLabel,
 } from "../domain/access-ui";
+import { buildAccountSyncPanelModel } from "../domain/account-ui";
+import { buildAuthFormModel, getAuthTabButtonClass } from "../domain/auth-ui";
+import { buildThemeToggleModel, buildUserIdentityModel } from "../domain/profile-ui";
+import { buildBaselinePanelModel } from "../domain/baseline-ui";
+import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/settings-ui";
+import { buildAccountSectionModel } from "../domain/account-section-ui";
+import {
+  buildAuditEntryViewModel,
+  buildAuditLogModalModel,
+  getAuditActorLabel,
+  getAuditEventLabel,
+  getAuditSubjectLabel,
+} from "../domain/audit-ui";
+import {
+  buildAuthFlowMessages,
+  buildProfileFeedbackMessages,
+} from "../domain/user-feedback-ui";
 import {
   getProjectSyncState as buildProjectSyncState,
   getSyncBadge,
@@ -178,9 +195,25 @@ const runtimeHelpers = {
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
+  buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+  buildRuntimeAuthFormModel: buildAuthFormModel,
+  getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
+  buildRuntimeThemeToggleModel: buildThemeToggleModel,
+  buildRuntimeUserIdentityModel: buildUserIdentityModel,
+  buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+  buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
+  buildRuntimeThemePanelModel: buildThemePanelModel,
+  buildRuntimeAccountSectionModel: buildAccountSectionModel,
+  buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
+  buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
   buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
   buildRuntimeAccessBannerModel: buildAccessBannerModel,
+  getRuntimeAuditEventLabel: getAuditEventLabel,
+  getRuntimeAuditSubjectLabel: getAuditSubjectLabel,
+  getRuntimeAuditActorLabel: getAuditActorLabel,
+  buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel,
+  buildRuntimeAuditLogModalModel: buildAuditLogModalModel,
 };
 
 Object.assign(globalThis, runtimeHelpers);

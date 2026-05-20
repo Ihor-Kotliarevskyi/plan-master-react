@@ -10,6 +10,20 @@ import {
   buildSharedProjectMetaText,
   getProjectRoleLabel,
 } from "../src/domain/access-ui";
+import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
+import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
+import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
+import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
+import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
+import { buildAccountSectionModel } from "../src/domain/account-section-ui";
+import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
+import {
+  buildAuditEntryViewModel,
+  buildAuditLogModalModel,
+  getAuditActorLabel,
+  getAuditEventLabel,
+  getAuditSubjectLabel,
+} from "../src/domain/audit-ui";
 import {
   getProjectSyncState,
   getSyncBadge,
@@ -194,6 +208,13 @@ assert.equal(shareView.user.email, "user2@example.com");
 const auditEntry = mapActivityLogRow(activityRow);
 assert.equal(auditEntry.eventType, "task.updated");
 assert.equal(auditEntry.payload.field, "name");
+assert.equal(getAuditEventLabel(auditEntry.eventType), "Updated task");
+assert.equal(getAuditActorLabel(auditEntry), "Owner Name");
+assert.equal(getAuditSubjectLabel(auditEntry, "Shared Project"), "Task #?");
+const auditView = buildAuditEntryViewModel(auditEntry, "Shared Project");
+assert.equal(auditView.eventLabel, "Updated task");
+assert.equal(auditView.actorLabel, "Owner Name");
+assert.equal(auditView.subjectLabel, "Task #?");
 
 const buffered = {
   localOnly: {
@@ -285,6 +306,72 @@ assert.equal(syncState.hasLocalChanges, true);
 
 const syncBadge = getSyncBadge(true, "ok", syncState);
 assert.equal(syncBadge.status, "warn");
+
+const accountSyncPanel = buildAccountSyncPanelModel(syncState, "viewer", "Shared Project");
+assert.equal(accountSyncPanel.roleLabel, "Перегляд");
+assert.equal(accountSyncPanel.projectName, "Shared Project");
+assert.equal(accountSyncPanel.hasServerCopyText, "yes");
+assert.equal(accountSyncPanel.localVersionText, "3");
+
+const loginForm = buildAuthFormModel("login");
+assert.equal(loginForm.isLogin, true);
+assert.equal(loginForm.submitLabel, "Sign in");
+const registerForm = buildAuthFormModel("register");
+assert.equal(registerForm.isLogin, false);
+assert.equal(registerForm.submitLabel, "Register");
+assert.equal(getAuthTabButtonClass("login", "login"), "btn btn-sm btn-acc");
+assert.equal(getAuthTabButtonClass("register", "login"), "btn btn-sm");
+
+const themeToggle = buildThemeToggleModel("dark");
+assert.equal(themeToggle.icon, "sun");
+assert.equal(themeToggle.label, "Light");
+
+const userIdentity = buildUserIdentityModel({
+  name: "Ihor",
+  email: "ihor@example.com",
+  avatar: "https://example.com/avatar.png",
+  theme: "light",
+});
+assert.equal(userIdentity.displayName, "Ihor");
+assert.equal(userIdentity.emailText, "ihor@example.com");
+assert.equal(userIdentity.initial, "I");
+assert.equal(userIdentity.avatarUrl, "https://example.com/avatar.png");
+assert.equal(userIdentity.themeToggle.icon, "moon");
+
+const baselinePanel = buildBaselinePanelModel({
+  hasBaseline: true,
+  baselineDate: "2026-05-01",
+  showBaseline: false,
+});
+assert.equal(baselinePanel.sectionTitle, "Baseline");
+assert.equal(baselinePanel.savedLabel, "Saved: 2026-05-01");
+assert.equal(baselinePanel.toggleLabel, "Show");
+assert.equal(baselinePanel.saveActionLabel, "Overwrite");
+
+const defaultsPanel = buildProjectDefaultsPanelModel();
+assert.equal(defaultsPanel.sectionTitle, "Project defaults");
+assert.equal(defaultsPanel.startMonthLabel, "Start month");
+
+const themePanel = buildThemePanelModel();
+assert.equal(themePanel.sectionTitle, "Appearance");
+assert.equal(themePanel.themeLabel, "Theme");
+
+const accountSection = buildAccountSectionModel();
+assert.equal(accountSection.sectionTitle, "Cloud account");
+assert.equal(accountSection.logoutLabel, "Log out");
+assert.equal(accountSection.lastLocalChangeLabel, "Last local change");
+
+const authFlowMessages = buildAuthFlowMessages();
+assert.equal(authFlowMessages.loginSuccessTitle, "Вхід виконано");
+assert.equal(authFlowMessages.projectsBootstrapWarningTitle, "Вхід виконано, але проєкти не завантажились");
+
+const profileFeedback = buildProfileFeedbackMessages();
+assert.equal(profileFeedback.profileSavedTitle, "Профіль збережено");
+assert.equal(profileFeedback.avatarTooLargeText, "Максимум 2 МБ.");
+
+const auditModal = buildAuditLogModalModel();
+assert.equal(auditModal.modalTitle, "Журнал змін");
+assert.equal(auditModal.actorCaption, "Хто");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

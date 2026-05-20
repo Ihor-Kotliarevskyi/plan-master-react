@@ -1,245 +1,175 @@
-# Plan Master — ролі, спільний доступ і майбутні розширення
+# Plan Master - Roles, Sharing, and Future Expansion
 
-> Статус документа: план розвитку, перевірений проти поточного стану застосунку `2026-05-16`.
+> Status: product and access roadmap updated to match the codebase on
+> `2026-05-20`.
 
-Пов'язаний execution-план:
+Related execution documents:
 
-- `docs/TECH_MIGRATION_PLAN.md` — технічна черга модернізації, декомпозиції та можливої UI-міграції
-- `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` — деталізований backlog найближчої реалізації ролей `owner/manager/editor/viewer`
+- `docs/TECH_MIGRATION_PLAN.md` - engineering order and migration stages
+- `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` - concrete backlog for the completed
+  project-role implementation pass
+- `docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md` - typed helper and bridge foundation
 
-## Що вже реалізовано
+## What Already Exists
 
-### На рівні БД і клієнта
+### Working project-level sharing
 
-У застосунку вже є робочий sharing на рівні проєкту:
+The application already has a working project sharing system:
 
-- таблиця `project_shares`
-- ролі `viewer`, `editor`, `manager`
-- власник проєкту через `projects.owner_id`
-- UI для запрошення користувача за email
-- зміна ролі та видалення share
-- readonly-режим для `viewer`
+- `project_shares`
+- project owner through `projects.owner_id`
+- roles `viewer`, `editor`, and `manager`
+- implicit `owner`
+- sharing by email
+- role updates
+- share removal
+- readonly behavior for non-edit roles
 
-### Що реально робить поточний код
+### Implemented runtime permission model
 
-`js/supabase-api.js` уже містить:
+The active runtime already uses capability-style checks:
 
-- `_projectRole`
-- `isReadOnly()`
-- `canEdit()`
 - `canEditTasks()`
 - `canManageProject()`
 - `canManageShares()`
-- `_updateReadOnlyUI()`
-- `apiGetShares()`
-- `apiShareProject()`
-- `apiUpdateShareRole()`
-- `apiRemoveShare()`
-- `openShareModal()`
+- `canViewAuditLog()`
 
-### Поточна матриця поведінки
+This means the roadmap is no longer describing a hypothetical foundation. It is
+describing how to extend an already working access model.
 
-| Роль | Перегляд | Редагування задач/проєкту | Керування share |
-|---|---|---|---|
-| `viewer` | так | ні | ні |
-| `editor` | так | так | ні |
-| `manager` | так | так | так |
-| `owner` | так | так | так |
+### Implemented audit foundation
 
-Примітка:
-
-- `owner` зараз не є значенням у `project_shares.role`
-- право owner визначається через `projects.owner_id`
-
-## Що в документі плану вже неактуально або потребує уточнення
-
-### 1. Поточний фундамент вже не "планується", а працює
-
-Твердження на кшталт "sharing foundation ще попереду" більше неактуальні. Базовий project-level sharing уже є в продакшн-коді.
-
-### 2. Роль `manager` уже заведена в активний клієнт, але ще не доведена до кінця
-
-У плані є перехід до:
-
-- `owner`
-- `manager`
-- `editor`
-- `viewer`
-
-Активний Supabase-клієнт уже використовує цю модель на рівні permission layer та share UI, але Phase 1 ще не завершено повністю:
-
-- ще лишається cleanup legacy `admin` у частині документації та резервного шляху
-- RLS і sync contract ще мають фінально зійтися з capability model
-
-### 3. Компанії / організації ще не існують
-
-У коді зараз немає:
-
-- `companies`
-- `company_members`
-- `company_invites`
-- `profiles.company_id`
-- company-level onboarding/UI
-
-Тобто весь org/company layer у цьому документі залишається валідним саме як roadmap, але не як опис поточної системи.
-
-### 4. Notifications та audit log теж ще не реалізовані
-
-Немає:
+The application already includes:
 
 - `activity_log`
-- `notifications`
-- realtime notification panel
-- bell icon flow
+- audit event writing for task, share, baseline, and project mutations
+- audit read API
+- a lightweight read-only audit viewer in the user cabinet
 
-Уточнення для поточного стану:
+This is not yet a full enterprise audit timeline, but the foundation is real
+and active.
 
-- backend-first foundation для `activity_log` може бути додана раніше за UI timeline
-- це не означає, що audit UI уже існує; йдеться лише про write-only шар подій
+## Current Effective Role Matrix
 
-## Актуальна оцінка плану
+| Role | View project | Edit tasks | Manage project settings | Manage shares | View audit log |
+|---|---|---|---|---|---|
+| `viewer` | yes | no | no | no | no |
+| `editor` | yes | yes | no | no | yes |
+| `manager` | yes | yes | yes | yes | yes |
+| `owner` | yes | yes | yes | yes | yes |
 
-### План залишається корисним
+Notes:
 
-Документ загалом все ще корисний як напрямок розвитку, тому що:
+- `owner` is not stored in `project_shares.role`
+- ownership comes from `projects.owner_id`
 
-- правильно відділяє company-level і project-level access
-- логічно вибудовує invite flow
-- передбачає аудит і нотифікації як наступні етапи
+## What This Roadmap Still Covers
 
-### Але його треба читати як roadmap, а не як опис реалізації
+This document is still useful, but it should now be read as:
 
-Щоб не вводити в оману, потрібно явно розділяти:
+- current product state
+- next product increments
+- later expansion options
 
-- `вже реалізовано`
-- `наступні ітерації`
+not as a description of an unimplemented sharing foundation.
 
-Саме це і відображено в оновленій структурі нижче.
+## Completed Product Step
 
-## Оновлена дорожня карта
+### Phase 1 - Granular project roles
 
-### Фаза 0 — поточна база
+Status: `implemented for the current application scope`
 
-Статус: `вже реалізовано`
+Delivered outcome:
 
-- project-level sharing
-- ролі `viewer/editor/manager`
-- owner через `projects.owner_id`
-- readonly mode
-- share modal по email
+- migrated away from legacy `admin`
+- introduced `manager`
+- aligned mutation guards and readonly behavior with the role matrix
+- implemented role-aware share management
+- separated own vs shared project presentation
 
-### Фаза 1 — гранулярні ролі проєкту
+This phase should now be treated as closed unless a bug or regression appears.
 
-Статус: `актуально як найближче розширення`
+## Next Product-Meaningful Step
 
-Мета:
+### Phase 2 - Better audit UX
 
-- перейти від моделі `viewer/editor/admin` до:
-- перейти від legacy-моделі `viewer/editor/admin` до:
-  - `owner`
-  - `manager`
-  - `editor`
-  - `viewer`
+Status: `next practical expansion`
 
-Що треба змінити:
+The backend-first audit foundation exists already. The next product step is to
+make it more useful in the UI.
 
-- constraint для `project_shares.role`
-- `canEdit()` розбити на:
-  - `canEditTasks()`
-  - `canManageProject()`
-  - `canManageShares()`
-- `_updateReadOnlyUI()` зробити більш гранулярним
-- `openShareModal()` оновити під нову матрицю ролей
+Potential improvements:
 
-Чому це актуально:
+- richer timeline presentation
+- filtering by event type
+- grouping by date or actor
+- better labels for changed entities
 
-- поточний код уже має доступи, але вони бінарніші, ніж майбутня бізнес-модель
+This is a natural next step because the system already records the events.
 
-### Фаза 2 — компанії / організації
+## Decision Point: Company / Org Layer
 
-Статус: `актуально, але це вже більша окрема ініціатива`
+### Phase 3 - Company model
 
-Мета:
+Status: `deferred until explicitly justified`
 
-- ввести `companies`
-- ввести `company_members`
-- пов’язати `profiles` з компанією
-- мати глобальні ролі на рівні організації
+This should not be treated as the automatic next feature.
 
-Це все ще релевантно, але не є природним "малим продовженням" поточного коду. Це вже окремий системний шар.
+Only build it if the product genuinely needs:
 
-Рекомендація:
+- company-wide membership
+- cross-project visibility at organization scope
+- centralized people and access management
+- org onboarding and admin flows
 
-- не змішувати цю фазу з дрібними покращеннями project-level sharing
-- робити після стабілізації ролей на рівні проєкту
+If those needs are still weak, project-level sharing should remain the main
+collaboration model.
 
-### Фаза 3 — invite system
+## Invite Strategy
 
-Статус: `актуально`
+### Phase 4 - Invite links or pending invites
 
-На поточний момент share додається через email напряму. План з `company_invites` / tokenized invite links все ще має сенс, але залежить від того, чи з’явиться company layer.
+Status: `optional next collaboration layer`
 
-Практичне уточнення:
+The app already supports direct sharing by email. The next lightweight
+collaboration enhancement would be:
 
-- якщо компанії відкладаються, варто спершу зробити lightweight invite links для проєктів
-- а не чекати повної org-моделі
+- tokenized invite links
+- pending invite acceptance flow
 
-### Фаза 4 — company/project visibility
+This can happen with or without a company model.
 
-Статус: `актуально лише після появи companies`
+## Notifications
 
-Поле `projects.visibility` саме по собі можливе, але справжня цінність фази з’являється лише коли існує організація і список її членів.
+### Phase 5 - Notifications
 
-### Фаза 5 — audit log
+Status: `later`
 
-Статус: `актуально`
+Notifications are still relevant, but they should come after:
 
-Це одна з найбільш практичних enterprise-функцій після ролей.
+- stable roles
+- stable sharing flows
+- stable audit events
 
-Особливо корисно для:
+Without those pieces, notifications do not yet have a strong event model behind
+them.
 
-- змін задач
-- змін доступів
-- змін налаштувань проєкту
+## Practical Priority Order
 
-Рекомендація:
+From the current codebase state, the most sensible product order is:
 
-- audit log логічно впроваджувати раніше за notifications
-- спершу як write-only backend log, потім уже з UI timeline
+1. keep the current role model stable
+2. improve audit usability
+3. decide whether project-level invites are enough
+4. decide whether a real company layer is needed
+5. only then consider notifications and org visibility rules
 
-### Фаза 6 — notifications
+## Summary
 
-Статус: `актуально, але не базова`
+The key shift is this:
 
-Нотифікації доречні після того, як уже існують:
-
-- стабільні ролі
-- запрошення
-- audit events або access requests
-
-Без цього вони матимуть мало джерел подій.
-
-## Пріоритизація від поточного стану
-
-Якщо орієнтуватися саме на нинішній застосунок, найреалістичніша черга така:
-
-1. Розширити project-level roles до `owner/manager/editor/viewer`
-2. Доробити більш точний UI-контроль доступів у модалках і project settings
-3. Додати audit log
-4. Вирішити, чи справді потрібен company layer
-5. Якщо так — додати `companies`, `company_members`, invites
-6. Потім уже visibility і notifications
-
-## Практичний висновок
-
-`ROLES_AND_SHARING_PLAN.md` не застарів повністю, але в попередньому вигляді змішував:
-
-- уже реалізовані речі
-- середньострокові покращення
-- далекі архітектурні розширення
-
-Після перевірки проти поточного коду висновок такий:
-
-- базовий project-sharing уже реалізовано
-- найбільш актуальне продовження зараз — не `companies`, а гранулярні project roles
-- company/org model лишається валідною ідеєю, але це окремий великий етап, а не "наступний дрібний крок"
+- project-level roles and sharing are no longer "planned"
+- they are already part of the product
+- the next roadmap question is not "how do we add sharing?"
+- the next roadmap question is "do we deepen audit and collaboration, or do we
+  jump to a real org model?"
