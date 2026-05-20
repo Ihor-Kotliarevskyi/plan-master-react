@@ -87,6 +87,19 @@
     };
   }
 
+  // src/domain/account-ui.ts
+  function buildAccountSyncPanelModel(projectSyncState, currentRole, fallbackProjectName = "-") {
+    const projectName = projectSyncState.snap?.proj?.name || fallbackProjectName || "-";
+    return {
+      roleLabel: getProjectRoleLabel(currentRole),
+      projectName,
+      hasServerCopyText: projectSyncState.hasServerCopy ? "yes" : "no",
+      localVersionText: String(projectSyncState.localVersion ?? 0),
+      serverVersionText: String(projectSyncState.serverVersion ?? 0),
+      updatedAtText: projectSyncState.updatedAt || ""
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -540,6 +553,7 @@
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
+    buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,

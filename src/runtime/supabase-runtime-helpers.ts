@@ -11,6 +11,7 @@ import {
   buildSharedProjectMetaText,
   getProjectRoleLabel,
 } from "../domain/access-ui";
+import { buildAccountSyncPanelModel } from "../domain/account-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -184,6 +185,7 @@ const runtimeHelpers = {
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
+  buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
   buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
   buildRuntimeAccessBannerModel: buildAccessBannerModel,

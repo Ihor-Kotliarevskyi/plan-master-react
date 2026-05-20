@@ -282,20 +282,30 @@ function _renderAccountSection(loggedIn, sbp, p) {
   const currentRole = typeof getStoredProjectRole === "function"
     ? getStoredProjectRole(currentId, "owner")
     : "owner";
-  const roleLabel =
-    typeof getRuntimeProjectRoleLabel === "function"
-      ? getRuntimeProjectRoleLabel(currentRole)
-      : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole);
-  const syncMeta = projectSync.updatedAt
-    ? `<div class="account-sync-meta">Остання локальна зміна: ${new Date(projectSync.updatedAt).toLocaleString("uk-UA")}</div>`
+  const syncPanel =
+    typeof buildRuntimeAccountSyncPanelModel === "function"
+      ? buildRuntimeAccountSyncPanelModel(projectSync, currentRole, "-")
+      : {
+          roleLabel:
+            typeof getRuntimeProjectRoleLabel === "function"
+              ? getRuntimeProjectRoleLabel(currentRole)
+              : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole),
+          projectName: projectSync.snap?.proj?.name || "-",
+          hasServerCopyText: projectSync.hasServerCopy ? "yes" : "no",
+          localVersionText: String(projectSync.localVersion),
+          serverVersionText: String(projectSync.serverVersion),
+          updatedAtText: projectSync.updatedAt || "",
+        };
+  const syncMeta = syncPanel.updatedAtText
+    ? `<div class="account-sync-meta">Last local change: ${new Date(syncPanel.updatedAtText).toLocaleString("uk-UA")}</div>`
     : "";
   const syncDetails = projectSync.snap
     ? `<div class="account-sync-details">
-        <div><b>Проєкт:</b> ${_esc(projectSync.snap.proj?.name || "—")}</div>
-        <div><b>Роль:</b> ${_esc(roleLabel)}</div>
-        <div><b>Хмарна копія:</b> ${projectSync.hasServerCopy ? "так" : "ні"}</div>
-        <div><b>Локальна версія:</b> ${projectSync.localVersion}</div>
-        <div><b>Серверна версія:</b> ${projectSync.serverVersion}</div>
+        <div><b>Project:</b> ${_esc(syncPanel.projectName)}</div>
+        <div><b>Role:</b> ${_esc(syncPanel.roleLabel)}</div>
+        <div><b>Cloud copy:</b> ${syncPanel.hasServerCopyText}</div>
+        <div><b>Local version:</b> ${syncPanel.localVersionText}</div>
+        <div><b>Server version:</b> ${syncPanel.serverVersionText}</div>
       </div>`
     : "";
   const auditBtn =

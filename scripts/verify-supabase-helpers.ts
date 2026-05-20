@@ -10,6 +10,7 @@ import {
   buildSharedProjectMetaText,
   getProjectRoleLabel,
 } from "../src/domain/access-ui";
+import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -298,6 +299,12 @@ assert.equal(syncState.hasLocalChanges, true);
 
 const syncBadge = getSyncBadge(true, "ok", syncState);
 assert.equal(syncBadge.status, "warn");
+
+const accountSyncPanel = buildAccountSyncPanelModel(syncState, "viewer", "Shared Project");
+assert.equal(accountSyncPanel.roleLabel, "Перегляд");
+assert.equal(accountSyncPanel.projectName, "Shared Project");
+assert.equal(accountSyncPanel.hasServerCopyText, "yes");
+assert.equal(accountSyncPanel.localVersionText, "3");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
