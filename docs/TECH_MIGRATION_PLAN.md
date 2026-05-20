@@ -1,39 +1,43 @@
-# Plan Master — технічний план міграції та поетапної модернізації
+# Plan Master - Technical Migration Plan
 
-> Статус документа: execution plan для поточного коду станом на `2026-05-16`.
+> Status: execution plan updated to match the codebase on `2026-05-20`.
 
-## Призначення документа
+## Purpose
 
-Цей документ відповідає на інше питання, ніж `ROLES_AND_SHARING_PLAN.md`.
+This document answers a different question than `ROLES_AND_SHARING_PLAN.md`.
 
-- `ROLES_AND_SHARING_PLAN.md` описує продуктову еволюцію доступів і collaborative-функцій
-- `TECH_MIGRATION_PLAN.md` описує, як технічно підготувати кодову базу до цих змін без дорогого та ризикового rewrite
+- `ROLES_AND_SHARING_PLAN.md` describes the product and access roadmap.
+- `TECH_MIGRATION_PLAN.md` describes the engineering order for getting there
+  without a risky full rewrite.
 
-Рекомендація: не змішувати ці два документи в один. Product roadmap і технічний execution plan мають жити окремо, але з узгодженою чергою фаз.
+The project should keep these two concerns separate.
 
-## Вихідний стан
+## Current Assessment
 
-Поточний застосунок уже розбитий на JS-файли, але ще не має достатньо ізольованої архітектури для безпечного масштабування ролей, доступів, audit log та org-level моделі.
+The application still runs through legacy global scripts in `index.html`, but
+the most dangerous foundations are no longer in the original mixed state.
 
-Ключові технічні обмеження поточного стану:
+What is true now:
 
-- runtime збирається через `<script>` у `index.html`
-- UI активно спирається на inline `onclick`
-- стан зберігається у глобальних змінних (`tasks`, `proj`, `cats`, `allProjects`, `_projectRole`)
-- Supabase-адаптер містить не лише transport/data-access, а й частину permission logic
-- readonly/access behavior розмазаний між `supabase-api.js`, `guard.js`, `render.js`, `finance.js`, `contractors.js`
-- бізнес-логіка доступів поки що бінарна: `canEdit()` проти `viewer`
+- the capability model is already introduced in runtime code
+- project roles are already `owner / manager / editor / viewer`
+- Supabase schema, RLS, and sharing flows already support that model
+- audit logging foundation already exists
+- a first TypeScript and generated-helper bridge already exists
 
-Через це головна проблема не в JavaScript як мові, а в слабкому розділенні:
+What is still legacy:
 
-- доменної логіки
-- permission logic
-- UI composition
-- backend adapter layer
+- runtime bootstrap still depends on classic `<script>` orchestration
+- UI still relies heavily on global state and inline handlers
+- large files like `js/modal.js`, `js/user.js`, and parts of `js/api.js`
+  still mix UI orchestration with domain decisions
 
-## Цільовий технічний напрямок
+So the main problem is no longer "JavaScript". The main remaining problem is
+legacy runtime composition.
 
-Рекомендований цільовий стек:
+## Target Direction
+
+Recommended target stack remains:
 
 - `Vite`
 - `TypeScript`
@@ -42,305 +46,194 @@
 - `Zod`
 - `Supabase`
 
-Але важливо: перехід має бути інкрементальним, а не через повний rewrite до початку бізнес-змін.
+But migration should remain incremental. The repo is no longer at the stage
+where a blind rewrite would help.
 
-## Головний принцип послідовності
+## Progress Snapshot
 
-Правильна черга така:
+### Phase 0 - Capability model
 
-1. Спершу стабілізувати доменну модель і permission model
-2. Потім винести логіку зі "змішаних" файлів у окремі модулі
-3. Потім додати типізацію
-4. Потім реалізувати найближчу продуктову фазу з ролями
-5. Лише після цього вирішувати, чи переносити весь UI на React, чи робити поступову міграцію
+Status: `completed`
 
-Іншими словами:
+Implemented outcome:
 
-- не робити повний rewrite перед `Phase 1`
-- не імплементувати великі нові ролі та org-level можливості поверх поточної неструктурованої permission logic
-
-## Рекомендована послідовність робіт
-
-### Етап 0 — заморозити цільову бізнес-модель
-
-Статус: `перший обов'язковий крок`
-
-Мета:
-
-- формалізувати capability-based model поверх ролей
-- відв'язати код від бінарної моделі `viewer` / `not viewer`
-
-Що зафіксувати:
-
-- ролі `owner`, `manager`, `editor`, `viewer`
-- явні capability-функції:
+- runtime capability model exists
+- role matrix is aligned around:
   - `canViewProject`
   - `canEditTasks`
   - `canManageProject`
   - `canManageShares`
-  - `canInviteUsers`
   - `canViewAuditLog`
 
-Результат етапу:
+Residual work:
 
-- оновлена матриця доступів
-- узгоджені правила для UI, RLS, sync-операцій і модалок
+- keep future UI slices aligned with these capabilities
 
-Чому це перше:
+### Phase 1 - Modular decomposition without UI stack rewrite
 
-- без цього будь-яка міграція стеку лише переноситиме стару нечітку permission model у новий код
+Status: `substantially completed`
 
-### Етап 1 — модульна декомпозиція без зміни UI-стеку
+Implemented outcome:
 
-Статус: `виконати до великого функціонального розширення`
+- permission logic has a dedicated layer
+- project access, sync, storage, and presentation helpers are extracted
+- Supabase runtime is partially decomposed behind generated helpers
+- the app no longer depends on a single monolithic `supabase-api.js` for every
+  pure transformation
 
-Мета:
+Residual work:
 
-- підготувати код до складніших змін, не ламаючи застосунок повним rewrite
+- continue shrinking mixed UI/domain logic in legacy runtime files
+- decide when to start a true module-based UI bootstrap
 
-Що зробити:
+### Phase 2 - TypeScript bootstrap
 
-- виділити окремий шар для permission logic
-- виділити окремий шар для project/domain operations
-- відокремити Supabase transport від permission checks
-- звузити відповідальність `js/supabase-api.js`
+Status: `completed`
 
-Мінімальна цільова структура:
+Implemented outcome:
 
-```text
-src/
-  domain/
-    permissions/
-    projects/
-    sharing/
-    audit/
-  services/
-    supabase/
-  ui/
-    legacy/
-```
+- TypeScript toolchain is active
+- typed contracts exist for permissions, audit, storage, sync, access, and
+  Supabase payload mapping
+- generated runtime helper bridge is built from typed source modules
+- helper verification exists through `npm run verify:supabase-helpers`
 
-Примітка:
+Reference:
 
-- не обов'язково одразу переносити весь runtime у `src/`
-- достатньо почати з нових модулів і підключати їх до існуючого UI
+- `docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md`
 
-Результат етапу:
+### Phase 3 - Roles and sharing
 
-- менше умов типу `if (typeof canEdit === "function" && !canEdit())`
-- один центр істини для permission logic
+Status: `implemented, stabilization complete for current scope`
 
-### Етап 2 — перехід на TypeScript без повного переписування
+Implemented outcome:
 
-Статус: `робити одразу після декомпозиції`
+- role model is `owner / manager / editor / viewer`
+- project sharing works end-to-end
+- role-aware readonly and mutation guards are in place
+- own vs shared project presentation is implemented
+- access banner and role labels are aligned across runtimes
 
-Мета:
+Residual work:
 
-- знизити ризик регресій перед зміною ролей, invite flow та audit model
+- future refactors must preserve the same capability semantics
 
-Що типізувати в першу чергу:
+### Phase 4 - Audit log
 
-- `Project`
-- `Task`
-- `ProjectShare`
-- `ProjectRole`
-- `PermissionSet`
-- `AuditEvent`
-- `Profile`
+Status: `foundation completed, basic read UI implemented`
 
-Що дати через runtime validation:
+Implemented outcome:
 
-- payload задач
-- shares
-- profile/project snapshots
-- дані з Supabase RPC
+- `activity_log` schema exists
+- client writes task, project, baseline, and share events
+- read API exists
+- a lightweight read-only audit viewer exists in the user cabinet
 
-Чому не відкладати:
+Residual work:
 
-- майбутні зміни торкаються доступів, sync, БД і UI одночасно
-- типи тут окупаються швидко
+- richer audit timeline UI
+- possible filtering, grouping, and pagination
 
-### Етап 3 — реалізація `Phase 1` з `ROLES_AND_SHARING_PLAN`
+### Phase 5 - Company / org decision
 
-Статус: `перший великий функціональний етап`
+Status: `not started by design`
 
-Мета:
+This remains an architectural checkpoint, not the next automatic coding step.
 
-- перейти з `viewer/editor/admin` до `owner/manager/editor/viewer`
-- замінити бінарні access checks на capability-based checks
+Questions still to answer before building it:
 
-Що включає:
+- Is project-level sharing still enough for the product?
+- Is there a real need for company-wide visibility and membership?
+- Do we need shared people catalogs and org onboarding?
 
-- DB constraint / enum / check update для ролей
-- оновлення permission matrix
-- оновлення RLS та mutation rules
-- refactor `canEdit()` у набір granular checks
-- точкове оновлення UI-контролів:
-  - task editing
-  - project settings
-  - share modal
-  - contractors/finance mutating actions
+### Phase 6 - Invite system
 
-Definition of done:
+Status: `deferred until org decision`
 
-- кожна mutating action перевіряє конкретну capability
-- `viewer` більше не є єдиним special-case
-- `manager` реально відрізняється від `editor`
+If company scope is postponed, the likely next step is lightweight invite links
+at the project level rather than a full org invite model.
 
-### Етап 4 — audit log
+### Phase 7 - Company / org model
 
-Статус: `робити відразу після стабілізації ролей`
+Status: `not started`
 
-Мета:
+This is still a separate large initiative, not a continuation of the current
+role and sharing work.
 
-- отримати трасованість змін до ускладнення org-level моделі
+### Phase 8 - UI migration to React
 
-Рекомендована черга:
+Status: `not started`
 
-1. write-only backend logging
-2. читання audit events
-3. timeline/UI
+This is still the right long-term direction, but only after enough legacy UI
+areas are isolated and stable.
 
-Події мінімального набору:
+## Recommended Next Engineering Step
 
-- create/update/delete task
-- share granted/updated/revoked
-- project settings changed
-- baseline changed
+The next correct step is not another database redesign. It is continued runtime
+decomposition of the legacy UI layer.
 
-Чому саме тут:
+Best next targets:
 
-- після розширення ролей з'являється більше критичних змін, які вже треба відслідковувати
+1. extract one more pure UI/domain slice from `js/modal.js` or `js/user.js`
+2. reduce global coupling in legacy UI state transitions
+3. choose the first area that can move from legacy globals to a module-based UI
+   bootstrap without touching the gantt core
 
-### Етап 5 — рішення щодо company/org layer
+Good candidates for the first module-based UI island:
 
-Статус: `architectural checkpoint`
+- user cabinet
+- share modal
+- project settings
+- audit viewer
 
-На цьому етапі треба не кодувати одразу `companies`, а прийняти рішення:
+Bad candidates for the first UI island:
 
-- чи це справді потрібна бізнес-модель
-- чи достатньо project-level invites + stronger sharing + audit log
+- gantt grid
+- drag/resize core
+- print pipeline
 
-Критерії "так, потрібен org layer":
+## What Not To Do
 
-- один користувач має системно працювати в межах кількох проєктів однієї компанії
-- потрібні спільні каталоги людей/доступів
-- потрібна company visibility model
-- потрібен company onboarding/admin flow
+- do not start a full React rewrite yet
+- do not introduce company tables just because roles now work
+- do not reintroduce binary access checks
+- do not mix audit and notifications into one vague feature bucket
+- do not start UI migration from gantt or print subsystems
 
-Якщо відповідь "ні" або "ще рано":
+## Document Map
 
-- робити lightweight project invite links
-- не тягнути весь `companies` layer завчасно
-
-### Етап 6 — invite system
-
-Статус: `залежить від рішення на попередньому етапі`
-
-Варіант A — без company layer:
-
-- tokenized invite links для проєкту
-- pending invite acceptance
-- простий accept flow
-
-Варіант B — з company layer:
-
-- `company_invites`
-- onboarding into company + project scope
-
-### Етап 7 — company/org model
-
-Статус: `робити лише якщо це підтверджена потреба`
-
-Мета:
-
-- ввести окремий системний шар організації
-
-Що входить:
-
-- `companies`
-- `company_members`
-- `company_invites`
-- `profiles.company_id` або окрема membership model
-- org-level roles
-- visibility rules між company та project scope
-
-Це вже не "наступний маленький крок", а окремий великий етап.
-
-### Етап 8 — поступова UI-міграція на React
-
-Статус: `після стабілізації домену`
-
-Мета:
-
-- прибрати залежність від inline handlers, глобального DOM orchestration і ручних rerender flows
-
-Рекомендована стратегія:
-
-1. Спершу перенести isolated areas:
-   - user cabinet
-   - share modal
-   - project settings
-2. Потім перенести panes з меншою зв'язаністю:
-   - charts
-   - finance subviews
-3. Потім братися за найризиковіші частини:
-   - gantt grid
-   - drag/resize
-   - print pipeline
-
-Чому не навпаки:
-
-- gantt і print найбільш чутливі до regressions
-- вони мають іти вже після стабілізації permission model та data contracts
-
-## Що робити першим на практиці
-
-Найкраща послідовність для цього репозиторію:
-
-1. Оновити матрицю ролей і capability model в документації
-2. Винести permission logic в окремий модуль
-3. Винести project/sharing operations з `js/supabase-api.js`
-4. Підключити TypeScript для нових модулів
-5. Реалізувати `owner/manager/editor/viewer`
-6. Додати audit log
-7. Прийняти рішення по company layer
-8. Лише потім починати React-міграцію
-
-## Що не варто робити
-
-- не переписувати весь застосунок на React до стабілізації permission model
-- не додавати `companies` до завершення granular project roles
-- не переносити в новий стек стару бінарну модель `canEdit()`
-- не змішувати audit log і notifications в один етап
-- не починати UI rewrite з gantt та print subsystem
-
-## Документи та залежності між ними
-
-Рекомендований спосіб читання:
+Recommended reading order:
 
 1. `docs/ROLES_AND_SHARING_PLAN.md`
 2. `docs/TECH_MIGRATION_PLAN.md`
 3. `docs/PHASE1_IMPLEMENTATION_BACKLOG.md`
-4. `docs/ARCHITECTURE.md`
-5. `docs/DATABASE.md`
+4. `docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md`
+5. `docs/ARCHITECTURE.md`
+6. `docs/DATABASE.md`
 
-Ролі документів:
+Document roles:
 
-- `ROLES_AND_SHARING_PLAN.md` відповідає за `що будуємо`
-- `TECH_MIGRATION_PLAN.md` відповідає за `в якій технічній черзі будуємо`
-- `PHASE1_IMPLEMENTATION_BACKLOG.md` відповідає за `що саме робимо в найближчому етапі`
-- `ARCHITECTURE.md` фіксує поточний стан системи
-- `DATABASE.md` фіксує поточний серверний контракт
+- `ROLES_AND_SHARING_PLAN.md` answers `what we are building`
+- `TECH_MIGRATION_PLAN.md` answers `in what technical order we build it`
+- `PHASE1_IMPLEMENTATION_BACKLOG.md` answers `what we already executed for the
+  roles/sharing phase`
+- `PHASE2_TYPESCRIPT_BOOTSTRAP.md` answers `what was added to stabilize typed
+  contracts before deeper runtime migration`
 
-## Короткий висновок
+## Summary
 
-Для поточного застосунку правильний порядок такий:
+The repo is past the dangerous early migration stage.
 
-1. не повний rewrite
-2. не одразу company layer
-3. спершу permission/domain refactor
-4. потім granular roles
-5. потім audit log
-6. потім рішення про org model
-7. і лише після цього поступова UI-міграція
+What is already closed enough not to revisit:
+
+- capability model
+- project role model
+- sharing foundation
+- Supabase schema and RLS repair for the new role model
+- TypeScript bootstrap
+
+What remains ahead:
+
+- more legacy runtime decomposition
+- a later UI bootstrap shift
+- only after that, any decision about company-level architecture
