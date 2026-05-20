@@ -13,6 +13,7 @@ import {
 import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
+import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -332,6 +333,15 @@ assert.equal(userIdentity.emailText, "ihor@example.com");
 assert.equal(userIdentity.initial, "I");
 assert.equal(userIdentity.avatarUrl, "https://example.com/avatar.png");
 assert.equal(userIdentity.themeToggle.icon, "moon");
+
+const baselinePanel = buildBaselinePanelModel({
+  hasBaseline: true,
+  baselineDate: "2026-05-01",
+  showBaseline: false,
+});
+assert.equal(baselinePanel.savedLabel, "Saved: 2026-05-01");
+assert.equal(baselinePanel.toggleLabel, "Show");
+assert.equal(baselinePanel.saveActionLabel, "Overwrite");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

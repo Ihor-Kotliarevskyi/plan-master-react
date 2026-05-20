@@ -14,6 +14,7 @@ import {
 import { buildAccountSyncPanelModel } from "../domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../domain/profile-ui";
+import { buildBaselinePanelModel } from "../domain/baseline-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -192,6 +193,7 @@ const runtimeHelpers = {
   getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeThemeToggleModel: buildThemeToggleModel,
   buildRuntimeUserIdentityModel: buildUserIdentityModel,
+  buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
   buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
   buildRuntimeAccessBannerModel: buildAccessBannerModel,

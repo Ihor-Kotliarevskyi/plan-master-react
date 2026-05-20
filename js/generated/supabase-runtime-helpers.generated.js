@@ -143,6 +143,20 @@
     };
   }
 
+  // src/domain/baseline-ui.ts
+  function buildBaselinePanelModel(options) {
+    const savedDate = options.baselineDate || "-";
+    return {
+      hasBaseline: options.hasBaseline,
+      savedLabel: `Saved: ${savedDate}`,
+      toggleLabel: options.showBaseline ? "Hide" : "Show",
+      saveActionLabel: options.hasBaseline ? "Overwrite" : "Save baseline",
+      deleteActionLabel: "Delete",
+      emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
+      showBaseline: options.showBaseline
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -601,6 +615,7 @@
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeThemeToggleModel: buildThemeToggleModel,
     buildRuntimeUserIdentityModel: buildUserIdentityModel,
+    buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,

@@ -248,28 +248,45 @@ function _renderUserModal() {
         </div>
 
         <div class="settings-section">
-          <div class="settings-section-title">Базовий план проєкту</div>
+          <div class="settings-section-title">Baseline</div>
           <div class="settings-section-body">
-            ${
-              proj.baseline
+            ${(() => {
+              const baselinePanel =
+                typeof buildRuntimeBaselinePanelModel === "function"
+                  ? buildRuntimeBaselinePanelModel({
+                      hasBaseline: !!proj.baseline,
+                      baselineDate: proj.baselineDate || null,
+                      showBaseline: !!showBaseline,
+                    })
+                  : {
+                      hasBaseline: !!proj.baseline,
+                      savedLabel: `Saved: ${proj.baselineDate || "-"}`,
+                      toggleLabel: showBaseline ? "Hide" : "Show",
+                      saveActionLabel: proj.baseline ? "Overwrite" : "Save baseline",
+                      deleteActionLabel: "Delete",
+                      emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
+                      showBaseline: !!showBaseline,
+                    };
+
+              return baselinePanel.hasBaseline
                 ? `
               <div class="setting-row">
-                <label class="baseline-saved-lbl">✅ Збережено: ${proj.baselineDate || "—"}</label>
-                <button class="btn btn-sm btn-tog${showBaseline ? " on" : ""}"
+                <label class="baseline-saved-lbl">${baselinePanel.savedLabel}</label>
+                <button class="btn btn-sm btn-tog${baselinePanel.showBaseline ? " on" : ""}"
                         onclick="toggleBaseline();_renderUserModal()">
-                  ${showBaseline ? '<i data-lucide="eye-off"></i> Приховати' : '<i data-lucide="eye"></i> Показати'}
+                  ${baselinePanel.showBaseline ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>'} ${baselinePanel.toggleLabel}
                 </button>
               </div>
               <div class="baseline-actions">
-                <button class="btn btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="rotate-ccw"></i> Перезаписати</button>
-                <button class="btn btn-sm btn-danger" onclick="clearBaseline();_renderUserModal()"><i data-lucide="trash-2"></i> Видалити</button>
+                <button class="btn btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="rotate-ccw"></i> ${baselinePanel.saveActionLabel}</button>
+                <button class="btn btn-sm btn-danger" onclick="clearBaseline();_renderUserModal()"><i data-lucide="trash-2"></i> ${baselinePanel.deleteActionLabel}</button>
               </div>`
                 : `
               <div class="baseline-empty-hint">
-                Базовий план не збережено. Зафіксуйте поточні позиції задач для порівняння план/факт.
+                ${baselinePanel.emptyHint}
               </div>
-              <button class="btn btn-acc btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="save"></i> Зберегти базовий план</button>`
-            }
+              <button class="btn btn-acc btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="save"></i> ${baselinePanel.saveActionLabel}</button>`;
+            })()}
           </div>
         </div>
       </div>
