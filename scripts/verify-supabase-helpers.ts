@@ -15,6 +15,7 @@ import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui
 import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
 import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
+import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -351,6 +352,11 @@ assert.equal(defaultsPanel.startMonthLabel, "Start month");
 const themePanel = buildThemePanelModel();
 assert.equal(themePanel.sectionTitle, "Appearance");
 assert.equal(themePanel.themeLabel, "Theme");
+
+const accountSection = buildAccountSectionModel();
+assert.equal(accountSection.sectionTitle, "Cloud account");
+assert.equal(accountSection.logoutLabel, "Log out");
+assert.equal(accountSection.lastLocalChangeLabel, "Last local change");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

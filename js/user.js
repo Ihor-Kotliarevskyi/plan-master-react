@@ -361,36 +361,51 @@ function _renderAccountSection(loggedIn, sbp, p) {
           serverVersionText: String(projectSync.serverVersion),
           updatedAtText: projectSync.updatedAt || "",
         };
+  const accountSection =
+    typeof buildRuntimeAccountSectionModel === "function"
+      ? buildRuntimeAccountSectionModel()
+      : {
+          sectionTitle: "Cloud account",
+          emailLabel: "Email",
+          logoutLabel: "Log out",
+          auditLogLabel: "Activity log",
+          projectLabel: "Project",
+          roleLabel: "Role",
+          cloudCopyLabel: "Cloud copy",
+          localVersionLabel: "Local version",
+          serverVersionLabel: "Server version",
+          lastLocalChangeLabel: "Last local change",
+        };
   const syncMeta = syncPanel.updatedAtText
-    ? `<div class="account-sync-meta">Last local change: ${new Date(syncPanel.updatedAtText).toLocaleString("uk-UA")}</div>`
+    ? `<div class="account-sync-meta">${accountSection.lastLocalChangeLabel}: ${new Date(syncPanel.updatedAtText).toLocaleString("uk-UA")}</div>`
     : "";
   const syncDetails = projectSync.snap
     ? `<div class="account-sync-details">
-        <div><b>Project:</b> ${_esc(syncPanel.projectName)}</div>
-        <div><b>Role:</b> ${_esc(syncPanel.roleLabel)}</div>
-        <div><b>Cloud copy:</b> ${syncPanel.hasServerCopyText}</div>
-        <div><b>Local version:</b> ${syncPanel.localVersionText}</div>
-        <div><b>Server version:</b> ${syncPanel.serverVersionText}</div>
+        <div><b>${accountSection.projectLabel}:</b> ${_esc(syncPanel.projectName)}</div>
+        <div><b>${accountSection.roleLabel}:</b> ${_esc(syncPanel.roleLabel)}</div>
+        <div><b>${accountSection.cloudCopyLabel}:</b> ${syncPanel.hasServerCopyText}</div>
+        <div><b>${accountSection.localVersionLabel}:</b> ${syncPanel.localVersionText}</div>
+        <div><b>${accountSection.serverVersionLabel}:</b> ${syncPanel.serverVersionText}</div>
       </div>`
     : "";
   const auditBtn =
     typeof canViewAuditLog === "function" && canViewAuditLog()
-      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> Журнал змін</button>`
+      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> ${accountSection.auditLogLabel}</button>`
       : "";
   if (loggedIn && sbp) {
     return `
     <div class="settings-section">
-      <div class="settings-section-title">☁ Хмарний акаунт</div>
+      <div class="settings-section-title">${accountSection.sectionTitle}</div>
       <div class="settings-section-body">
         <div class="setting-row">
-          <label>Email</label>
+          <label>${accountSection.emailLabel}</label>
           <span class="account-email">${_esc(p.email)}</span>
         </div>
         <div class="setting-row" style="margin-top:8px">
           <label class="sync-enabled-lbl">● ${_esc(syncBadge.label)}</label>
           <button class="btn btn-sm btn-danger"
             onclick="closeUserModal();apiLogout().then(()=>{ updateUserBtn(); })">
-            Вийти
+            4{accountSection.logoutLabel}
           </button>
         </div>
         ${auditBtn ? `<div class="account-actions">${auditBtn}</div>` : ""}
@@ -402,7 +417,7 @@ function _renderAccountSection(loggedIn, sbp, p) {
 
   return `
     <div class="settings-section">
-      <div class="settings-section-title">☁ Хмарний акаунт</div>
+      <div class="settings-section-title">? ${accountSection.sectionTitle}</div>
       <div class="settings-section-body">
         <p class="auth-hint">
           ${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").hintText : "Sign in to save projects in the cloud and access them from any device.")}

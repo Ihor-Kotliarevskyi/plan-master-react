@@ -173,6 +173,22 @@
     };
   }
 
+  // src/domain/account-section-ui.ts
+  function buildAccountSectionModel() {
+    return {
+      sectionTitle: "Cloud account",
+      emailLabel: "Email",
+      logoutLabel: "Log out",
+      auditLogLabel: "Activity log",
+      projectLabel: "Project",
+      roleLabel: "Role",
+      cloudCopyLabel: "Cloud copy",
+      localVersionLabel: "Local version",
+      serverVersionLabel: "Server version",
+      lastLocalChangeLabel: "Last local change"
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -634,6 +650,7 @@
     buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
     buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
     buildRuntimeThemePanelModel: buildThemePanelModel,
+    buildRuntimeAccountSectionModel: buildAccountSectionModel,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,
