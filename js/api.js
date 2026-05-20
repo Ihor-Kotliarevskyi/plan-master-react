@@ -328,7 +328,7 @@ async function openShareModal() {
   }
   const shares = await apiGetShares();
   const roleOptions = SHAREABLE_PROJECT_ROLES.map(
-    (role) => `<option value="${role}">${PROJECT_ROLE_LABELS[role]}</option>`,
+    (role) => `<option value="${role}">${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
   ).join("");
   const list = shares.length
     ? shares
@@ -341,7 +341,7 @@ async function openShareModal() {
                </span>
                <select class="cost-sel" onchange="apiUpdateShareRole('${s.userId?._id}',this.value)">
                  ${SHAREABLE_PROJECT_ROLES.map(
-                   (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${PROJECT_ROLE_LABELS[role]}</option>`,
+                   (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
                  ).join("")}
                </select>
                <button class="cost-act-btn del"

@@ -1,6 +1,6 @@
 # Phase 2: TypeScript Bootstrap
 
-Status: `started` on `2026-05-19`
+Status: `in_progress` on `2026-05-19`, expanded through `2026-05-20`
 
 ## Purpose
 
@@ -82,7 +82,7 @@ and Supabase adapters happen against stable interfaces.
   - initial local snapshot meta creation
   - persisted buffer payload shape
   - buffered role normalization
-- `js/supabase-api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
+- `js/supabase-api.js`, `js/api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
   - role labels
   - shared-project presentation text
   - access banner display model
