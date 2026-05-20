@@ -111,9 +111,16 @@ function applyTheme(theme) {
   userProfile.theme = theme;
   const btn = document.getElementById("theme-toggle");
   if (btn) {
+    const themeToggle =
+      typeof buildRuntimeThemeToggleModel === "function"
+        ? buildRuntimeThemeToggleModel(theme)
+        : {
+            icon: theme === "dark" ? "sun" : "moon",
+            label: theme === "dark" ? "Light" : "Dark",
+          };
     btn.querySelector(".theme-icon").innerHTML =
-      `<i data-lucide="${theme === "dark" ? "sun" : "moon"}"></i>`;
-    btn.querySelector(".theme-label").textContent = theme === "dark" ? "Світла" : "Темна";
+      `<i data-lucide="${themeToggle.icon}"></i>`;
+    btn.querySelector(".theme-label").textContent = themeToggle.label;
     lucide.createIcons({ nodes: [btn] });
   }
 }
@@ -133,20 +140,30 @@ function updateUserBtn() {
 
   const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
   const profile = loggedIn && typeof _sbProfile !== "undefined" ? _sbProfile : null;
-  const name = profile?.name || userProfile.name || "Профіль";
-  const avatar = profile?.avatar || userProfile.avatar;
-  const initial = (name || "?")[0].toUpperCase();
+  const identity =
+    typeof buildRuntimeUserIdentityModel === "function"
+      ? buildRuntimeUserIdentityModel({
+          name: profile?.name || userProfile.name,
+          email: profile?.email || userProfile.email,
+          avatar: profile?.avatar || userProfile.avatar,
+          theme: userProfile.theme,
+        }, "Profile")
+      : {
+          displayName: profile?.name || userProfile.name || "Profile",
+          initial: ((profile?.name || userProfile.name || "?")[0] || "?").toUpperCase(),
+          avatarUrl: profile?.avatar || userProfile.avatar || null,
+        };
 
-  const avatarHTML = avatar
-    ? `<img src="${avatar}" alt="avatar" class="user-avatar-img" />`
-    : initial;
+  const avatarHTML = identity.avatarUrl
+    ? `<img src="${identity.avatarUrl}" alt="avatar" class="user-avatar-img" />`
+    : identity.initial;
 
   const status = getCurrentSyncBadge().status;
   btn.innerHTML = `
     <div class="user-avatar-wrap">
       <div class="user-avatar">${avatarHTML}</div>
     </div>
-    <span>${name}</span>`;
+    <span>${identity.displayName}</span>`;
   btn.className = `user-btn status-${status}${status === "syncing" ? " syncing" : ""}`;
 }
 
@@ -174,10 +191,23 @@ function _renderUserModal() {
     defaults: userProfile.defaults,
   };
 
-  const initial = (p.name || "?")[0].toUpperCase();
-  const avatarLarge = p.avatar
-    ? `<img src="${p.avatar}" alt="avatar" class="user-avatar-large-img" />`
-    : `<span id="um-avatar-initial">${initial}</span>`;
+  const identity =
+    typeof buildRuntimeUserIdentityModel === "function"
+      ? buildRuntimeUserIdentityModel(p, "Profile")
+      : {
+          displayName: p.name || "Profile",
+          emailText: p.email || "",
+          initial: ((p.name || "?")[0] || "?").toUpperCase(),
+          avatarUrl: p.avatar || null,
+          themeToggle: {
+            icon: p.theme === "dark" ? "sun" : "moon",
+            label: p.theme === "dark" ? "Light" : "Dark",
+          },
+        };
+
+  const avatarLarge = identity.avatarUrl
+    ? `<img src="${identity.avatarUrl}" alt="avatar" class="user-avatar-large-img" />`
+    : `<span id="um-avatar-initial">${identity.initial}</span>`;
 
   document.getElementById("user-modal-body").innerHTML = `
     <div class="um-cols">
@@ -210,8 +240,8 @@ function _renderUserModal() {
             <div class="setting-row">
               <label>Кольорова тема</label>
               <button class="theme-toggle" style="border:none" onclick="toggleTheme();_renderUserModal()">
-                <span class="theme-icon"><i data-lucide="${p.theme === "dark" ? "sun" : "moon"}"></i></span>
-                <span class="theme-label">${p.theme === "dark" ? "Світла" : "Темна"}</span>
+                <span class="theme-icon"><i data-lucide="${identity.themeToggle.icon}"></i></span>
+                <span class="theme-label">${identity.themeToggle.label}</span>
               </button>
             </div>
           </div>
@@ -253,7 +283,7 @@ function _renderUserModal() {
             <input
               id="um-name"
               class="user-inline-input"
-              value="${_esc(p.name)}"
+              value="${_esc(identity.displayName)}"
               placeholder="Введіть ім'я"
               oninput="_syncUserNamePreview(this.value)"
             />

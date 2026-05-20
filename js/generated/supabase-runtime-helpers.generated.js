@@ -122,6 +122,27 @@
     return "btn btn-sm" + (tab === activeTab ? " btn-acc" : "");
   }
 
+  // src/domain/profile-ui.ts
+  function buildThemeToggleModel(theme) {
+    const normalizedTheme = theme === "dark" ? "dark" : "light";
+    return {
+      theme: normalizedTheme,
+      icon: normalizedTheme === "dark" ? "sun" : "moon",
+      label: normalizedTheme === "dark" ? "Light" : "Dark"
+    };
+  }
+  function buildUserIdentityModel(input, fallbackName = "Profile") {
+    const displayName = (input.name || "").trim() || fallbackName;
+    const emailText = (input.email || "").trim();
+    return {
+      displayName,
+      emailText,
+      initial: (displayName || "?")[0].toUpperCase(),
+      avatarUrl: input.avatar || null,
+      themeToggle: buildThemeToggleModel(input.theme)
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -578,6 +599,8 @@
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
     buildRuntimeAuthFormModel: buildAuthFormModel,
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
+    buildRuntimeThemeToggleModel: buildThemeToggleModel,
+    buildRuntimeUserIdentityModel: buildUserIdentityModel,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,

@@ -12,6 +12,7 @@ import {
 } from "../src/domain/access-ui";
 import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
+import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -315,6 +316,22 @@ assert.equal(registerForm.isLogin, false);
 assert.equal(registerForm.submitLabel, "Register");
 assert.equal(getAuthTabButtonClass("login", "login"), "btn btn-sm btn-acc");
 assert.equal(getAuthTabButtonClass("register", "login"), "btn btn-sm");
+
+const themeToggle = buildThemeToggleModel("dark");
+assert.equal(themeToggle.icon, "sun");
+assert.equal(themeToggle.label, "Light");
+
+const userIdentity = buildUserIdentityModel({
+  name: "Ihor",
+  email: "ihor@example.com",
+  avatar: "https://example.com/avatar.png",
+  theme: "light",
+});
+assert.equal(userIdentity.displayName, "Ihor");
+assert.equal(userIdentity.emailText, "ihor@example.com");
+assert.equal(userIdentity.initial, "I");
+assert.equal(userIdentity.avatarUrl, "https://example.com/avatar.png");
+assert.equal(userIdentity.themeToggle.icon, "moon");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
