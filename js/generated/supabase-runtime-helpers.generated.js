@@ -87,6 +87,47 @@
     };
   }
 
+  // src/domain/audit-ui.ts
+  var AUDIT_EVENT_LABELS = {
+    "task.created": "Created task",
+    "task.updated": "Updated task",
+    "task.deleted": "Deleted task",
+    "project.settings_updated": "Updated project settings",
+    "project.baseline_saved": "Saved baseline",
+    "project.baseline_cleared": "Cleared baseline",
+    "share.granted": "Granted access",
+    "share.role_updated": "Updated access role",
+    "share.revoked": "Revoked access"
+  };
+  function getAuditEventLabel(eventType) {
+    if (!eventType) return "Event";
+    return AUDIT_EVENT_LABELS[eventType] || eventType;
+  }
+  function getAuditSubjectLabel(entry, fallbackProjectName = "Current project") {
+    if (!entry) return "-";
+    if (entry.entityType === "task") {
+      const taskName = typeof entry.payload?.taskName === "string" ? entry.payload.taskName : "";
+      const taskN = typeof entry.payload?.taskN === "number" || typeof entry.payload?.taskN === "string" ? entry.payload.taskN : "?";
+      return taskName || `Task #${taskN}`;
+    }
+    if (entry.entityType === "share") {
+      const email = typeof entry.payload?.email === "string" ? entry.payload.email : "";
+      return email || entry.entityId || "Shared access";
+    }
+    return fallbackProjectName || "Current project";
+  }
+  function getAuditActorLabel(entry) {
+    if (!entry) return "-";
+    return entry.actorName || entry.actorEmail || "-";
+  }
+  function buildAuditEntryViewModel(entry, fallbackProjectName) {
+    return {
+      eventLabel: getAuditEventLabel(entry.eventType),
+      actorLabel: getAuditActorLabel(entry),
+      subjectLabel: getAuditSubjectLabel(entry, fallbackProjectName)
+    };
+  }
+
   // src/domain/sync.ts
   var SYNC_BADGE_LABELS = {
     offline: "Синхронізація вимкнена",
@@ -501,7 +542,11 @@
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
-    buildRuntimeAccessBannerModel: buildAccessBannerModel
+    buildRuntimeAccessBannerModel: buildAccessBannerModel,
+    getRuntimeAuditEventLabel: getAuditEventLabel,
+    getRuntimeAuditSubjectLabel: getAuditSubjectLabel,
+    getRuntimeAuditActorLabel: getAuditActorLabel,
+    buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel
   };
   Object.assign(globalThis, runtimeHelpers);
 })();

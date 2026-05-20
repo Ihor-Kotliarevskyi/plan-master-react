@@ -12,6 +12,12 @@ import {
   getProjectRoleLabel,
 } from "../domain/access-ui";
 import {
+  buildAuditEntryViewModel,
+  getAuditActorLabel,
+  getAuditEventLabel,
+  getAuditSubjectLabel,
+} from "../domain/audit-ui";
+import {
   getProjectSyncState as buildProjectSyncState,
   getSyncBadge,
   resolveSyncStatus,
@@ -181,6 +187,10 @@ const runtimeHelpers = {
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
   buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
   buildRuntimeAccessBannerModel: buildAccessBannerModel,
+  getRuntimeAuditEventLabel: getAuditEventLabel,
+  getRuntimeAuditSubjectLabel: getAuditSubjectLabel,
+  getRuntimeAuditActorLabel: getAuditActorLabel,
+  buildRuntimeAuditEntryViewModel: buildAuditEntryViewModel,
 };
 
 Object.assign(globalThis, runtimeHelpers);

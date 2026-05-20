@@ -421,7 +421,7 @@ async function openAuditLogModal() {
             <span class="audit-time">${_esc(new Date(entry.created_at).toLocaleString("uk-UA"))}</span>
           </div>
           <div class="audit-row-meta">
-            <span><b>Хто:</b> ${_esc(entry.actor_name || entry.actor_email || "—")}</span>
+            <span><b>Хто:</b> ${_esc(_getAuditActorLabel(entry))}</span>
             <span><b>Об'єкт:</b> ${_esc(_formatAuditSubject(entry))}</span>
           </div>
         </div>
@@ -625,5 +625,33 @@ function clearAvatar() {
 
 /** Перенаправляє виклики зі старих посилань на openUserModal. */
 function openAuthModal() { openUserModal(); }
+
+_formatAuditEventLabel = function(eventType) {
+  if (typeof getRuntimeAuditEventLabel === "function") {
+    return getRuntimeAuditEventLabel(eventType);
+  }
+  return eventType || "Event";
+};
+
+_formatAuditSubject = function(entry) {
+  if (typeof getRuntimeAuditSubjectLabel === "function") {
+    return getRuntimeAuditSubjectLabel({
+      entityType: entry?.entity_type,
+      entityId: entry?.entity_id,
+      payload: entry?.payload || {},
+    }, proj?.name || "Current project");
+  }
+  return proj?.name || "Current project";
+};
+
+function _getAuditActorLabel(entry) {
+  if (typeof getRuntimeAuditActorLabel === "function") {
+    return getRuntimeAuditActorLabel({
+      actorName: entry?.actor_name,
+      actorEmail: entry?.actor_email,
+    });
+  }
+  return entry?.actor_name || entry?.actor_email || "-";
+}
 
 loadUser();

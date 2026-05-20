@@ -11,6 +11,12 @@ import {
   getProjectRoleLabel,
 } from "../src/domain/access-ui";
 import {
+  buildAuditEntryViewModel,
+  getAuditActorLabel,
+  getAuditEventLabel,
+  getAuditSubjectLabel,
+} from "../src/domain/audit-ui";
+import {
   getProjectSyncState,
   getSyncBadge,
   resolveSyncStatus,
@@ -194,6 +200,13 @@ assert.equal(shareView.user.email, "user2@example.com");
 const auditEntry = mapActivityLogRow(activityRow);
 assert.equal(auditEntry.eventType, "task.updated");
 assert.equal(auditEntry.payload.field, "name");
+assert.equal(getAuditEventLabel(auditEntry.eventType), "Updated task");
+assert.equal(getAuditActorLabel(auditEntry), "Owner Name");
+assert.equal(getAuditSubjectLabel(auditEntry, "Shared Project"), "Task #?");
+const auditView = buildAuditEntryViewModel(auditEntry, "Shared Project");
+assert.equal(auditView.eventLabel, "Updated task");
+assert.equal(auditView.actorLabel, "Owner Name");
+assert.equal(auditView.subjectLabel, "Task #?");
 
 const buffered = {
   localOnly: {

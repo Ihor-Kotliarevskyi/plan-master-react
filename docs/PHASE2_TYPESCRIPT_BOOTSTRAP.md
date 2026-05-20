@@ -19,6 +19,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/types.ts`
   - `src/domain/permissions.ts`
   - `src/domain/audit.ts`
+  - `src/domain/audit-ui.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -78,6 +79,7 @@ and Supabase adapters happen against stable interfaces.
   - project sync-state calculation
   - sync-badge resolution
   - preferred sync-status fallback logic
+  - audit event and subject presentation helpers
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape
