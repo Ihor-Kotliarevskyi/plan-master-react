@@ -227,7 +227,10 @@ async function apiCreateProject() {
         allProjects[currentId]._role = "owner";
         _projectRole = "owner";
       }
-      localStorage.setItem(SK, JSON.stringify({ allProjects, currentId }));
+      const payload = typeof buildRuntimeStorageBufferPayload === "function"
+        ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
+        : { allProjects, currentId };
+      localStorage.setItem(SK_BUF, JSON.stringify(payload));
     }
   } catch (_) {}
 }
@@ -253,9 +256,30 @@ async function apiGetActivityLog() {
 
 function _updateReadOnlyUI() {
   const readonly = isReadOnly();
+  const role = _getCurrentRole() || "owner";
+  const accessMeta = allProjects?.[currentId]?._access || null;
+  const bannerModel = typeof buildRuntimeAccessBannerModel === "function"
+    ? buildRuntimeAccessBannerModel(role, accessMeta)
+    : {
+        shouldShow: role !== "owner",
+        roleLabel: typeof PROJECT_ROLE_LABELS !== "undefined" ? (PROJECT_ROLE_LABELS[role] || role) : role,
+        roleHint: typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "",
+        sharedMetaText: accessMeta?.source === "shared"
+          ? [accessMeta.ownerName || accessMeta.ownerEmail, accessMeta.invitedByName || accessMeta.invitedByEmail].filter(Boolean).join(" · ")
+          : "",
+      };
 
   const banner = document.getElementById("readonly-banner");
   if (banner) banner.style.display = readonly ? "flex" : "none";
+
+  const headerBanner = document.getElementById("project-access-banner");
+  if (headerBanner) {
+    headerBanner.style.display = bannerModel.shouldShow ? "flex" : "none";
+    headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
+    headerBanner.innerHTML = bannerModel.shouldShow
+      ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
+      : "";
+  }
 
   const gtbl = document.getElementById("gtbl-wrap");
   if (gtbl) {
