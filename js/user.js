@@ -340,11 +340,11 @@ function _renderAccountSection(loggedIn, sbp, p) {
       <div class="settings-section-title">☁ Хмарний акаунт</div>
       <div class="settings-section-body">
         <p class="auth-hint">
-          Увійдіть щоб зберігати проєкти на сервері та мати доступ з будь-якого пристрою.
+          ${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").hintText : "Sign in to save projects in the cloud and access them from any device.")}
         </p>
         <div class="auth-tabs">
-          <button id="atab-login" class="btn btn-sm btn-acc" onclick="_switchAuthTab('login')" style="flex:1">Увійти</button>
-          <button id="atab-register" class="btn btn-sm" onclick="_switchAuthTab('register')" style="flex:1">Реєстрація</button>
+          <button id="atab-login" class="btn btn-sm btn-acc" onclick="_switchAuthTab('login')" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").loginTabLabel : "Sign in")}</button>
+          <button id="atab-register" class="btn btn-sm" onclick="_switchAuthTab('register')" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").registerTabLabel : "Register")}</button>
         </div>
         <div id="auth-tab-body">${_renderAuthForm("login")}</div>
       </div>
@@ -352,24 +352,36 @@ function _renderAccountSection(loggedIn, sbp, p) {
 }
 
 function _renderAuthForm(tab) {
-  const isLogin = tab === "login";
+  const model =
+    typeof buildRuntimeAuthFormModel === "function"
+      ? buildRuntimeAuthFormModel(tab)
+      : {
+          isLogin: tab === "login",
+          nameLabel: "Name",
+          namePlaceholder: "Your name",
+          emailLabel: "Email",
+          emailPlaceholder: "example@mail.com",
+          passwordLabel: "Password",
+          passwordPlaceholder: "Minimum 6 characters",
+          submitLabel: tab === "login" ? "Sign in" : "Register",
+        };
   return `
     <div class="auth-form">
-      ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
-      <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
-      <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
+      ${!model.isLogin ? `<div class="fg"><label>${_esc(model.nameLabel)}</label><input id="auth-name" placeholder="${_esc(model.namePlaceholder)}"/></div>` : ""}
+      <div class="fg"><label>${_esc(model.emailLabel)}</label><input id="auth-email" type="email" placeholder="${_esc(model.emailPlaceholder)}"/></div>
+      <div class="fg"><label>${_esc(model.passwordLabel)}</label><input id="auth-pass" type="password" placeholder="${_esc(model.passwordPlaceholder)}"/></div>
       <div id="auth-error" class="auth-error" style="display:none"></div>
       <button class="btn btn-acc auth-submit-btn" type="button" onclick="_submitAuthInCabinet('${tab}')">
-        ${isLogin ? "Увійти" : "Зареєструватись"}
+        ${_esc(model.submitLabel)}
       </button>
     </div>`;
 }
 
 function _switchAuthTab(tab) {
   document.getElementById("atab-login").className =
-    "btn btn-sm" + (tab === "login" ? " btn-acc" : "");
+    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("login", tab) : ("btn btn-sm" + (tab === "login" ? " btn-acc" : "")));
   document.getElementById("atab-register").className =
-    "btn btn-sm" + (tab === "register" ? " btn-acc" : "");
+    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("register", tab) : ("btn btn-sm" + (tab === "register" ? " btn-acc" : "")));
   document.getElementById("auth-tab-body").innerHTML = _renderAuthForm(tab);
 }
 

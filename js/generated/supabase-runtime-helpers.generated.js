@@ -100,6 +100,28 @@
     };
   }
 
+  // src/domain/auth-ui.ts
+  function buildAuthFormModel(tab) {
+    const isLogin = tab === "login";
+    return {
+      tab,
+      isLogin,
+      hintText: "Sign in to save projects in the cloud and access them from any device.",
+      loginTabLabel: "Sign in",
+      registerTabLabel: "Register",
+      nameLabel: "Name",
+      namePlaceholder: "Your name",
+      emailLabel: "Email",
+      emailPlaceholder: "example@mail.com",
+      passwordLabel: "Password",
+      passwordPlaceholder: "Minimum 6 characters",
+      submitLabel: isLogin ? "Sign in" : "Register"
+    };
+  }
+  function getAuthTabButtonClass(tab, activeTab) {
+    return "btn btn-sm" + (tab === activeTab ? " btn-acc" : "");
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -554,6 +576,8 @@
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+    buildRuntimeAuthFormModel: buildAuthFormModel,
+    getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
     buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
     buildRuntimeAccessBannerModel: buildAccessBannerModel,

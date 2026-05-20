@@ -11,6 +11,7 @@ import {
   getProjectRoleLabel,
 } from "../src/domain/access-ui";
 import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
+import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -305,6 +306,15 @@ assert.equal(accountSyncPanel.roleLabel, "Перегляд");
 assert.equal(accountSyncPanel.projectName, "Shared Project");
 assert.equal(accountSyncPanel.hasServerCopyText, "yes");
 assert.equal(accountSyncPanel.localVersionText, "3");
+
+const loginForm = buildAuthFormModel("login");
+assert.equal(loginForm.isLogin, true);
+assert.equal(loginForm.submitLabel, "Sign in");
+const registerForm = buildAuthFormModel("register");
+assert.equal(registerForm.isLogin, false);
+assert.equal(registerForm.submitLabel, "Register");
+assert.equal(getAuthTabButtonClass("login", "login"), "btn btn-sm btn-acc");
+assert.equal(getAuthTabButtonClass("register", "login"), "btn btn-sm");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

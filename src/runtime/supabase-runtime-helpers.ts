@@ -12,6 +12,7 @@ import {
   getProjectRoleLabel,
 } from "../domain/access-ui";
 import { buildAccountSyncPanelModel } from "../domain/account-ui";
+import { buildAuthFormModel, getAuthTabButtonClass } from "../domain/auth-ui";
 import {
   buildAuditEntryViewModel,
   getAuditActorLabel,
@@ -186,6 +187,8 @@ const runtimeHelpers = {
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+  buildRuntimeAuthFormModel: buildAuthFormModel,
+  getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,
   buildRuntimeSharedProjectMetaLine: buildSharedProjectMetaLine,
   buildRuntimeAccessBannerModel: buildAccessBannerModel,
