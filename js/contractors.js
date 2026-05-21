@@ -1,6 +1,63 @@
 const CONTRACTOR_EMPTY_NAME = "Без контрагента";
 
 let contractorFilters = { q: "", status: [], type: [], cat: [] };
+const CONTRACTOR_UI = typeof buildRuntimeContractorTableLabels === "function"
+  ? buildRuntimeContractorTableLabels()
+  : {
+      emptyContractorName: "Без контрагента",
+      noPermissionTitle: "У вас немає прав на зміну контрагентів у цьому проєкті",
+      emptyFilteredText: "Немає контрагентів за вибраними фільтрами",
+      selectAllTitle: "Вибрати всі видимі контрагенти",
+      rowNoHeader: "№",
+      supplierHeader: "Контрагент",
+      tasksCountHeader: "Робіт",
+      itemsCountHeader: "Договорів",
+      budgetHeader: "Кошторис",
+      paidHeader: "Оплачено",
+      restHeader: "Залишок",
+      actsAmountHeader: "Сума актів",
+      actsDebtHeader: "Заборг. по актах",
+      paymentsCountHeader: "Платежів",
+      lastPaymentHeader: "Остання оплата",
+      statusHeader: "Статус",
+    };
+const CONTRACTOR_FILTER_UI = typeof buildRuntimeContractorFilterLabels === "function"
+  ? buildRuntimeContractorFilterLabels()
+  : {
+      statusLabel: "Статус",
+      statusAllLabel: "Усі статуси",
+      statusDebtLabel: "Є залишок",
+      statusPaidLabel: "Оплачено",
+      statusOverpaidLabel: "Переплата",
+      statusUnpaidLabel: "Без оплат",
+      typeLabel: "Тип",
+      typeAllLabel: "Усі типи",
+      categoryLabel: "Категорія",
+      categoryAllLabel: "Усі категорії",
+      resetFiltersTitle: "Скинути фільтри контрагентів",
+      chooseVisibleTitle: "Вибрати всі видимі контрагенти",
+    };
+const CONTRACTOR_SELECTION_UI = typeof buildRuntimeContractorSelectionLabels === "function"
+  ? buildRuntimeContractorSelectionLabels()
+  : {
+      showSelectionLabel: "Вибрати",
+      hideSelectionLabel: "Сховати вибір",
+      selectedLabel: "Вибрано",
+      clearSelectionLabel: "Очистити",
+      deleteSelectedLabel: "Видалити вибраних",
+    };
+const CONTRACTOR_SUMMARY_UI = typeof buildRuntimeContractorSummaryLabels === "function"
+  ? buildRuntimeContractorSummaryLabels()
+  : {
+      contractors: "Контрагентів",
+      contracts: "Договорів",
+      budget: "Кошторис",
+      paid: "Оплачено",
+      actsAmount: "Сума актів",
+      actsDebt: "Борг по актах",
+      rest: "Залишок",
+      currencyUnit: "грн",
+    };
 let contractorSort = { col: "paid", dir: -1 };
 let contractorDetailSort = {
   contracts: { col: "contractNo", dir: 1 },
@@ -135,7 +192,7 @@ const CONTRACTOR_IMPORT_FIELD_ORDER = [
 function _canMutateContractors(showMessage = false) {
   const allowed = typeof canEditTasks === "function" ? canEditTasks() : true;
   if (!allowed && showMessage) {
-    Swal.fire({ icon: "info", title: "У вас немає прав на зміну контрагентів у цьому проєкті" });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noPermissionTitle });
   }
   return allowed;
 }
@@ -168,7 +225,7 @@ function renderContractors() {
     .map(([key, label]) => {
       const resize = `<span class="contractor-col-resizer" onclick="event.stopPropagation()" onmousedown="startContractorColResize(event,'${key}')"></span>`;
       const drag = `draggable="true" ondragstart="startContractorColDrag(event,'${key}')" ondragover="event.preventDefault()" ondrop="dropContractorCol(event,'${key}')" ondragend="endContractorColDrag()"`;
-      if (key === "select") return `<th data-col="${key}" class="contractor-select-cell" ${drag}>${contractorSelectionMode ? `<input type="checkbox" id="contractor-select-all" onclick="event.stopPropagation();toggleAllVisibleContractors(this.checked)" title="Вибрати всі видимі контрагенти">` : ""}${resize}</th>`;
+      if (key === "select") return `<th data-col="${key}" class="contractor-select-cell" ${drag}>${contractorSelectionMode ? `<input type="checkbox" id="contractor-select-all" onclick="event.stopPropagation();toggleAllVisibleContractors(this.checked)" title="${CONTRACTOR_FILTER_UI.chooseVisibleTitle}">` : ""}${resize}</th>`;
       if (key === "actions") return `<th data-col="${key}" ${drag}>${label}${resize}</th>`;
       const cls = contractorSort.col === key ? (contractorSort.dir === 1 ? "asc" : "desc") : "";
       return `<th data-col="${key}" class="${cls}" onclick="if(!_contractorSuppressHeaderClick)sortContractors('${key}')" ${drag}><span>${label}</span>${resize}</th>`;
@@ -177,7 +234,7 @@ function renderContractors() {
 
   const body = rows.length
     ? rows.map((row) => _renderContractorRow(row, visibleCols)).join("")
-    : `<tr><td colspan="${visibleCols.length}" class="contractor-empty">Немає контрагентів за вибраними фільтрами</td></tr>`;
+    : `<tr><td colspan="${visibleCols.length}" class="contractor-empty">${CONTRACTOR_UI.emptyFilteredText}</td></tr>`;
 
   tbl.innerHTML = `
     <colgroup>${visibleCols.map(([key]) => `<col style="width:${widths[key] || CONTRACTOR_COL_DEFAULTS[key]}px">`).join("")}</colgroup>
@@ -193,18 +250,18 @@ function renderContractors() {
 function _getContractorColumns() {
   const base = [
     ["select", ""],
-    ["rowNo", "№"],
-    ["supplier", "Контрагент"],
-    ["tasksCount", "Робіт"],
-    ["itemsCount", "Договорів"],
-    ["budget", "Кошторис"],
-    ["paid", "Оплачено"],
-    ["rest", "Залишок"],
-    ["actsAmount", "Сума актів"],
-    ["actsDebt", "Заборг. по актах"],
-    ["paymentsCount", "Платежів"],
-    ["lastPayment", "Остання оплата"],
-    ["status", "Статус"],
+    ["rowNo", CONTRACTOR_UI.rowNoHeader],
+    ["supplier", CONTRACTOR_UI.supplierHeader],
+    ["tasksCount", CONTRACTOR_UI.tasksCountHeader],
+    ["itemsCount", CONTRACTOR_UI.itemsCountHeader],
+    ["budget", CONTRACTOR_UI.budgetHeader],
+    ["paid", CONTRACTOR_UI.paidHeader],
+    ["rest", CONTRACTOR_UI.restHeader],
+    ["actsAmount", CONTRACTOR_UI.actsAmountHeader],
+    ["actsDebt", CONTRACTOR_UI.actsDebtHeader],
+    ["paymentsCount", CONTRACTOR_UI.paymentsCountHeader],
+    ["lastPayment", CONTRACTOR_UI.lastPaymentHeader],
+    ["status", CONTRACTOR_UI.statusHeader],
     ["actions", ""],
   ];
   return _applyStoredColumnOrder(base, CONTRACTOR_COL_ORDER_SK);
@@ -324,30 +381,30 @@ function _syncContractorControls() {
 
   const status = document.getElementById("contractor-status-filter");
   if (status) {
-    status.innerHTML = renderMultiFilter("contractorFilters.status", "Статус", "Усі статуси", [
-      { value: "debt", label: "Є залишок" },
-      { value: "paid", label: "Оплачено" },
-      { value: "over", label: "Переплата" },
-      { value: "unpaid", label: "Без оплат" },
+    status.innerHTML = renderMultiFilter("contractorFilters.status", CONTRACTOR_FILTER_UI.statusLabel, CONTRACTOR_FILTER_UI.statusAllLabel, [
+      { value: "debt", label: CONTRACTOR_FILTER_UI.statusDebtLabel },
+      { value: "paid", label: CONTRACTOR_FILTER_UI.statusPaidLabel },
+      { value: "over", label: CONTRACTOR_FILTER_UI.statusOverpaidLabel },
+      { value: "unpaid", label: CONTRACTOR_FILTER_UI.statusUnpaidLabel },
     ], "renderContractors", "contractor-multi");
   }
 
   const type = document.getElementById("contractor-type-filter");
   if (type) {
     const typeOptions = Object.entries(COST_TYPES || {}).map(([value, cfg]) => ({ value, label: cfg.label || value }));
-    type.innerHTML = renderMultiFilter("contractorFilters.type", "Тип", "Усі типи", typeOptions, "renderContractors", "contractor-multi");
+    type.innerHTML = renderMultiFilter("contractorFilters.type", CONTRACTOR_FILTER_UI.typeLabel, CONTRACTOR_FILTER_UI.typeAllLabel, typeOptions, "renderContractors", "contractor-multi");
   }
 
   const cat = document.getElementById("contractor-cat-filter");
   if (cat) {
     const catOptions = cats.map((c, i) => ({ value: i, label: c.name }));
-    cat.innerHTML = renderMultiFilter("contractorFilters.cat", "Категорія", "Усі категорії", catOptions, "renderContractors", "contractor-multi");
+    cat.innerHTML = renderMultiFilter("contractorFilters.cat", CONTRACTOR_FILTER_UI.categoryLabel, CONTRACTOR_FILTER_UI.categoryAllLabel, catOptions, "renderContractors", "contractor-multi");
   }
 
   const reset = document.getElementById("contractor-reset-filter");
   if (reset) {
     reset.innerHTML = _hasContractorFilters()
-      ? `<button class="btn btn-sm" onclick="resetContractorFilters()" title="Скинути фільтри контрагентів"><i data-lucide="rotate-ccw"></i></button>`
+      ? `<button class="btn btn-sm" onclick="resetContractorFilters()" title="${CONTRACTOR_FILTER_UI.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>`
       : "";
   }
 
@@ -355,12 +412,12 @@ function _syncContractorControls() {
   if (selection) {
     const selectedCount = _selectedContractorKeys().length;
     selection.innerHTML = `
-        <button class="btn btn-sm" onclick="toggleContractorSelectionMode()">${contractorSelectionMode ? "Сховати вибір" : "Вибрати"}</button>
+        <button class="btn btn-sm" onclick="toggleContractorSelectionMode()">${contractorSelectionMode ? CONTRACTOR_SELECTION_UI.hideSelectionLabel : CONTRACTOR_SELECTION_UI.showSelectionLabel}</button>
         ${selectedCount
         ? `
-        <span class="contractor-selection-chip">Вибрано: <b>${selectedCount}</b></span>
-        <button class="btn btn-sm" onclick="clearContractorSelection()">Очистити</button>
-        <button class="btn btn-sm danger" onclick="deleteSelectedContractors()">Видалити вибраних</button>`
+        <span class="contractor-selection-chip">${CONTRACTOR_SELECTION_UI.selectedLabel}: <b>${selectedCount}</b></span>
+        <button class="btn btn-sm" onclick="clearContractorSelection()">${CONTRACTOR_SELECTION_UI.clearSelectionLabel}</button>
+        <button class="btn btn-sm danger" onclick="deleteSelectedContractors()">${CONTRACTOR_SELECTION_UI.deleteSelectedLabel}</button>`
         : ""}`;
   }
 
@@ -406,13 +463,13 @@ function _renderContractorSummary(rows) {
   const withDebt = rows.filter((r) => r.rest > 0.5).length;
 
   el.innerHTML = `
-    <div class="contractor-card"><div class="lbl">Контрагентів</div><div class="val">${realContractors}</div></div>
-    <div class="contractor-card"><div class="lbl">Договорів</div><div class="val">${total.items}</div></div>
-    <div class="contractor-card"><div class="lbl">Кошторис</div><div class="val">${fmtM(Math.round(total.budget))}</div><div class="sub">грн</div></div>
-    <div class="contractor-card"><div class="lbl">Оплачено</div><div class="val" style="color:var(--ok)">${fmtM(Math.round(total.paid))}</div><div class="sub">грн</div></div>
-    <div class="contractor-card"><div class="lbl">Сума актів</div><div class="val">${fmtM(Math.round(total.actsAmount))}</div><div class="sub">грн</div></div>
-    <div class="contractor-card"><div class="lbl">Борг по актах</div><div class="val" style="color:${total.actsDebt > 0 ? "var(--err)" : "inherit"}">${fmtM(Math.round(total.actsDebt))}</div><div class="sub">грн</div></div>
-    <div class="contractor-card"><div class="lbl">Залишок</div><div class="val" style="color:${total.rest < 0 ? "var(--err)" : "inherit"}">${fmtM(Math.round(total.rest))}</div><div class="sub">грн</div></div>`;
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.contractors}</div><div class="val">${realContractors}</div></div>
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.contracts}</div><div class="val">${total.items}</div></div>
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.budget}</div><div class="val">${fmtM(Math.round(total.budget))}</div><div class="sub">${CONTRACTOR_SUMMARY_UI.currencyUnit}</div></div>
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.paid}</div><div class="val" style="color:var(--ok)">${fmtM(Math.round(total.paid))}</div><div class="sub">${CONTRACTOR_SUMMARY_UI.currencyUnit}</div></div>
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.actsAmount}</div><div class="val">${fmtM(Math.round(total.actsAmount))}</div><div class="sub">${CONTRACTOR_SUMMARY_UI.currencyUnit}</div></div>
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.actsDebt}</div><div class="val" style="color:${total.actsDebt > 0 ? "var(--err)" : "inherit"}">${fmtM(Math.round(total.actsDebt))}</div><div class="sub">${CONTRACTOR_SUMMARY_UI.currencyUnit}</div></div>
+    <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.rest}</div><div class="val" style="color:${total.rest < 0 ? "var(--err)" : "inherit"}">${fmtM(Math.round(total.rest))}</div><div class="sub">${CONTRACTOR_SUMMARY_UI.currencyUnit}</div></div>`;
 }
 
 function _renderContractorRow(row, colspan) {

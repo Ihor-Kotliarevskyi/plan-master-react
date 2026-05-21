@@ -24,6 +24,12 @@ import {
 } from "../domain/render-ui";
 import { buildAppUiModel } from "../domain/app-ui";
 import {
+  buildContractorFilterLabels,
+  buildContractorSelectionLabels,
+  buildContractorSummaryLabels,
+  buildContractorTableLabels,
+} from "../domain/contractors-ui";
+import {
   buildDependencyEditorModel,
   buildCategoryEditorModel,
   buildCannotDeleteLastProjectModel,
@@ -223,6 +229,10 @@ const runtimeHelpers = {
   buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
   buildRuntimeTableLabels: buildTableLabels,
   buildRuntimeAppUiModel: buildAppUiModel,
+  buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
+  buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
+  buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
+  buildRuntimeContractorTableLabels: buildContractorTableLabels,
   buildRuntimeAuthFormModel: buildAuthFormModel,
   getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeThemeToggleModel: buildThemeToggleModel,

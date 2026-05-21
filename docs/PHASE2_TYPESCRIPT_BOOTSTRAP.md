@@ -29,6 +29,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/modal-ui.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
+  - `src/domain/contractors-ui.ts`
   - `src/domain/user-feedback-ui.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
@@ -110,6 +111,7 @@ and Supabase adapters happen against stable interfaces.
   - gantt toolbar labels
   - task row labels and notes/phase captions
   - app import-conflict dialogs and import/copy feedback labels
+  - contractor summary, filters, table headers, and selection labels
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape

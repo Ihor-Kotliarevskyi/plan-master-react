@@ -23,6 +23,12 @@ import {
 } from "../src/domain/render-ui";
 import { buildAppUiModel } from "../src/domain/app-ui";
 import {
+  buildContractorFilterLabels,
+  buildContractorSelectionLabels,
+  buildContractorSummaryLabels,
+  buildContractorTableLabels,
+} from "../src/domain/contractors-ui";
+import {
   buildDependencyEditorModel,
   buildDemoProjectSeedModel,
   buildCannotDeleteLastProjectModel,
@@ -464,6 +470,22 @@ assert.equal(appUi.importedProjectFallbackName, "Імпортований про
 assert.equal(appUi.copiedTaskSuffix, " (копія)");
 assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
 assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
+
+const contractorSummaryLabels = buildContractorSummaryLabels();
+assert.equal(contractorSummaryLabels.contractors, "Контрагентів");
+assert.equal(contractorSummaryLabels.currencyUnit, "грн");
+
+const contractorFilterLabels = buildContractorFilterLabels();
+assert.equal(contractorFilterLabels.statusLabel, "Статус");
+assert.equal(contractorFilterLabels.statusDebtLabel, "Є залишок");
+
+const contractorSelectionLabels = buildContractorSelectionLabels();
+assert.equal(contractorSelectionLabels.showSelectionLabel, "Вибрати");
+assert.equal(contractorSelectionLabels.deleteSelectedLabel, "Видалити вибраних");
+
+const contractorTableLabels = buildContractorTableLabels();
+assert.equal(contractorTableLabels.emptyContractorName, "Без контрагента");
+assert.equal(contractorTableLabels.paymentsCountHeader, "Платежів");
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");
