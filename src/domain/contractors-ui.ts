@@ -49,6 +49,17 @@ export interface ContractorTableLabels {
   paymentsCountHeader: string;
   lastPaymentHeader: string;
   statusHeader: string;
+  emDash: string;
+  contractActEmptyText: string;
+  actEmptyText: string;
+  paymentEmptyText: string;
+  forecastEmptyText: string;
+  addActTitle: string;
+  addPaymentTitle: string;
+  editActTitle: string;
+  deleteActTitle: string;
+  editPaymentTitle: string;
+  deletePaymentTitle: string;
 }
 
 export function buildContractorSummaryLabels(): ContractorSummaryLabels {
@@ -109,5 +120,16 @@ export function buildContractorTableLabels(): ContractorTableLabels {
     paymentsCountHeader: "Платежів",
     lastPaymentHeader: "Остання оплата",
     statusHeader: "Статус",
+    emDash: "—",
+    contractActEmptyText: "Договорів по цьому контрагенту ще немає",
+    actEmptyText: "Актів по цьому контрагенту ще немає",
+    paymentEmptyText: "Платежів по цьому контрагенту ще немає",
+    forecastEmptyText: "Планового кошторису без контрагента немає",
+    addActTitle: "Додати акт",
+    addPaymentTitle: "Додати платіж",
+    editActTitle: "Редагувати акт",
+    deleteActTitle: "Видалити акт",
+    editPaymentTitle: "Редагувати платіж",
+    deletePaymentTitle: "Видалити платіж",
   };
 }

@@ -3902,47 +3902,47 @@ function _renderContractorDetailTable(group, rows, emptyText, cellRenderer) {
 }
 
 function _renderContractorContractCell(item, key) {
-  if (key === "contractNo") return `<td>${_ctEsc(item.contractNo || item.itemName || "—")}</td>`;
-  if (key === "itemName") return `<td>${_ctEsc(item.itemName || "—")}</td>`;
+  if (key === "contractNo") return `<td>${_ctEsc(item.contractNo || item.itemName || CONTRACTOR_UI.emDash)}</td>`;
+  if (key === "itemName") return `<td>${_ctEsc(item.itemName || CONTRACTOR_UI.emDash)}</td>`;
   if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${item.ti})">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>`;
   if (key === "total") return `<td class="contractor-num">${fmtM(Math.round(item.total || item.budget || 0))}</td>`;
   if (key === "budget") return `<td class="contractor-num">${fmtM(Math.round(item.budget || 0))}</td>`;
   if (key === "note") return `<td>${_ctEsc(item.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="openContractorActModal('', '${_ctAttr(item.path)}')" title="Додати акт"><i data-lucide="file-text"></i></button>
-    <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('${_ctAttr(item.path)}')" title="Додати платіж"><i data-lucide="credit-card"></i></button>
+    <button class="btn btn-sm contractor-row-action" onclick="openContractorActModal('', '${_ctAttr(item.path)}')" title="${CONTRACTOR_UI.addActTitle}"><i data-lucide="file-text"></i></button>
+    <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('${_ctAttr(item.path)}')" title="${CONTRACTOR_UI.addPaymentTitle}"><i data-lucide="credit-card"></i></button>
   </td>`;
   return `<td></td>`;
 }
 
 function _renderContractorActCell(act, key) {
-  if (key === "date") return `<td>${_ctEsc(_ctDisplayDate(act.date) || "—")}</td>`;
-  if (key === "type") return `<td>${_ctEsc(CONTRACTOR_ACT_TYPES[act.type] || act.type || "—")}</td>`;
-  if (key === "name") return `<td>${_ctEsc(act.name || "—")}</td>`;
+  if (key === "date") return `<td>${_ctEsc(_ctDisplayDate(act.date) || CONTRACTOR_UI.emDash)}</td>`;
+  if (key === "type") return `<td>${_ctEsc(CONTRACTOR_ACT_TYPES[act.type] || act.type || CONTRACTOR_UI.emDash)}</td>`;
+  if (key === "name") return `<td>${_ctEsc(act.name || CONTRACTOR_UI.emDash)}</td>`;
   if (key === "amount") return `<td class="contractor-num">${fmtM(Math.round(act.amount || 0))}</td>`;
-  if (key === "contractNo") return `<td>${_ctEsc(act.contractNo || "—")}<br><small>${fmtM(Math.round(act.contractAmount || 0))} грн</small></td>`;
-  if (key === "itemName") return `<td>${_ctEsc(act.itemName || "—")}</td>`;
+  if (key === "contractNo") return `<td>${_ctEsc(act.contractNo || CONTRACTOR_UI.emDash)}<br><small>${fmtM(Math.round(act.contractAmount || 0))} ${CONTRACTOR_SUMMARY_UI.currencyUnit}</small></td>`;
+  if (key === "itemName") return `<td>${_ctEsc(act.itemName || CONTRACTOR_UI.emDash)}</td>`;
   if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${act.ti})">#${act.taskNo} ${_ctEsc(act.taskName)}</span></td>`;
   if (key === "note") return `<td>${_ctEsc(act.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="editContractorAct('${_ctAttr(act.path)}')" title="Редагувати акт"><i data-lucide="pencil"></i></button>
-    <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('', '${_ctAttr(act.path)}')" title="Додати платіж"><i data-lucide="credit-card"></i></button>
-    <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorAct('${_ctAttr(act.path)}')" title="Видалити акт"><i data-lucide="trash-2"></i></button>
+    <button class="btn btn-sm contractor-row-action" onclick="editContractorAct('${_ctAttr(act.path)}')" title="${CONTRACTOR_UI.editActTitle}"><i data-lucide="pencil"></i></button>
+    <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('', '${_ctAttr(act.path)}')" title="${CONTRACTOR_UI.addPaymentTitle}"><i data-lucide="credit-card"></i></button>
+    <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorAct('${_ctAttr(act.path)}')" title="${CONTRACTOR_UI.deleteActTitle}"><i data-lucide="trash-2"></i></button>
   </td>`;
   return `<td></td>`;
 }
 
 function _renderContractorPaymentCell(p, key) {
-  if (key === "date") return `<td>${_ctEsc(_ctDisplayDate(p.date) || "—")}</td>`;
+  if (key === "date") return `<td>${_ctEsc(_ctDisplayDate(p.date) || CONTRACTOR_UI.emDash)}</td>`;
   if (key === "amount") return `<td class="contractor-num">${fmtM(Math.round(p.amount || 0))}</td>`;
-  if (key === "contractNo") return `<td>${_ctEsc(p.contractNo || "—")}<br><small>${fmtM(Math.round(p.contractAmount || 0))} грн</small></td>`;
-  if (key === "actNo") return `<td>${_ctEsc(p.actNo || "—")}</td>`;
+  if (key === "contractNo") return `<td>${_ctEsc(p.contractNo || CONTRACTOR_UI.emDash)}<br><small>${fmtM(Math.round(p.contractAmount || 0))} ${CONTRACTOR_SUMMARY_UI.currencyUnit}</small></td>`;
+  if (key === "actNo") return `<td>${_ctEsc(p.actNo || CONTRACTOR_UI.emDash)}</td>`;
   if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${p.ti})">#${p.taskNo} ${_ctEsc(p.taskName)}</span></td>`;
   if (key === "itemName") return `<td>${_ctEsc(p.itemName)}</td>`;
   if (key === "note") return `<td>${_ctEsc(p.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="editContractorPayment('${_ctAttr(p.path)}')" title="Редагувати платіж"><i data-lucide="pencil"></i></button>
-    <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorPayment('${_ctAttr(p.path)}')" title="Видалити платіж"><i data-lucide="trash-2"></i></button>
+    <button class="btn btn-sm contractor-row-action" onclick="editContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.editPaymentTitle}"><i data-lucide="pencil"></i></button>
+    <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.deletePaymentTitle}"><i data-lucide="trash-2"></i></button>
   </td>`;
   return `<td></td>`;
 }
@@ -3965,9 +3965,9 @@ _renderContractorDetails = function _renderContractorDetailsResizable(row, colsp
     <tr class="contractor-detail-row">
       <td colspan="${colspan}">
         <div class="contractor-detail-box">
-          ${_renderContractorDetailTable("contracts", contracts, "Договорів по цьому контрагенту ще немає", _renderContractorContractCell)}
-          ${_renderContractorDetailTable("acts", acts, "Актів по цьому контрагенту ще немає", _renderContractorActCell)}
-          ${_renderContractorDetailTable("payments", payments, "Платежів по цьому контрагенту ще немає", _renderContractorPaymentCell)}
+          ${_renderContractorDetailTable("contracts", contracts, CONTRACTOR_UI.contractActEmptyText, _renderContractorContractCell)}
+          ${_renderContractorDetailTable("acts", acts, CONTRACTOR_UI.actEmptyText, _renderContractorActCell)}
+          ${_renderContractorDetailTable("payments", payments, CONTRACTOR_UI.paymentEmptyText, _renderContractorPaymentCell)}
         </div>
       </td>
     </tr>`;
@@ -3979,7 +3979,7 @@ _renderContractorForecastDetails = function _renderContractorForecastDetailsResi
     <tr class="contractor-detail-row">
       <td colspan="${colspan}">
         <div class="contractor-detail-box">
-          ${_renderContractorDetailTable("forecast", rows, "Планового кошторису без контрагента немає", _renderContractorForecastCell)}
+          ${_renderContractorDetailTable("forecast", rows, CONTRACTOR_UI.forecastEmptyText, _renderContractorForecastCell)}
         </div>
       </td>
     </tr>`;
