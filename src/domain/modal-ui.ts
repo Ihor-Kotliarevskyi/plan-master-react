@@ -62,6 +62,7 @@ export interface NotesModalModel {
   emptyStateText: string;
   countTitle: (count: number) => string;
   defaultTitle: string;
+  unknownAuthorLabel: string;
   editButtonLabel: string;
   deleteButtonLabel: string;
   saveButtonLabel: string;
@@ -97,11 +98,13 @@ export interface DependencyListModalModel {
   fsFilterLabel: (count: number) => string;
   ssFilterLabel: (count: number) => string;
   ffFilterLabel: (count: number) => string;
+  countLabel: (filteredCount: number, totalCount: number) => string;
   rowTitle: string;
   predecessorHeader: string;
   typeHeader: string;
   successorHeader: string;
   criticalPathTitle: string;
+  criticalRowTitle: string;
 }
 
 export interface DependencyEditorModel {
@@ -197,6 +200,7 @@ export function buildNotesModalModel(): NotesModalModel {
     emptyStateText: "Нотаток поки немає",
     countTitle: (count: number) => `${count} нотаток`,
     defaultTitle: "Нотатки",
+    unknownAuthorLabel: "—",
     editButtonLabel: "Редагувати",
     deleteButtonLabel: "Видалити",
     saveButtonLabel: "Зберегти",
@@ -236,11 +240,14 @@ export function buildDependencyListModalModel(): DependencyListModalModel {
     fsFilterLabel: (count: number) => `FS (${count})`,
     ssFilterLabel: (count: number) => `SS (${count})`,
     ffFilterLabel: (count: number) => `FF (${count})`,
+    countLabel: (filteredCount: number, totalCount: number) =>
+      filteredCount === totalCount ? `${totalCount}` : `${filteredCount} з ${totalCount}`,
     rowTitle: "Клік — підсвітити ланцюжок на графіку",
     predecessorHeader: "Попередник",
     typeHeader: "Тип",
     successorHeader: "Наступник",
     criticalPathTitle: "Критичний шлях",
+    criticalRowTitle: "Критична залежність",
   };
 }
 

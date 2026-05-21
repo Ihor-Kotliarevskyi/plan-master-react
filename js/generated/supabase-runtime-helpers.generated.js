@@ -265,6 +265,7 @@
       emptyStateText: "Нотаток поки немає",
       countTitle: (count) => `${count} нотаток`,
       defaultTitle: "Нотатки",
+      unknownAuthorLabel: "—",
       editButtonLabel: "Редагувати",
       deleteButtonLabel: "Видалити",
       saveButtonLabel: "Зберегти",
@@ -302,11 +303,13 @@
       fsFilterLabel: (count) => `FS (${count})`,
       ssFilterLabel: (count) => `SS (${count})`,
       ffFilterLabel: (count) => `FF (${count})`,
+      countLabel: (filteredCount, totalCount) => filteredCount === totalCount ? `${totalCount}` : `${filteredCount} з ${totalCount}`,
       rowTitle: "Клік — підсвітити ланцюжок на графіку",
       predecessorHeader: "Попередник",
       typeHeader: "Тип",
       successorHeader: "Наступник",
-      criticalPathTitle: "Критичний шлях"
+      criticalPathTitle: "Критичний шлях",
+      criticalRowTitle: "Критична залежність"
     };
   }
   function buildDependencyEditorModel() {

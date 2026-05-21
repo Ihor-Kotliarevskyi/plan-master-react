@@ -79,6 +79,7 @@ function _getNotesModalModel() {
     emptyStateText: "Нотаток поки немає",
     countTitle: (count) => `${count} нотаток`,
     defaultTitle: "Нотатки",
+    unknownAuthorLabel: "—",
     editButtonLabel: "Редагувати",
     deleteButtonLabel: "Видалити",
     saveButtonLabel: "Зберегти",
@@ -120,6 +121,13 @@ function _getDependencyListModalModel() {
     fsFilterLabel: (count) => `FS (${count})`,
     ssFilterLabel: (count) => `SS (${count})`,
     ffFilterLabel: (count) => `FF (${count})`,
+    countLabel: (filteredCount, totalCount) => filteredCount === totalCount ? `${totalCount}` : `${filteredCount} з ${totalCount}`,
+    rowTitle: "Клік — підсвітити ланцюжок на графіку",
+    predecessorHeader: "Попередник",
+    typeHeader: "Тип",
+    successorHeader: "Наступник",
+    criticalPathTitle: "Критичний шлях",
+    criticalRowTitle: "Критична залежність",
   };
 }
 
@@ -946,7 +954,7 @@ function renderNotes(notes) {
            </div>`
         : "";
       return `<div class="note-item" id="note-item-${i}">
-      <div class="note-meta">${n.author || "—"} · ${n.date || ""}${histBtn}</div>
+      <div class="note-meta">${n.author || notesModal.unknownAuthorLabel} · ${n.date || ""}${histBtn}</div>
       <div class="note-text" id="note-text-${i}">${_escHtml(n.text)}</div>
       <div class="note-edit-row" id="note-edit-row-${i}" style="display:none">
         <textarea class="note-edit-ta" id="note-edit-ta-${i}">${_escHtml(n.text)}</textarea>
@@ -1271,7 +1279,7 @@ function _renderDepList() {
   all.forEach(d => cnt[d.type] = (cnt[d.type] || 0) + 1);
 
   document.getElementById("dl-count").textContent =
-    filtered.length === all.length ? `${all.length}` : `${filtered.length} з ${all.length}`;
+    dependencyListModal.countLabel(filtered.length, all.length);
 
   // Фільтр-кнопки
   document.querySelectorAll(".dl-filter-btn").forEach(b => {
@@ -1311,7 +1319,7 @@ function _renderDepList() {
         <span class="dl-tn" style="color:${tCol}">#${d.toTask.n}</span>
         <span class="dl-nm">${d.toTask.name}</span>
       </td>
-      <td class="dl-crit">${isCrit ? `<span class="dl-crit-ic" title="Критичний шлях"></span>` : ""}</td>
+      <td class="dl-crit">${isCrit ? `<span class="dl-crit-ic" title="${dependencyListModal.criticalRowTitle}"></span>` : ""}</td>
     </tr>`;
   }).join("");
 

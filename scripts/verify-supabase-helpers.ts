@@ -420,6 +420,7 @@ assert.ok(deleteProjectDialog.html.includes("Alpha"));
 const notesModal = buildNotesModalModel();
 assert.equal(notesModal.emptyStateText, "Нотаток поки немає");
 assert.equal(notesModal.countTitle(2), "2 нотаток");
+assert.equal(notesModal.unknownAuthorLabel, "—");
 
 const categoryEditor = buildCategoryEditorModel();
 assert.equal(categoryEditor.accessDeniedTitle, "У вас немає прав на зміну категорій");
@@ -428,8 +429,10 @@ assert.equal(categoryEditor.newCategoryName, "Нова категорія");
 const dependencyListModal = buildDependencyListModalModel();
 assert.equal(dependencyListModal.emptyFilteredText, "Немає залежностей вибраного типу");
 assert.equal(dependencyListModal.allFilterLabel(4), "Всі (4)");
+assert.equal(dependencyListModal.countLabel(2, 5), "2 з 5");
 assert.equal(dependencyListModal.predecessorHeader, "Попередник");
 assert.equal(dependencyListModal.criticalPathTitle, "Критичний шлях");
+assert.equal(dependencyListModal.criticalRowTitle, "Критична залежність");
 
 const dependencyEditor = buildDependencyEditorModel();
 assert.equal(dependencyEditor.independentLabel, "Незал.");
