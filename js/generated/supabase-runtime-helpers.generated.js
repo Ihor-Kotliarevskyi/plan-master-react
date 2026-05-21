@@ -190,6 +190,61 @@
     };
   }
 
+  // src/domain/render-ui.ts
+  function buildProjectSelectLabels() {
+    return {
+      ownGroupLabel: "Мої проєкти",
+      sharedGroupLabel: "Розшарені",
+      sharedRoleSeparator: " · "
+    };
+  }
+  function buildGanttToolbarLabels() {
+    return {
+      searchPlaceholder: "Пошук по назві...",
+      clearSearchTitle: "Очистити пошук",
+      contractorLabel: "Контрагент",
+      allContractorsLabel: "Усі контрагенти",
+      paymentLabel: "Оплати",
+      allPaymentsLabel: "Усі оплати",
+      debtLabel: "Є залишок",
+      paidLabel: "Оплачено",
+      overpaidLabel: "Переплата",
+      unpaidLabel: "Без оплат",
+      hasPaymentsLabel: "Є платежі",
+      noPaymentsLabel: "Немає платежів",
+      resetFiltersTitle: "Скинути фільтри графіка",
+      criticalPathLabel: "Критичний шлях",
+      dependencyArrowsTitle: "Відображати стрілки залежностей між роботами",
+      dependencyArrowsLabel: "Залежності",
+      dependencyListTitle: "Список усіх залежностей проєкту",
+      dependencyListLabel: "Список",
+      groupByCategoryTitle: "Групувати за категорією",
+      groupByCategoryLabel: "Групи",
+      overdueLabel: "Прострочені",
+      zoomOutTitle: "Зменшити масштаб",
+      zoomInTitle: "Збільшити масштаб",
+      monoBarTitle: "Монохромний режим барів (для друку)",
+      monoBarColorTitle: "Колір барів"
+    };
+  }
+  function buildTableLabels() {
+    return {
+      reorderTitle: "Перетягни для зміни порядку",
+      workTypeHeader: "Вид робіт",
+      addTaskTitle: "Додати роботу",
+      addTaskLabel: "+ Робота",
+      notesTitle: "Нотатки",
+      hidePastShowTitle: "Показати минулі тижні",
+      hidePastHideTitle: "Сховати минулі тижні",
+      groupDoneLabel: (done, total, budgetText) => `${done}/${total} виконано${budgetText ? " · " + budgetText : ""}`,
+      copyTaskTitle: "Копіювати роботу",
+      notesCountLabel: (count) => `${count} нотаток`,
+      notesDefaultLabel: "Нотатки",
+      phaseCountTitle: (count) => `${count} фаз`,
+      phaseBarTitle: (index, progress) => `Фаза ${index + 1}: ${progress}%`
+    };
+  }
+
   // src/domain/modal-ui.ts
   function buildTaskRangeWarningModel() {
     return {
@@ -835,6 +890,9 @@
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+    buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
+    buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
+    buildRuntimeTableLabels: buildTableLabels,
     buildRuntimeAuthFormModel: buildAuthFormModel,
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeThemeToggleModel: buildThemeToggleModel,

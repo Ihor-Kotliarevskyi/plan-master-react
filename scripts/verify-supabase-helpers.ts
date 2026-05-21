@@ -17,6 +17,11 @@ import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
+  buildGanttToolbarLabels,
+  buildProjectSelectLabels,
+  buildTableLabels,
+} from "../src/domain/render-ui";
+import {
   buildDependencyEditorModel,
   buildDemoProjectSeedModel,
   buildCannotDeleteLastProjectModel,
@@ -439,6 +444,19 @@ assert.equal(dependencyListModal.criticalRowTitle, "Критична залеж�
 const dependencyEditor = buildDependencyEditorModel();
 assert.equal(dependencyEditor.independentLabel, "Незал.");
 assert.equal(dependencyEditor.minThresholdLabel, "Мін.:");
+
+const projectSelectLabels = buildProjectSelectLabels();
+assert.equal(projectSelectLabels.ownGroupLabel, "Мої проєкти");
+assert.equal(projectSelectLabels.sharedRoleSeparator, " · ");
+
+const ganttToolbarLabels = buildGanttToolbarLabels();
+assert.equal(ganttToolbarLabels.searchPlaceholder, "Пошук по назві...");
+assert.equal(ganttToolbarLabels.criticalPathLabel, "Критичний шлях");
+
+const tableLabels = buildTableLabels();
+assert.equal(tableLabels.addTaskLabel, "+ Робота");
+assert.equal(tableLabels.notesCountLabel(3), "3 нотаток");
+assert.equal(tableLabels.phaseCountTitle(2), "2 фаз");
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");

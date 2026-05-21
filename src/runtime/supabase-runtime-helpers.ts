@@ -18,6 +18,11 @@ import { buildBaselinePanelModel } from "../domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/settings-ui";
 import { buildAccountSectionModel } from "../domain/account-section-ui";
 import {
+  buildGanttToolbarLabels,
+  buildProjectSelectLabels,
+  buildTableLabels,
+} from "../domain/render-ui";
+import {
   buildDependencyEditorModel,
   buildCategoryEditorModel,
   buildCannotDeleteLastProjectModel,
@@ -213,6 +218,9 @@ const runtimeHelpers = {
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+  buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
+  buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
+  buildRuntimeTableLabels: buildTableLabels,
   buildRuntimeAuthFormModel: buildAuthFormModel,
   getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeThemeToggleModel: buildThemeToggleModel,
