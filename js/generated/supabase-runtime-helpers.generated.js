@@ -260,6 +260,46 @@
       cancelButtonText: "Скасувати"
     };
   }
+  function buildNotesModalModel() {
+    return {
+      emptyStateText: "Нотаток поки немає",
+      countTitle: (count) => `${count} нотаток`,
+      defaultTitle: "Нотатки",
+      editButtonLabel: "Редагувати",
+      deleteButtonLabel: "Видалити",
+      saveButtonLabel: "Зберегти",
+      cancelButtonLabel: "Скасувати",
+      deletedHistoryLabel: "🗑 видалено",
+      editedHistoryLabel: "✏ змінено",
+      deletedPlaceholderText: "[видалено]",
+      defaultAuthorLabel: "Користувач",
+      deleteDialogTitle: "Видалити нотатку?",
+      deleteDialogConfirmButtonText: "Видалити",
+      deleteDialogConfirmButtonColor: "#c42b2b",
+      deleteDialogCancelButtonText: "Скасувати"
+    };
+  }
+  function buildCategoryEditorModel() {
+    return {
+      accessDeniedTitle: "У вас немає прав на зміну категорій",
+      namePlaceholder: "Назва категорії",
+      swatchTitle: "Вибрати колір",
+      deleteTitle: "Видалити",
+      colorCustomLabel: "Свій колір:",
+      deleteInUseTitle: "Категорія використовується",
+      deleteInUseText: "Є роботи з цією категорією. Видалити?",
+      deleteConfirmButtonText: "Видалити",
+      deleteConfirmButtonColor: "#c42b2b",
+      deleteCancelButtonText: "Скасувати",
+      newCategoryName: "Нова категорія"
+    };
+  }
+  function buildDependencyListModalModel() {
+    return {
+      emptyFilteredText: "Немає залежностей вибраного типу",
+      emptyProjectText: "У проєкті немає залежностей між роботами"
+    };
+  }
 
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
@@ -769,6 +809,9 @@
     buildRuntimeCreateProjectDialogModel: buildCreateProjectDialogModel,
     buildRuntimeCannotDeleteLastProjectModel: buildCannotDeleteLastProjectModel,
     buildRuntimeDeleteProjectDialogModel: buildDeleteProjectDialogModel,
+    buildRuntimeNotesModalModel: buildNotesModalModel,
+    buildRuntimeCategoryEditorModel: buildCategoryEditorModel,
+    buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

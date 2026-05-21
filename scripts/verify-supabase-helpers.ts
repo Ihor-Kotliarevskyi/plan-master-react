@@ -18,9 +18,12 @@ import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/dom
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
   buildCannotDeleteLastProjectModel,
+  buildCategoryEditorModel,
   buildCreateProjectDialogModel,
   buildDeleteProjectDialogModel,
+  buildDependencyListModalModel,
   buildDemoProjectDialogModel,
+  buildNotesModalModel,
   buildProjectManagerListModel,
   buildTaskDeleteDialogModel,
   buildTaskDependencyWarningDialogModel,
@@ -412,6 +415,17 @@ assert.equal(cannotDeleteLastProject.text, "Має залишатися хоча
 const deleteProjectDialog = buildDeleteProjectDialogModel("Alpha");
 assert.equal(deleteProjectDialog.title, "Видалити проєкт?");
 assert.ok(deleteProjectDialog.html.includes("Alpha"));
+
+const notesModal = buildNotesModalModel();
+assert.equal(notesModal.emptyStateText, "Нотаток поки немає");
+assert.equal(notesModal.countTitle(2), "2 нотаток");
+
+const categoryEditor = buildCategoryEditorModel();
+assert.equal(categoryEditor.accessDeniedTitle, "У вас немає прав на зміну категорій");
+assert.equal(categoryEditor.newCategoryName, "Нова категорія");
+
+const dependencyListModal = buildDependencyListModalModel();
+assert.equal(dependencyListModal.emptyFilteredText, "Немає залежностей вибраного типу");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

@@ -58,6 +58,43 @@ export interface DeleteProjectDialogModel {
   cancelButtonText: string;
 }
 
+export interface NotesModalModel {
+  emptyStateText: string;
+  countTitle: (count: number) => string;
+  defaultTitle: string;
+  editButtonLabel: string;
+  deleteButtonLabel: string;
+  saveButtonLabel: string;
+  cancelButtonLabel: string;
+  deletedHistoryLabel: string;
+  editedHistoryLabel: string;
+  deletedPlaceholderText: string;
+  defaultAuthorLabel: string;
+  deleteDialogTitle: string;
+  deleteDialogConfirmButtonText: string;
+  deleteDialogConfirmButtonColor: string;
+  deleteDialogCancelButtonText: string;
+}
+
+export interface CategoryEditorModel {
+  accessDeniedTitle: string;
+  namePlaceholder: string;
+  swatchTitle: string;
+  deleteTitle: string;
+  colorCustomLabel: string;
+  deleteInUseTitle: string;
+  deleteInUseText: string;
+  deleteConfirmButtonText: string;
+  deleteConfirmButtonColor: string;
+  deleteCancelButtonText: string;
+  newCategoryName: string;
+}
+
+export interface DependencyListModalModel {
+  emptyFilteredText: string;
+  emptyProjectText: string;
+}
+
 export function buildTaskRangeWarningModel(): TaskRangeWarningModel {
   return {
     title: "Невірний діапазон",
@@ -133,5 +170,48 @@ export function buildDeleteProjectDialogModel(projectName: string): DeleteProjec
     confirmButtonText: "Видалити",
     confirmButtonColor: "#c42b2b",
     cancelButtonText: "Скасувати",
+  };
+}
+
+export function buildNotesModalModel(): NotesModalModel {
+  return {
+    emptyStateText: "Нотаток поки немає",
+    countTitle: (count: number) => `${count} нотаток`,
+    defaultTitle: "Нотатки",
+    editButtonLabel: "Редагувати",
+    deleteButtonLabel: "Видалити",
+    saveButtonLabel: "Зберегти",
+    cancelButtonLabel: "Скасувати",
+    deletedHistoryLabel: "🗑 видалено",
+    editedHistoryLabel: "✏ змінено",
+    deletedPlaceholderText: "[видалено]",
+    defaultAuthorLabel: "Користувач",
+    deleteDialogTitle: "Видалити нотатку?",
+    deleteDialogConfirmButtonText: "Видалити",
+    deleteDialogConfirmButtonColor: "#c42b2b",
+    deleteDialogCancelButtonText: "Скасувати",
+  };
+}
+
+export function buildCategoryEditorModel(): CategoryEditorModel {
+  return {
+    accessDeniedTitle: "У вас немає прав на зміну категорій",
+    namePlaceholder: "Назва категорії",
+    swatchTitle: "Вибрати колір",
+    deleteTitle: "Видалити",
+    colorCustomLabel: "Свій колір:",
+    deleteInUseTitle: "Категорія використовується",
+    deleteInUseText: "Є роботи з цією категорією. Видалити?",
+    deleteConfirmButtonText: "Видалити",
+    deleteConfirmButtonColor: "#c42b2b",
+    deleteCancelButtonText: "Скасувати",
+    newCategoryName: "Нова категорія",
+  };
+}
+
+export function buildDependencyListModalModel(): DependencyListModalModel {
+  return {
+    emptyFilteredText: "Немає залежностей вибраного типу",
+    emptyProjectText: "У проєкті немає залежностей між роботами",
   };
 }

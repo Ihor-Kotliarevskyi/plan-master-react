@@ -73,6 +73,52 @@ function _getDeleteProjectDialogModel(projectName) {
   };
 }
 
+function _getNotesModalModel() {
+  if (typeof buildRuntimeNotesModalModel === "function") return buildRuntimeNotesModalModel();
+  return {
+    emptyStateText: "Нотаток поки немає",
+    countTitle: (count) => `${count} нотаток`,
+    defaultTitle: "Нотатки",
+    editButtonLabel: "Редагувати",
+    deleteButtonLabel: "Видалити",
+    saveButtonLabel: "Зберегти",
+    cancelButtonLabel: "Скасувати",
+    deletedHistoryLabel: "🗑 видалено",
+    editedHistoryLabel: "✏ змінено",
+    deletedPlaceholderText: "[видалено]",
+    defaultAuthorLabel: "Користувач",
+    deleteDialogTitle: "Видалити нотатку?",
+    deleteDialogConfirmButtonText: "Видалити",
+    deleteDialogConfirmButtonColor: "#c42b2b",
+    deleteDialogCancelButtonText: "Скасувати",
+  };
+}
+
+function _getCategoryEditorModel() {
+  if (typeof buildRuntimeCategoryEditorModel === "function") return buildRuntimeCategoryEditorModel();
+  return {
+    accessDeniedTitle: "У вас немає прав на зміну категорій",
+    namePlaceholder: "Назва категорії",
+    swatchTitle: "Вибрати колір",
+    deleteTitle: "Видалити",
+    colorCustomLabel: "Свій колір:",
+    deleteInUseTitle: "Категорія використовується",
+    deleteInUseText: "Є роботи з цією категорією. Видалити?",
+    deleteConfirmButtonText: "Видалити",
+    deleteConfirmButtonColor: "#c42b2b",
+    deleteCancelButtonText: "Скасувати",
+    newCategoryName: "Нова категорія",
+  };
+}
+
+function _getDependencyListModalModel() {
+  if (typeof buildRuntimeDependencyListModalModel === "function") return buildRuntimeDependencyListModalModel();
+  return {
+    emptyFilteredText: "Немає залежностей вибраного типу",
+    emptyProjectText: "У проєкті немає залежностей між роботами",
+  };
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -855,10 +901,11 @@ function closeNotesModal() {
 }
 
 function renderNotes(notes) {
+  const notesModal = _getNotesModalModel();
   const el = document.getElementById("notes-list");
   if (!el) return;
   if (!notes || !notes.length) {
-    el.innerHTML = `<div class="note-empty">Нотаток поки немає</div>`;
+    el.innerHTML = `<div class="note-empty">${notesModal.emptyStateText}</div>`;
     return;
   }
   el.innerHTML = notes
@@ -869,12 +916,12 @@ function renderNotes(notes) {
       const histHtml = n.history?.length
         ? `<div class="note-history" id="note-hist-${i}" style="display:none">
              ${n.history
-               .map(
-                 (h) => `<div class="note-hist-item">
-               <span class="note-hist-action ${h.action}">${h.action === "edit" ? "✏ змінено" : "🗑 видалено"}</span>
-               <span class="note-hist-meta">${h.author} · ${h.date}</span>
-               <div class="note-hist-text">${_escHtml(h.text)}</div>
-             </div>`,
+                .map(
+                  (h) => `<div class="note-hist-item">
+                <span class="note-hist-action ${h.action}">${h.action === "edit" ? notesModal.editedHistoryLabel : notesModal.deletedHistoryLabel}</span>
+                <span class="note-hist-meta">${h.author} · ${h.date}</span>
+                <div class="note-hist-text">${_escHtml(h.text)}</div>
+              </div>`,
                )
                .join("")}
            </div>`
@@ -885,13 +932,13 @@ function renderNotes(notes) {
       <div class="note-edit-row" id="note-edit-row-${i}" style="display:none">
         <textarea class="note-edit-ta" id="note-edit-ta-${i}">${_escHtml(n.text)}</textarea>
         <div class="note-edit-actions">
-          <button class="btn btn-acc btn-sm" onclick="saveNoteEdit(${i})">Зберегти</button>
-          <button class="btn btn-sm" onclick="cancelNoteEdit(${i})">Скасувати</button>
+          <button class="btn btn-acc btn-sm" onclick="saveNoteEdit(${i})">${notesModal.saveButtonLabel}</button>
+          <button class="btn btn-sm" onclick="cancelNoteEdit(${i})">${notesModal.cancelButtonLabel}</button>
         </div>
       </div>
       <div class="note-actions">
-        <button class="note-act-btn" onclick="startNoteEdit(${i})" title="Редагувати"><i data-lucide="pencil"></i></button>
-        <button class="note-act-btn del" onclick="deleteNote(${i})" title="Видалити"><i data-lucide="trash-2"></i></button>
+        <button class="note-act-btn" onclick="startNoteEdit(${i})" title="${notesModal.editButtonLabel}"><i data-lucide="pencil"></i></button>
+        <button class="note-act-btn del" onclick="deleteNote(${i})" title="${notesModal.deleteButtonLabel}"><i data-lucide="trash-2"></i></button>
       </div>
       ${histHtml}
     </div>`;
@@ -912,13 +959,14 @@ function _setNotes(n) {
 }
 
 function _syncNotesCell(ti) {
+  const notesModal = _getNotesModalModel();
   if (ti == null) return;
   const t = tasks[ti];
   const count = t.notes?.filter((n) => !n.deleted).length || 0;
   const cell = document.querySelector(`#tr${ti} .td-notes`);
   if (!cell) return;
   cell.className = count > 0 ? "td-notes has-notes" : "td-notes";
-  cell.title = count > 0 ? count + " нотаток" : "Нотатки";
+  cell.title = count > 0 ? notesModal.countTitle(count) : notesModal.defaultTitle;
   cell.innerHTML = count > 0
     ? `<i data-lucide="message-square-text"></i><span class="notes-count">${count}</span>`
     : `<i data-lucide="message-square"></i>`;
@@ -932,6 +980,7 @@ function _noteDate() {
 }
 
 function addNote() {
+  const notesModal = _getNotesModalModel();
   if (!_canMutateTaskModal()) return;
   const ta = document.getElementById("note-input");
   const text = ta?.value?.trim();
@@ -940,7 +989,7 @@ function addNote() {
   notes.push({
     id: Date.now(),
     text,
-    author: userProfile?.name || "Користувач",
+    author: userProfile?.name || notesModal.defaultAuthorLabel,
     date: _noteDate(),
     history: [],
   });
@@ -962,6 +1011,7 @@ function cancelNoteEdit(i) {
 }
 
 function saveNoteEdit(i) {
+  const notesModal = _getNotesModalModel();
   if (!_canMutateTaskModal()) return;
   const ta = document.getElementById(`note-edit-ta-${i}`);
   const txt = ta?.value?.trim();
@@ -972,7 +1022,7 @@ function saveNoteEdit(i) {
   notes[i].history.push({
     action: "edit",
     text: notes[i].text,
-    author: userProfile?.name || "Користувач",
+    author: userProfile?.name || notesModal.defaultAuthorLabel,
     date: _noteDate(),
   });
   notes[i].text = txt;
@@ -981,14 +1031,15 @@ function saveNoteEdit(i) {
 }
 
 async function deleteNote(i) {
+  const notesModal = _getNotesModalModel();
   if (!_canMutateTaskModal()) return;
   const res = await Swal.fire({
     icon: "warning",
-    title: "Видалити нотатку?",
+    title: notesModal.deleteDialogTitle,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: notesModal.deleteDialogConfirmButtonText,
+    confirmButtonColor: notesModal.deleteDialogConfirmButtonColor,
+    cancelButtonText: notesModal.deleteDialogCancelButtonText,
   });
   if (!res.isConfirmed) return;
   const notes = _getNotes();
@@ -997,10 +1048,10 @@ async function deleteNote(i) {
   notes[i].history.push({
     action: "delete",
     text: notes[i].text,
-    author: userProfile?.name || "Користувач",
+    author: userProfile?.name || notesModal.defaultAuthorLabel,
     date: _noteDate(),
   });
-  notes[i].text = "[видалено]";
+  notes[i].text = notesModal.deletedPlaceholderText;
   notes[i].deleted = true;
   _setNotes(notes);
   renderNotes(notes);
@@ -1016,8 +1067,9 @@ function _escHtml(s) {
 }
 
 function openCatEditor() {
+  const categoryEditor = _getCategoryEditorModel();
   if (typeof canManageProject === "function" && !canManageProject()) {
-    Swal.fire({ icon: "info", title: "У вас немає прав на зміну категорій" });
+    Swal.fire({ icon: "info", title: categoryEditor.accessDeniedTitle });
     return;
   }
   tempCats = cats.map((c) => ({ ...c }));
@@ -1026,6 +1078,7 @@ function openCatEditor() {
 }
 
 function renderCatList() {
+  const categoryEditor = _getCategoryEditorModel();
   const el = document.getElementById("cat-editor-list");
   el.innerHTML = "";
   tempCats.forEach((c, i) => {
@@ -1037,7 +1090,7 @@ function renderCatList() {
     const swatch = document.createElement("button");
     swatch.className = "cat-swatch";
     swatch.style.background = c.color;
-    swatch.title = "Вибрати колір";
+    swatch.title = categoryEditor.swatchTitle;
     swatch.type = "button";
     const dropdown = document.createElement("div");
     dropdown.className = "color-dropdown";
@@ -1054,22 +1107,22 @@ function renderCatList() {
     const nameInp = document.createElement("input");
     nameInp.className = "cat-name-inp";
     nameInp.value = c.name;
-    nameInp.placeholder = "Назва категорії";
+    nameInp.placeholder = categoryEditor.namePlaceholder;
     nameInp.addEventListener("input", () => { tempCats[i].name = nameInp.value; });
     const delBtn = document.createElement("span");
     delBtn.className = "cat-del";
     delBtn.innerHTML = '<i data-lucide="x"></i>';
-    delBtn.title = "Видалити";
+    delBtn.title = categoryEditor.deleteTitle;
     delBtn.addEventListener("click", async () => {
       if (tasks.some((t) => t.cat === i)) {
         const res = await Swal.fire({
           icon: "warning",
-          title: "Категорія використовується",
-          text: "Є роботи з цією категорією. Видалити?",
+          title: categoryEditor.deleteInUseTitle,
+          text: categoryEditor.deleteInUseText,
           showCancelButton: true,
-          confirmButtonText: "Видалити",
-          confirmButtonColor: "#c42b2b",
-          cancelButtonText: "Скасувати",
+          confirmButtonText: categoryEditor.deleteConfirmButtonText,
+          confirmButtonColor: categoryEditor.deleteConfirmButtonColor,
+          cancelButtonText: categoryEditor.deleteCancelButtonText,
         });
         if (!res.isConfirmed) return;
       }
@@ -1087,6 +1140,7 @@ function renderCatList() {
 }
 
 function _buildColorDropdownHTML(catIdx) {
+  const categoryEditor = _getCategoryEditorModel();
   const cur = tempCats[catIdx]?.color || "#888";
   const dots = CAT_PALETTE.map(
     (hex) =>
@@ -1096,7 +1150,7 @@ function _buildColorDropdownHTML(catIdx) {
   return `<div class="color-dropdown-inner">
     <div class="pal-grid">${dots}</div>
     <div class="color-custom-row">
-      <span class="color-custom-lbl">Свій колір:</span>
+      <span class="color-custom-lbl">${categoryEditor.colorCustomLabel}</span>
       <input type="color" value="${cur}" oninput="pickCatColor(${catIdx},this.value,null)" />
     </div></div>`;
 }
@@ -1124,12 +1178,13 @@ function flushCatNames() {
 }
 
 function addCat() {
+  const categoryEditor = _getCategoryEditorModel();
   flushCatNames();
   const usedColors = tempCats.map((c) => c.color);
   const color =
     CAT_PALETTE.find((c) => !usedColors.includes(c)) ||
     CAT_PALETTE[tempCats.length % CAT_PALETTE.length];
-  tempCats.push({ name: "Нова категорія", color });
+  tempCats.push({ name: categoryEditor.newCategoryName, color });
   renderCatList();
   setTimeout(() => {
     const rows = document.querySelectorAll("#cat-editor-list .cat-row");
@@ -1175,6 +1230,7 @@ function setDepListFilter(f) {
 }
 
 function _renderDepList() {
+  const dependencyListModal = _getDependencyListModalModel();
   const TC = { FS: "var(--acc)", SS: "var(--warn)", FF: "var(--txt3)" };
 
   // Збираємо всі залежності
@@ -1211,7 +1267,7 @@ function _renderDepList() {
   const body = document.getElementById("dl-body");
   if (!filtered.length) {
     body.innerHTML = `<div class="dl-empty">${
-      all.length ? "Немає залежностей вибраного типу" : "У проєкті немає залежностей між роботами"
+      all.length ? dependencyListModal.emptyFilteredText : dependencyListModal.emptyProjectText
     }</div>`;
     return;
   }
