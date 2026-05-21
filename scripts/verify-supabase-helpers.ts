@@ -16,6 +16,35 @@ import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/pro
 import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
+import {
+  buildGanttToolbarLabels,
+  buildProjectSelectLabels,
+  buildTableLabels,
+} from "../src/domain/render-ui";
+import { buildAppUiModel } from "../src/domain/app-ui";
+import {
+  buildContractorFilterLabels,
+  buildContractorSelectionLabels,
+  buildContractorSummaryLabels,
+  buildContractorTableLabels,
+} from "../src/domain/contractors-ui";
+import {
+  buildDependencyEditorModel,
+  buildDemoProjectSeedModel,
+  buildCannotDeleteLastProjectModel,
+  buildCategoryEditorModel,
+  buildCreateProjectDialogModel,
+  buildDeleteProjectDialogModel,
+  buildDependencyListModalModel,
+  buildDemoProjectDialogModel,
+  buildNotesModalModel,
+  buildProjectManagerListModel,
+  buildTaskFormPanelModel,
+  buildTaskDeleteDialogModel,
+  buildTaskDependencyWarningDialogModel,
+  buildTaskRangeWarningModel,
+  buildTaskSavedToastModel,
+} from "../src/domain/modal-ui";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -372,6 +401,104 @@ assert.equal(profileFeedback.avatarTooLargeText, "Максимум 2 МБ.");
 const auditModal = buildAuditLogModalModel();
 assert.equal(auditModal.modalTitle, "Журнал змін");
 assert.equal(auditModal.actorCaption, "Хто");
+
+const taskRangeWarning = buildTaskRangeWarningModel();
+assert.equal(taskRangeWarning.title, "Невірний діапазон");
+
+const taskDepWarning = buildTaskDependencyWarningDialogModel();
+assert.equal(taskDepWarning.confirmButtonText, "Зберегти");
+
+const taskSavedToast = buildTaskSavedToastModel(true);
+assert.equal(taskSavedToast.title, "Роботу оновлено");
+
+const taskDeleteDialog = buildTaskDeleteDialogModel("Task");
+assert.equal(taskDeleteDialog.cancelButtonText, "Скасувати");
+
+const projectManagerList = buildProjectManagerListModel();
+assert.equal(projectManagerList.ownGroupTitle, "Мої проєкти");
+assert.equal(projectManagerList.tasksCountLabel(3), "3 робіт");
+
+const demoProjectDialog = buildDemoProjectDialogModel();
+assert.equal(demoProjectDialog.loadedToastTitle, "Демо-проєкт завантажено");
+
+const createProjectDialog = buildCreateProjectDialogModel();
+assert.equal(createProjectDialog.inputLabel, "Назва проєкту");
+
+const cannotDeleteLastProject = buildCannotDeleteLastProjectModel();
+assert.equal(cannotDeleteLastProject.text, "Має залишатися хоча б один проєкт.");
+
+const deleteProjectDialog = buildDeleteProjectDialogModel("Alpha");
+assert.equal(deleteProjectDialog.title, "Видалити проєкт?");
+assert.ok(deleteProjectDialog.html.includes("Alpha"));
+
+const notesModal = buildNotesModalModel();
+assert.equal(notesModal.emptyStateText, "Нотаток поки немає");
+assert.equal(notesModal.countTitle(2), "2 нотаток");
+assert.equal(notesModal.unknownAuthorLabel, "—");
+
+const categoryEditor = buildCategoryEditorModel();
+assert.equal(categoryEditor.accessDeniedTitle, "У вас немає прав на зміну категорій");
+assert.equal(categoryEditor.newCategoryName, "Нова категорія");
+
+const dependencyListModal = buildDependencyListModalModel();
+assert.equal(dependencyListModal.emptyFilteredText, "Немає залежностей вибраного типу");
+assert.equal(dependencyListModal.allFilterLabel(4), "Всі (4)");
+assert.equal(dependencyListModal.countLabel(2, 5), "2 з 5");
+assert.equal(dependencyListModal.predecessorHeader, "Попередник");
+assert.equal(dependencyListModal.criticalPathTitle, "Критичний шлях");
+assert.equal(dependencyListModal.criticalRowTitle, "Критична залежність");
+
+const dependencyEditor = buildDependencyEditorModel();
+assert.equal(dependencyEditor.independentLabel, "Незал.");
+assert.equal(dependencyEditor.minThresholdLabel, "Мін.:");
+
+const projectSelectLabels = buildProjectSelectLabels();
+assert.equal(projectSelectLabels.ownGroupLabel, "Мої проєкти");
+assert.equal(projectSelectLabels.sharedRoleSeparator, " · ");
+
+const ganttToolbarLabels = buildGanttToolbarLabels();
+assert.equal(ganttToolbarLabels.searchPlaceholder, "Пошук по назві...");
+assert.equal(ganttToolbarLabels.criticalPathLabel, "Критичний шлях");
+
+const tableLabels = buildTableLabels();
+assert.equal(tableLabels.addTaskLabel, "+ Робота");
+assert.equal(tableLabels.notesCountLabel(3), "3 нотаток");
+assert.equal(tableLabels.phaseCountTitle(2), "2 фаз");
+
+const appUi = buildAppUiModel();
+assert.equal(appUi.importedProjectFallbackName, "Імпортований проєкт");
+assert.equal(appUi.copiedTaskSuffix, " (копія)");
+assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
+assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
+
+const contractorSummaryLabels = buildContractorSummaryLabels();
+assert.equal(contractorSummaryLabels.contractors, "Контрагентів");
+assert.equal(contractorSummaryLabels.currencyUnit, "грн");
+
+const contractorFilterLabels = buildContractorFilterLabels();
+assert.equal(contractorFilterLabels.statusLabel, "Статус");
+assert.equal(contractorFilterLabels.statusDebtLabel, "Є залишок");
+
+const contractorSelectionLabels = buildContractorSelectionLabels();
+assert.equal(contractorSelectionLabels.showSelectionLabel, "Вибрати");
+assert.equal(contractorSelectionLabels.deleteSelectedLabel, "Видалити вибраних");
+
+const contractorTableLabels = buildContractorTableLabels();
+assert.equal(contractorTableLabels.emptyContractorName, "Без контрагента");
+assert.equal(contractorTableLabels.paymentsCountHeader, "Платежів");
+assert.equal(contractorTableLabels.emDash, "—");
+assert.equal(contractorTableLabels.contractActEmptyText, "Договорів по цьому контрагенту ще немає");
+assert.equal(contractorTableLabels.addPaymentTitle, "Додати платіж");
+assert.equal(contractorTableLabels.bulkDeleteConfirmTitle, "Підтвердьте видалення");
+assert.equal(contractorTableLabels.registerNameTitle, "Назва реєстру");
+assert.equal(contractorTableLabels.importReviewTitle, "Перевірка імпорту");
+
+const taskFormPanel = buildTaskFormPanelModel();
+assert.equal(taskFormPanel.newTaskTitle, "Нова робота");
+assert.equal(taskFormPanel.weeklyRateUnit, "грн/тижд.");
+
+const demoProjectSeed = buildDemoProjectSeedModel();
+assert.equal(demoProjectSeed.projectName, "Ремонт офісу (демо)");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

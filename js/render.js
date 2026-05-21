@@ -18,6 +18,9 @@ function updateHeader() {
 function updateProjSel() {
   const sel = document.getElementById("proj-sel");
   if (!sel) return;
+  const selectLabels = typeof buildRuntimeProjectSelectLabels === "function"
+    ? buildRuntimeProjectSelectLabels()
+    : { ownGroupLabel: "Мої проєкти", sharedGroupLabel: "Розшарені", sharedRoleSeparator: " · " };
   const entries = Object.entries(allProjects || {});
   const grouped = typeof groupProjectEntriesByAccess === "function"
     ? groupProjectEntriesByAccess(entries)
@@ -31,14 +34,14 @@ function updateProjSel() {
         const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
         const roleLabel =
           isShared
-            ? ` · ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[role] || role : role)}`
+            ? `${selectLabels.sharedRoleSeparator}${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[role] || role : role)}`
             : "";
         return `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}${roleLabel}</option>`;
       })
       .join("");
 
-  const ownMarkup = own.length ? `<optgroup label="Мої проєкти">${renderOptions(own)}</optgroup>` : "";
-  const sharedMarkup = shared.length ? `<optgroup label="Розшарені">${renderOptions(shared, true)}</optgroup>` : "";
+  const ownMarkup = own.length ? `<optgroup label="${selectLabels.ownGroupLabel}">${renderOptions(own)}</optgroup>` : "";
+  const sharedMarkup = shared.length ? `<optgroup label="${selectLabels.sharedGroupLabel}">${renderOptions(shared, true)}</optgroup>` : "";
 
   sel.innerHTML = ownMarkup + sharedMarkup;
 }
@@ -65,64 +68,93 @@ function renderLegend() {
 function renderGanttToolbar() {
   const tb = document.getElementById("gantt-toolbar");
   if (!tb) return;
+  const toolbarLabels = typeof buildRuntimeGanttToolbarLabels === "function"
+    ? buildRuntimeGanttToolbarLabels()
+    : {
+        searchPlaceholder: "Пошук по назві...",
+        clearSearchTitle: "Очистити пошук",
+        contractorLabel: "Контрагент",
+        allContractorsLabel: "Усі контрагенти",
+        paymentLabel: "Оплати",
+        allPaymentsLabel: "Усі оплати",
+        debtLabel: "Є залишок",
+        paidLabel: "Оплачено",
+        overpaidLabel: "Переплата",
+        unpaidLabel: "Без оплат",
+        hasPaymentsLabel: "Є платежі",
+        noPaymentsLabel: "Немає платежів",
+        resetFiltersTitle: "Скинути фільтри графіка",
+        criticalPathLabel: "Критичний шлях",
+        dependencyArrowsTitle: "Відображати стрілки залежностей між роботами",
+        dependencyArrowsLabel: "Залежності",
+        dependencyListTitle: "Список усіх залежностей проєкту",
+        dependencyListLabel: "Список",
+        groupByCategoryTitle: "Групувати за категорією",
+        groupByCategoryLabel: "Групи",
+        overdueLabel: "Прострочені",
+        zoomOutTitle: "Зменшити масштаб",
+        zoomInTitle: "Збільшити масштаб",
+        monoBarTitle: "Монохромний режим барів (для друку)",
+        monoBarColorTitle: "Колір барів",
+      };
   const reopenEl = document.getElementById("btn-overdue-reopen");
   const prevReopenVisible = reopenEl !== null && reopenEl.style.display !== "none";
   const contractorOptions = uniqContractors().map((c) => ({ value: c, label: c }));
   const payOptions = [
-    { value: "debt", label: "Є залишок" },
-    { value: "paid", label: "Оплачено" },
-    { value: "over", label: "Переплата" },
-    { value: "unpaid", label: "Без оплат" },
-    { value: "hasPayments", label: "Є платежі" },
-    { value: "noPayments", label: "Немає платежів" },
+    { value: "debt", label: toolbarLabels.debtLabel },
+    { value: "paid", label: toolbarLabels.paidLabel },
+    { value: "over", label: toolbarLabels.overpaidLabel },
+    { value: "unpaid", label: toolbarLabels.unpaidLabel },
+    { value: "hasPayments", label: toolbarLabels.hasPaymentsLabel },
+    { value: "noPayments", label: toolbarLabels.noPaymentsLabel },
   ];
   const hasGanttFilters = !!(multiFilterValues(ganttFilters.contractor).length || multiFilterValues(ganttFilters.pay).length);
   tb.innerHTML = `
     <div class="gantt-nm-search-wrap">
       <i data-lucide="search" class="gantt-nm-search-icon"></i>
       <input type="text" id="task-search-inp" class="gantt-nm-search-inp"
-             placeholder="Пошук по назві..."
+             placeholder="${toolbarLabels.searchPlaceholder}"
              value="${taskSearch.replace(/"/g, '&quot;')}"
              oninput="onTaskSearch(this.value)"
              onkeydown="if(event.key==='Escape'){this.value='';onTaskSearch('');}">
       <button type="button" id="task-search-clear" class="gantt-nm-search-clear${taskSearch ? " show" : ""}"
-              onclick="clearTaskSearch()" title="Очистити пошук">
+              onclick="clearTaskSearch()" title="${toolbarLabels.clearSearchTitle}">
         <i data-lucide="x"></i>
       </button>
     </div>
     <div class="gantt-filter-group">
-      ${renderMultiFilter("ganttFilters.contractor", "Контрагент", "Усі контрагенти", contractorOptions, "renderTable", "gantt-multi mf-wide")}
-      ${renderMultiFilter("ganttFilters.pay", "Оплати", "Усі оплати", payOptions, "renderTable", "gantt-multi")}
-      ${hasGanttFilters ? `<button class="btn btn-sm" onclick="resetGanttFilters()" title="Скинути фільтри графіка"><i data-lucide="rotate-ccw"></i></button>` : ""}
+      ${renderMultiFilter("ganttFilters.contractor", toolbarLabels.contractorLabel, toolbarLabels.allContractorsLabel, contractorOptions, "renderTable", "gantt-multi mf-wide")}
+      ${renderMultiFilter("ganttFilters.pay", toolbarLabels.paymentLabel, toolbarLabels.allPaymentsLabel, payOptions, "renderTable", "gantt-multi")}
+      ${hasGanttFilters ? `<button class="btn btn-sm" onclick="resetGanttFilters()" title="${toolbarLabels.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
     </div>
     <div class="toolbar-notes-gap"></div>
     <button id="btn-critical" class="btn btn-sm btn-tog${showCritical ? " on" : ""}"
-            onclick="toggleCriticalPath()"><i data-lucide="activity"></i> Критичний шлях</button>
+            onclick="toggleCriticalPath()"><i data-lucide="activity"></i> ${toolbarLabels.criticalPathLabel}</button>
     <button id="btn-dep-arrows" class="btn btn-sm btn-tog${showDepArrows ? " on" : ""}"
-            onclick="toggleDepArrows()" title="Відображати стрілки залежностей між роботами">
-      <i data-lucide="share-2"></i> Залежності</button>
-    <button class="btn btn-sm btn-tog" onclick="openDepList()" title="Список усіх залежностей проєкту">
-      <i data-lucide="list"></i> Список</button>
+            onclick="toggleDepArrows()" title="${toolbarLabels.dependencyArrowsTitle}">
+      <i data-lucide="share-2"></i> ${toolbarLabels.dependencyArrowsLabel}</button>
+    <button class="btn btn-sm btn-tog" onclick="openDepList()" title="${toolbarLabels.dependencyListTitle}">
+      <i data-lucide="list"></i> ${toolbarLabels.dependencyListLabel}</button>
     <div class="sep"></div>
     <button class="btn btn-sm btn-tog${groupBy === "cat" ? " on" : ""}"
-            onclick="toggleGroupBy()" title="Групувати за категорією">
-      <i data-lucide="layout-list"></i> Групи
+            onclick="toggleGroupBy()" title="${toolbarLabels.groupByCategoryTitle}">
+      <i data-lucide="layout-list"></i> ${toolbarLabels.groupByCategoryLabel}
     </button>
     <div class="sep"></div>
     <button class="btn btn-sm btn-tog" id="btn-overdue-reopen"
-            onclick="checkOverdue(true)"
-            style="display:${prevReopenVisible ? "" : "none"}"><i data-lucide="triangle-alert"></i> Прострочені</button>
+             onclick="checkOverdue(true)"
+             style="display:${prevReopenVisible ? "" : "none"}"><i data-lucide="triangle-alert"></i> ${toolbarLabels.overdueLabel}</button>
     <div class="zoom-ctrl">
-      <button class="btn btn-sm btn-icon" onclick="zoomOut()" title="Зменшити масштаб"><i data-lucide="zoom-out"></i></button>
+      <button class="btn btn-sm btn-icon" onclick="zoomOut()" title="${toolbarLabels.zoomOutTitle}"><i data-lucide="zoom-out"></i></button>
       <span class="zoom-label">${zoomLevel === 25 ? "100%" : zoomLevel === 15 ? "60%" : "40%"}</span>
-      <button class="btn btn-sm btn-icon" onclick="zoomIn()" title="Збільшити масштаб"><i data-lucide="zoom-in"></i></button>
+      <button class="btn btn-sm btn-icon" onclick="zoomIn()" title="${toolbarLabels.zoomInTitle}"><i data-lucide="zoom-in"></i></button>
       <span class="zoom-sep"></span>
       <button class="btn btn-sm btn-icon btn-tog${monoBarColor ? " on" : ""}"
-              onclick="toggleMonoBar()" title="Монохромний режим барів (для друку)">
+              onclick="toggleMonoBar()" title="${toolbarLabels.monoBarTitle}">
         <i data-lucide="droplets"></i>
       </button>
       ${monoBarColor ? `<input type="color" id="mono-color-inp" class="mono-color-inp"
-             value="${monoBarColor}" oninput="setMonoColor(this.value)" title="Колір барів">` : ''}
+             value="${monoBarColor}" oninput="setMonoColor(this.value)" title="${toolbarLabels.monoBarColorTitle}">` : ''}
     </div>`;
   lucide.createIcons({ nodes: [tb] });
 }
@@ -181,6 +213,23 @@ function toggleGroup(catIdx) {
 function renderTable() {
   computeCriticalPath();
   renderGanttToolbar();
+  const tableLabels = typeof buildRuntimeTableLabels === "function"
+    ? buildRuntimeTableLabels()
+    : {
+        reorderTitle: "Перетягни для зміни порядку",
+        workTypeHeader: "Вид робіт",
+        addTaskTitle: "Додати роботу",
+        addTaskLabel: "+ Робота",
+        notesTitle: "Нотатки",
+        hidePastShowTitle: "Показати минулі тижні",
+        hidePastHideTitle: "Сховати минулі тижні",
+        groupDoneLabel: (done, total, budgetText) => `${done}/${total} виконано${budgetText ? " · " + budgetText : ""}`,
+        copyTaskTitle: "Копіювати роботу",
+        notesCountLabel: (count) => `${count} нотаток`,
+        notesDefaultLabel: "Нотатки",
+        phaseCountTitle: (count) => `${count} фаз`,
+        phaseBarTitle: (index, progress) => `Фаза ${index + 1}: ${progress}%`,
+      };
 
   const ml = getML();
   const tw = todayWk();
@@ -202,9 +251,9 @@ function renderTable() {
 
   // Row 1: fixed cols (rowspan=3) + year groups
   let h = `<table class="gt" id="gtbl"><thead><tr>
-    <th class="th-n" rowspan="3" title="Перетягни для зміни порядку">#</th>
-    <th class="th-nm" rowspan="3"><div class="th-nm-head"><span>Вид робіт</span>${canAdd ? `<button class="btn-add-task" onclick="openAdd()" title="Додати роботу">+ Робота</button>` : ""}</div></th>
-    <th class="th-notes" rowspan="3" title="Нотатки"><i data-lucide="message-square"></i></th>`;
+    <th class="th-n" rowspan="3" title="${tableLabels.reorderTitle}">#</th>
+    <th class="th-nm" rowspan="3"><div class="th-nm-head"><span>${tableLabels.workTypeHeader}</span>${canAdd ? `<button class="btn-add-task" onclick="openAdd()" title="${tableLabels.addTaskTitle}">${tableLabels.addTaskLabel}</button>` : ""}</div></th>
+    <th class="th-notes" rowspan="3" title="${tableLabels.notesTitle}"><i data-lucide="message-square"></i></th>`;
   yearGroups.forEach(({ year, cols }) => {
     h += `<th colspan="${cols}" class="th-yr">${year}</th>`;
   });
@@ -215,8 +264,8 @@ function renderTable() {
   visibleMonths.forEach((m, i) => {
     const mi = visMonthStart + i;
     const isCur = mi === curMonthIdx;
-    const pastBtn = isCur
-      ? `<button class="btn-hidepast${hidePast ? " on" : ""}" onclick="toggleHidePast()" title="${hidePast ? "Показати" : "Сховати"} минулі тижні"><i data-lucide="chevron-left"></i></button>`
+      const pastBtn = isCur
+      ? `<button class="btn-hidepast${hidePast ? " on" : ""}" onclick="toggleHidePast()" title="${hidePast ? tableLabels.hidePastShowTitle : tableLabels.hidePastHideTitle}"><i data-lucide="chevron-left"></i></button>`
       : "";
     h += `<th colspan="4" class="th-mo${isCur ? " cur-mo" : ""}"><span class="mo-text">${m.name}</span>${pastBtn}</th>`;
   });
@@ -251,7 +300,7 @@ function renderTable() {
             <span class="group-chevron">${isCollapsed ? '<i data-lucide="chevron-right"></i>' : '<i data-lucide="chevron-down"></i>'}</span>
             <span class="group-dot" style="background:${cat.color}"></span>
             <span class="group-title">${cat.name}</span>
-            <span class="group-stats">${doneTasks}/${totalTasks} виконано${totalBudget ? " · " + fmtM(totalBudget) + " грн" : ""}</span>
+             <span class="group-stats">${tableLabels.groupDoneLabel(doneTasks, totalTasks, totalBudget ? fmtM(totalBudget) + " грн" : "")}</span>
           </div>
         </td>
         <td class="td-notes" style="background:${cat.color}10"></td>
@@ -281,6 +330,23 @@ function renderTable() {
 
 /** Рендерить один рядок задачі. */
 function _renderTaskRow(t, tw, vs, isCritFn) {
+  const tableLabels = typeof buildRuntimeTableLabels === "function"
+    ? buildRuntimeTableLabels()
+    : {
+        reorderTitle: "Перетягни для зміни порядку",
+        workTypeHeader: "Вид робіт",
+        addTaskTitle: "Додати роботу",
+        addTaskLabel: "+ Робота",
+        notesTitle: "Нотатки",
+        hidePastShowTitle: "Показати минулі тижні",
+        hidePastHideTitle: "Сховати минулі тижні",
+        groupDoneLabel: (done, total, budgetText) => `${done}/${total} виконано${budgetText ? " · " + budgetText : ""}`,
+        copyTaskTitle: "Копіювати роботу",
+        notesCountLabel: (count) => `${count} нотаток`,
+        notesDefaultLabel: "Нотатки",
+        phaseCountTitle: (count) => `${count} фаз`,
+        phaseBarTitle: (index, progress) => `Фаза ${index + 1}: ${progress}%`,
+      };
   const ti = tasks.indexOf(t);
   const cs = t.ms * 4 + t.ws;
   const ce = t.me * 4 + t.we;
@@ -308,19 +374,19 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
 
   const searchMatch = taskSearch && t.name.toLowerCase().includes(taskSearch);
   let h = `<tr id="tr${ti}"${searchMatch ? ' class="task-search-match"' : (taskSearch ? ' class="task-search-dim"' : '')}>
-    <td class="td-n td-drag" data-ti="${ti}" title="Перетягни для зміни порядку">${t.n}</td>
+    <td class="td-n td-drag" data-ti="${ti}" title="${tableLabels.reorderTitle}">${t.n}</td>
     <td class="td-nm" onclick="openEdit(${ti})" title="${t.name}${warns.length ? " ⚠ " + warns.join("; ") : ""}">
       <div class="nm-inner">
         ${isCrit ? `<span class="crit-ic"></span>` : ""}
         ${warns.length ? `<span class="dep-ic" title="${warns.join("\n")}"><i data-lucide="triangle-alert"></i></span>` : ""}
-        ${t.phases && t.phases.length > 1 ? `<span class="phase-badge" title="${t.phases.length} фаз">${t.prog}%</span>` : ""}
+        ${t.phases && t.phases.length > 1 ? `<span class="phase-badge" title="${tableLabels.phaseCountTitle(t.phases.length)}">${t.prog}%</span>` : ""}
         <span class="nm-text">${t.name}</span>
-        <span class="copy-btn" onclick="event.stopPropagation();copyTask(${ti})" title="Копіювати роботу"><i data-lucide="copy"></i></span>
+        <span class="copy-btn" onclick="event.stopPropagation();copyTask(${ti})" title="${tableLabels.copyTaskTitle}"><i data-lucide="copy"></i></span>
         <span class="del-btn" onclick="event.stopPropagation();delTask(${ti})"><i data-lucide="x"></i></span>
       </div>
     </td>
     <td class="${notesCellCls}" onclick="event.stopPropagation();openNotesModal(${ti})"
-        title="${notesCount > 0 ? notesCount + " нотаток" : "Нотатки"}">${notesIcon}</td>`;
+        title="${notesCount > 0 ? tableLabels.notesCountLabel(notesCount) : tableLabels.notesDefaultLabel}">${notesIcon}</td>`;
 
   for (let ci = vs; ci < TW(); ci++) {
     h += `<td class="td-c${ci % 4 === 0 ? " ms" : ""}${ci === tw ? " today-col" : ""}" data-ti="${ti}" data-ci="${ci}">`;
@@ -354,7 +420,7 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
         const ppW = Math.round((pp * Math.max(0, pbW - Math.min(12, cw * 0.4))) / 100);
         const phCol = monoBarColor || CC(t.cat);
         h += `<div class="bar${isCrit ? " critical" : ""}${phShowPartial ? " bar-partial" : ""}" id="bar${ti}-${phi}" data-ti="${ti}"
-               style="left:0;width:${pbW}px;background:${phCol}" title="Фаза ${phi + 1}: ${pp}%">
+               style="left:0;width:${pbW}px;background:${phCol}" title="${tableLabels.phaseBarTitle(phi, pp)}">
           ${phShowFull ? `<div class="bh" data-ti="${ti}" data-side="L">${hndl}</div>` : ''}
           ${pp > 0 ? `<div class="prog-fill" style="width:${ppW}px"></div>` : ""}
           <span class="bl">${pp > 0 ? pp + "%" : "ф" + (phi + 1)}</span>

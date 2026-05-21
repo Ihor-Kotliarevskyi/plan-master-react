@@ -190,6 +190,345 @@
     };
   }
 
+  // src/domain/render-ui.ts
+  function buildProjectSelectLabels() {
+    return {
+      ownGroupLabel: "Мої проєкти",
+      sharedGroupLabel: "Розшарені",
+      sharedRoleSeparator: " · "
+    };
+  }
+  function buildGanttToolbarLabels() {
+    return {
+      searchPlaceholder: "Пошук по назві...",
+      clearSearchTitle: "Очистити пошук",
+      contractorLabel: "Контрагент",
+      allContractorsLabel: "Усі контрагенти",
+      paymentLabel: "Оплати",
+      allPaymentsLabel: "Усі оплати",
+      debtLabel: "Є залишок",
+      paidLabel: "Оплачено",
+      overpaidLabel: "Переплата",
+      unpaidLabel: "Без оплат",
+      hasPaymentsLabel: "Є платежі",
+      noPaymentsLabel: "Немає платежів",
+      resetFiltersTitle: "Скинути фільтри графіка",
+      criticalPathLabel: "Критичний шлях",
+      dependencyArrowsTitle: "Відображати стрілки залежностей між роботами",
+      dependencyArrowsLabel: "Залежності",
+      dependencyListTitle: "Список усіх залежностей проєкту",
+      dependencyListLabel: "Список",
+      groupByCategoryTitle: "Групувати за категорією",
+      groupByCategoryLabel: "Групи",
+      overdueLabel: "Прострочені",
+      zoomOutTitle: "Зменшити масштаб",
+      zoomInTitle: "Збільшити масштаб",
+      monoBarTitle: "Монохромний режим барів (для друку)",
+      monoBarColorTitle: "Колір барів"
+    };
+  }
+  function buildTableLabels() {
+    return {
+      reorderTitle: "Перетягни для зміни порядку",
+      workTypeHeader: "Вид робіт",
+      addTaskTitle: "Додати роботу",
+      addTaskLabel: "+ Робота",
+      notesTitle: "Нотатки",
+      hidePastShowTitle: "Показати минулі тижні",
+      hidePastHideTitle: "Сховати минулі тижні",
+      groupDoneLabel: (done, total, budgetText) => `${done}/${total} виконано${budgetText ? " · " + budgetText : ""}`,
+      copyTaskTitle: "Копіювати роботу",
+      notesCountLabel: (count) => `${count} нотаток`,
+      notesDefaultLabel: "Нотатки",
+      phaseCountTitle: (count) => `${count} фаз`,
+      phaseBarTitle: (index, progress) => `Фаза ${index + 1}: ${progress}%`
+    };
+  }
+
+  // src/domain/app-ui.ts
+  function buildAppUiModel() {
+    return {
+      importedProjectFallbackName: "Імпортований проєкт",
+      copiedTaskSuffix: " (копія)",
+      duplicateProjectTitle: "Проєкт з такою назвою вже існує",
+      duplicateProjectText: "Щоб не плутати копії, задайте назву для імпортованого проєкту.",
+      importConfirmButtonText: "Імпортувати",
+      cancelButtonText: "Скасувати",
+      requiredProjectNameMessage: "Введіть назву проєкту",
+      duplicateProjectNameMessage: "Проєкт з такою назвою вже існує",
+      numberedCopySuffix: (count) => ` (копія ${count})`,
+      importSuccessTitle: (projectName) => `Імпортовано: «${projectName}»`,
+      importInvalidTitle: "Помилка",
+      importInvalidText: "Не вдалося прочитати файл. Перевірте формат JSON."
+    };
+  }
+
+  // src/domain/contractors-ui.ts
+  function buildContractorSummaryLabels() {
+    return {
+      contractors: "Контрагентів",
+      contracts: "Договорів",
+      budget: "Кошторис",
+      paid: "Оплачено",
+      actsAmount: "Сума актів",
+      actsDebt: "Борг по актах",
+      rest: "Залишок",
+      currencyUnit: "грн"
+    };
+  }
+  function buildContractorFilterLabels() {
+    return {
+      statusLabel: "Статус",
+      statusAllLabel: "Усі статуси",
+      statusDebtLabel: "Є залишок",
+      statusPaidLabel: "Оплачено",
+      statusOverpaidLabel: "Переплата",
+      statusUnpaidLabel: "Без оплат",
+      typeLabel: "Тип",
+      typeAllLabel: "Усі типи",
+      categoryLabel: "Категорія",
+      categoryAllLabel: "Усі категорії",
+      resetFiltersTitle: "Скинути фільтри контрагентів",
+      chooseVisibleTitle: "Вибрати всі видимі контрагенти"
+    };
+  }
+  function buildContractorSelectionLabels() {
+    return {
+      showSelectionLabel: "Вибрати",
+      hideSelectionLabel: "Сховати вибір",
+      selectedLabel: "Вибрано",
+      clearSelectionLabel: "Очистити",
+      deleteSelectedLabel: "Видалити вибраних"
+    };
+  }
+  function buildContractorTableLabels() {
+    return {
+      emptyContractorName: "Без контрагента",
+      noPermissionTitle: "У вас немає прав на зміну контрагентів у цьому проєкті",
+      emptyFilteredText: "Немає контрагентів за вибраними фільтрами",
+      selectAllTitle: "Вибрати всі видимі контрагенти",
+      rowNoHeader: "№",
+      supplierHeader: "Контрагент",
+      tasksCountHeader: "Робіт",
+      itemsCountHeader: "Договорів",
+      budgetHeader: "Кошторис",
+      paidHeader: "Оплачено",
+      restHeader: "Залишок",
+      actsAmountHeader: "Сума актів",
+      actsDebtHeader: "Заборг. по актах",
+      paymentsCountHeader: "Платежів",
+      lastPaymentHeader: "Остання оплата",
+      statusHeader: "Статус",
+      emDash: "—",
+      contractActEmptyText: "Договорів по цьому контрагенту ще немає",
+      actEmptyText: "Актів по цьому контрагенту ще немає",
+      paymentEmptyText: "Платежів по цьому контрагенту ще немає",
+      forecastEmptyText: "Планового кошторису без контрагента немає",
+      addActTitle: "Додати акт",
+      addPaymentTitle: "Додати платіж",
+      editActTitle: "Редагувати акт",
+      deleteActTitle: "Видалити акт",
+      editPaymentTitle: "Редагувати платіж",
+      deletePaymentTitle: "Видалити платіж",
+      noSelectedContractorsTitle: "Немає вибраних контрагентів",
+      noVisibleContractorsTitle: "Немає контрагентів для видалення",
+      bulkDeleteConfirmTitle: "Підтвердьте видалення",
+      bulkDeleteContinueLabel: "Продовжити",
+      finalDeleteTitle: "Фінальне підтвердження",
+      finalDeleteInputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+      finalDeleteConfirmLabel: 'Введіть слово "ВИДАЛИТИ"',
+      finalDeleteValidationMessage: 'Введіть слово "ВИДАЛИТИ"',
+      noContractsTitle: "Немає договорів",
+      noContractsText: "Спочатку додайте договір для цього контрагента.",
+      saveLabel: "Зберегти",
+      cancelLabel: "Скасувати",
+      deleteLabel: "Видалити",
+      noWorksTitle: "Немає робіт",
+      noWorksText: "Спочатку додайте роботу на графіку.",
+      contractorUpdatedTitle: "Контрагента оновлено",
+      noPaymentsTitle: "Немає платежів",
+      noPaymentsRegisterText: "Поточний фільтр не містить платежів для реєстру.",
+      registerNameTitle: "Назва реєстру",
+      registerNameValidation: "Вкажіть назву реєстру",
+      noPaymentsExportTitle: "Немає платежів для експорту",
+      noPaymentsPrintTitle: "Немає платежів для друку",
+      printBlockedTitle: "Браузер заблокував друк",
+      printBlockedText: "Дозвольте спливаюче вікно для друку реєстру.",
+      deleteRegisterTitle: "Видалити реєстр?",
+      noImportRightsTitle: "У вас немає прав на імпорт",
+      importUnavailableTitle: "Імпорт недоступний",
+      importUnavailableText: "Бібліотека XLSX не завантажилась.",
+      importNoRowsTitle: "У файлі не знайдено рядків для імпорту",
+      importDoneTitle: "Імпорт завершено",
+      importNoChangesTitle: "Немає змін для імпорту",
+      importErrorTitle: "Помилка імпорту",
+      importErrorText: "Не вдалося прочитати файл. Перевірте формат таблиці або скористайтесь шаблоном.",
+      importMappingTitle: "Імпорт платежів",
+      importMappingDefaultTaskLabel: "Робота за замовчуванням, якщо у файлі не знайдено роботу",
+      importProjectFieldHeader: "Поле проєкту",
+      importFileColumnHeader: "Колонка у файлі",
+      importExamplesHeader: "Приклади",
+      importContinueLabel: "Продовжити",
+      importReviewTitle: "Перевірка імпорту",
+      importLabel: "Імпортувати",
+      importOkLabel: "OK"
+    };
+  }
+
+  // src/domain/modal-ui.ts
+  function buildTaskRangeWarningModel() {
+    return {
+      title: "Невірний діапазон",
+      text: "Початок не може бути після кінця."
+    };
+  }
+  function buildTaskDependencyWarningDialogModel() {
+    return {
+      title: "Порушення залежностей",
+      confirmButtonText: "Зберегти",
+      cancelButtonText: "Повернутися"
+    };
+  }
+  function buildTaskSavedToastModel(isEdit) {
+    return {
+      title: isEdit ? "Роботу оновлено" : "Роботу додано"
+    };
+  }
+  function buildTaskDeleteDialogModel(taskName) {
+    return {
+      title: "Видалити роботу?",
+      confirmButtonText: "Видалити",
+      confirmButtonColor: "#c42b2b",
+      cancelButtonText: "Скасувати"
+    };
+  }
+  function buildProjectManagerListModel() {
+    return {
+      ownGroupTitle: "Мої проєкти",
+      sharedGroupTitle: "Розшарені проєкти",
+      ownProjectMeta: "Власний проєкт",
+      tasksCountLabel: (count) => `${count} робіт`,
+      deleteTitle: "Видалити"
+    };
+  }
+  function buildDemoProjectDialogModel() {
+    return {
+      title: "Завантажити демо-проєкт?",
+      html: `<div class="swal-info-text">Буде створено проєкт «Ремонт офісу» з прикладом задач, категорій та бюджету.<br><br>Ваші поточні проєкти залишаться без змін.</div>`,
+      confirmButtonText: "Завантажити",
+      cancelButtonText: "Скасувати",
+      loadedToastTitle: "Демо-проєкт завантажено"
+    };
+  }
+  function buildCreateProjectDialogModel() {
+    return {
+      title: "Новий проєкт",
+      inputLabel: "Назва проєкту",
+      inputValue: "Новий проєкт",
+      confirmButtonText: "Створити",
+      cancelButtonText: "Скасувати",
+      inputRequiredMessage: "Введіть назву"
+    };
+  }
+  function buildCannotDeleteLastProjectModel() {
+    return {
+      title: "Неможливо видалити",
+      text: "Має залишатися хоча б один проєкт."
+    };
+  }
+  function buildDeleteProjectDialogModel(projectName) {
+    return {
+      title: "Видалити проєкт?",
+      html: `«${projectName}»<br><small>Цю дію неможливо скасувати.</small>`,
+      confirmButtonText: "Видалити",
+      confirmButtonColor: "#c42b2b",
+      cancelButtonText: "Скасувати"
+    };
+  }
+  function buildNotesModalModel() {
+    return {
+      emptyStateText: "Нотаток поки немає",
+      countTitle: (count) => `${count} нотаток`,
+      defaultTitle: "Нотатки",
+      unknownAuthorLabel: "—",
+      editButtonLabel: "Редагувати",
+      deleteButtonLabel: "Видалити",
+      saveButtonLabel: "Зберегти",
+      cancelButtonLabel: "Скасувати",
+      deletedHistoryLabel: "🗑 видалено",
+      editedHistoryLabel: "✏ змінено",
+      deletedPlaceholderText: "[видалено]",
+      defaultAuthorLabel: "Користувач",
+      deleteDialogTitle: "Видалити нотатку?",
+      deleteDialogConfirmButtonText: "Видалити",
+      deleteDialogConfirmButtonColor: "#c42b2b",
+      deleteDialogCancelButtonText: "Скасувати"
+    };
+  }
+  function buildCategoryEditorModel() {
+    return {
+      accessDeniedTitle: "У вас немає прав на зміну категорій",
+      namePlaceholder: "Назва категорії",
+      swatchTitle: "Вибрати колір",
+      deleteTitle: "Видалити",
+      colorCustomLabel: "Свій колір:",
+      deleteInUseTitle: "Категорія використовується",
+      deleteInUseText: "Є роботи з цією категорією. Видалити?",
+      deleteConfirmButtonText: "Видалити",
+      deleteConfirmButtonColor: "#c42b2b",
+      deleteCancelButtonText: "Скасувати",
+      newCategoryName: "Нова категорія"
+    };
+  }
+  function buildDependencyListModalModel() {
+    return {
+      emptyFilteredText: "Немає залежностей вибраного типу",
+      emptyProjectText: "У проєкті немає залежностей між роботами",
+      allFilterLabel: (count) => `Всі (${count})`,
+      fsFilterLabel: (count) => `FS (${count})`,
+      ssFilterLabel: (count) => `SS (${count})`,
+      ffFilterLabel: (count) => `FF (${count})`,
+      countLabel: (filteredCount, totalCount) => filteredCount === totalCount ? `${totalCount}` : `${filteredCount} з ${totalCount}`,
+      rowTitle: "Клік — підсвітити ланцюжок на графіку",
+      predecessorHeader: "Попередник",
+      typeHeader: "Тип",
+      successorHeader: "Наступник",
+      criticalPathTitle: "Критичний шлях",
+      criticalRowTitle: "Критична залежність"
+    };
+  }
+  function buildDependencyEditorModel() {
+    return {
+      deleteBadgeLabel: "Видалити",
+      independentLabel: "Незал.",
+      finishStartTip: "Після завершення",
+      startStartTip: "Після початку + %",
+      independentTip: "Незалежний зв'язок",
+      minThresholdLabel: "Мін.:",
+      dropdownFallbackLabel: "#?"
+    };
+  }
+  function buildTaskFormPanelModel() {
+    return {
+      newTaskTitle: "Нова робота",
+      editTaskFallbackTitle: "Редагувати роботу",
+      newTaskNameFallback: "Нова робота",
+      fillCostHint: "Заповніть вартість для розрахунку",
+      totalProgressLabel: "Загальне",
+      durationLabel: "Терм.",
+      progressLabel: "Вик.",
+      budgetRemainderLabel: "Залишок",
+      weeksLabel: "Тижнів",
+      weeklyRateLabel: "Ставка",
+      weeklyRateUnit: "грн/тижд."
+    };
+  }
+  function buildDemoProjectSeedModel() {
+    return {
+      projectName: "Ремонт офісу (демо)"
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -681,6 +1020,14 @@
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
+    buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
+    buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
+    buildRuntimeTableLabels: buildTableLabels,
+    buildRuntimeAppUiModel: buildAppUiModel,
+    buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
+    buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
+    buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
+    buildRuntimeContractorTableLabels: buildContractorTableLabels,
     buildRuntimeAuthFormModel: buildAuthFormModel,
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeThemeToggleModel: buildThemeToggleModel,
@@ -689,6 +1036,21 @@
     buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
     buildRuntimeThemePanelModel: buildThemePanelModel,
     buildRuntimeAccountSectionModel: buildAccountSectionModel,
+    buildRuntimeTaskRangeWarningModel: buildTaskRangeWarningModel,
+    buildRuntimeTaskDependencyWarningDialogModel: buildTaskDependencyWarningDialogModel,
+    buildRuntimeTaskSavedToastModel: buildTaskSavedToastModel,
+    buildRuntimeTaskDeleteDialogModel: buildTaskDeleteDialogModel,
+    buildRuntimeProjectManagerListModel: buildProjectManagerListModel,
+    buildRuntimeDemoProjectDialogModel: buildDemoProjectDialogModel,
+    buildRuntimeCreateProjectDialogModel: buildCreateProjectDialogModel,
+    buildRuntimeCannotDeleteLastProjectModel: buildCannotDeleteLastProjectModel,
+    buildRuntimeDeleteProjectDialogModel: buildDeleteProjectDialogModel,
+    buildRuntimeNotesModalModel: buildNotesModalModel,
+    buildRuntimeCategoryEditorModel: buildCategoryEditorModel,
+    buildRuntimeDependencyEditorModel: buildDependencyEditorModel,
+    buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
+    buildRuntimeTaskFormPanelModel: buildTaskFormPanelModel,
+    buildRuntimeDemoProjectSeedModel: buildDemoProjectSeedModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

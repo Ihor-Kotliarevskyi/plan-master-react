@@ -3,6 +3,171 @@ let _modalDeps = [];
 let _editingDepId = null;
 let _notesTi = null;
 
+function _getTaskRangeWarningModel() {
+  if (typeof buildRuntimeTaskRangeWarningModel === "function") return buildRuntimeTaskRangeWarningModel();
+  return { title: "Невірний діапазон", text: "Початок не може бути після кінця." };
+}
+
+function _getTaskDependencyWarningDialogModel() {
+  if (typeof buildRuntimeTaskDependencyWarningDialogModel === "function") return buildRuntimeTaskDependencyWarningDialogModel();
+  return { title: "Порушення залежностей", confirmButtonText: "Зберегти", cancelButtonText: "Повернутися" };
+}
+
+function _getTaskSavedToastModel(isEdit) {
+  if (typeof buildRuntimeTaskSavedToastModel === "function") return buildRuntimeTaskSavedToastModel(isEdit);
+  return { title: isEdit ? "Роботу оновлено" : "Роботу додано" };
+}
+
+function _getTaskDeleteDialogModel(taskName) {
+  if (typeof buildRuntimeTaskDeleteDialogModel === "function") return buildRuntimeTaskDeleteDialogModel(taskName);
+  return { title: "Видалити роботу?", confirmButtonText: "Видалити", confirmButtonColor: "#c42b2b", cancelButtonText: "Скасувати" };
+}
+
+function _getProjectManagerListModel() {
+  if (typeof buildRuntimeProjectManagerListModel === "function") return buildRuntimeProjectManagerListModel();
+  return {
+    ownGroupTitle: "Мої проєкти",
+    sharedGroupTitle: "Розшарені проєкти",
+    ownProjectMeta: "Власний проєкт",
+    tasksCountLabel: (count) => `${count} робіт`,
+    deleteTitle: "Видалити",
+  };
+}
+
+function _getDemoProjectDialogModel() {
+  if (typeof buildRuntimeDemoProjectDialogModel === "function") return buildRuntimeDemoProjectDialogModel();
+  return {
+    title: "Завантажити демо-проєкт?",
+    html: `<div class="swal-info-text">Буде створено проєкт «Ремонт офісу» з прикладом задач, категорій та бюджету.<br><br>Ваші поточні проєкти залишаться без змін.</div>`,
+    confirmButtonText: "Завантажити",
+    cancelButtonText: "Скасувати",
+    loadedToastTitle: "Демо-проєкт завантажено",
+  };
+}
+
+function _getCreateProjectDialogModel() {
+  if (typeof buildRuntimeCreateProjectDialogModel === "function") return buildRuntimeCreateProjectDialogModel();
+  return {
+    title: "Новий проєкт",
+    inputLabel: "Назва проєкту",
+    inputValue: "Новий проєкт",
+    confirmButtonText: "Створити",
+    cancelButtonText: "Скасувати",
+    inputRequiredMessage: "Введіть назву",
+  };
+}
+
+function _getCannotDeleteLastProjectModel() {
+  if (typeof buildRuntimeCannotDeleteLastProjectModel === "function") return buildRuntimeCannotDeleteLastProjectModel();
+  return { title: "Неможливо видалити", text: "Має залишатися хоча б один проєкт." };
+}
+
+function _getDeleteProjectDialogModel(projectName) {
+  if (typeof buildRuntimeDeleteProjectDialogModel === "function") return buildRuntimeDeleteProjectDialogModel(projectName);
+  return {
+    title: "Видалити проєкт?",
+    html: `«${projectName}»<br><small>Цю дію неможливо скасувати.</small>`,
+    confirmButtonText: "Видалити",
+    confirmButtonColor: "#c42b2b",
+    cancelButtonText: "Скасувати",
+  };
+}
+
+function _getNotesModalModel() {
+  if (typeof buildRuntimeNotesModalModel === "function") return buildRuntimeNotesModalModel();
+  return {
+    emptyStateText: "Нотаток поки немає",
+    countTitle: (count) => `${count} нотаток`,
+    defaultTitle: "Нотатки",
+    unknownAuthorLabel: "—",
+    editButtonLabel: "Редагувати",
+    deleteButtonLabel: "Видалити",
+    saveButtonLabel: "Зберегти",
+    cancelButtonLabel: "Скасувати",
+    deletedHistoryLabel: "🗑 видалено",
+    editedHistoryLabel: "✏ змінено",
+    deletedPlaceholderText: "[видалено]",
+    defaultAuthorLabel: "Користувач",
+    deleteDialogTitle: "Видалити нотатку?",
+    deleteDialogConfirmButtonText: "Видалити",
+    deleteDialogConfirmButtonColor: "#c42b2b",
+    deleteDialogCancelButtonText: "Скасувати",
+  };
+}
+
+function _getCategoryEditorModel() {
+  if (typeof buildRuntimeCategoryEditorModel === "function") return buildRuntimeCategoryEditorModel();
+  return {
+    accessDeniedTitle: "У вас немає прав на зміну категорій",
+    namePlaceholder: "Назва категорії",
+    swatchTitle: "Вибрати колір",
+    deleteTitle: "Видалити",
+    colorCustomLabel: "Свій колір:",
+    deleteInUseTitle: "Категорія використовується",
+    deleteInUseText: "Є роботи з цією категорією. Видалити?",
+    deleteConfirmButtonText: "Видалити",
+    deleteConfirmButtonColor: "#c42b2b",
+    deleteCancelButtonText: "Скасувати",
+    newCategoryName: "Нова категорія",
+  };
+}
+
+function _getDependencyListModalModel() {
+  if (typeof buildRuntimeDependencyListModalModel === "function") return buildRuntimeDependencyListModalModel();
+  return {
+    emptyFilteredText: "Немає залежностей вибраного типу",
+    emptyProjectText: "У проєкті немає залежностей між роботами",
+    allFilterLabel: (count) => `Всі (${count})`,
+    fsFilterLabel: (count) => `FS (${count})`,
+    ssFilterLabel: (count) => `SS (${count})`,
+    ffFilterLabel: (count) => `FF (${count})`,
+    countLabel: (filteredCount, totalCount) => filteredCount === totalCount ? `${totalCount}` : `${filteredCount} з ${totalCount}`,
+    rowTitle: "Клік — підсвітити ланцюжок на графіку",
+    predecessorHeader: "Попередник",
+    typeHeader: "Тип",
+    successorHeader: "Наступник",
+    criticalPathTitle: "Критичний шлях",
+    criticalRowTitle: "Критична залежність",
+  };
+}
+
+function _getDependencyEditorModel() {
+  if (typeof buildRuntimeDependencyEditorModel === "function") return buildRuntimeDependencyEditorModel();
+  return {
+    deleteBadgeLabel: "Видалити",
+    independentLabel: "Незал.",
+    finishStartTip: "Після завершення",
+    startStartTip: "Після початку + %",
+    independentTip: "Незалежний зв'язок",
+    minThresholdLabel: "Мін.:",
+    dropdownFallbackLabel: "#?",
+  };
+}
+
+function _getTaskFormPanelModel() {
+  if (typeof buildRuntimeTaskFormPanelModel === "function") return buildRuntimeTaskFormPanelModel();
+  return {
+    newTaskTitle: "Нова робота",
+    editTaskFallbackTitle: "Редагувати роботу",
+    newTaskNameFallback: "Нова робота",
+    fillCostHint: "Заповніть вартість для розрахунку",
+    totalProgressLabel: "Загальне",
+    durationLabel: "Терм.",
+    progressLabel: "Вик.",
+    budgetRemainderLabel: "Залишок",
+    weeksLabel: "Тижнів",
+    weeklyRateLabel: "Ставка",
+    weeklyRateUnit: "грн/тижд.",
+  };
+}
+
+function _getDemoProjectSeedModel() {
+  if (typeof buildRuntimeDemoProjectSeedModel === "function") return buildRuntimeDemoProjectSeedModel();
+  return {
+    projectName: "Ремонт офісу (демо)",
+  };
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -106,6 +271,7 @@ function _weightedProg(phases) {
 
 /** Рендерить інлайн-список фаз у модалі задачі. */
 function renderModalPhases() {
+  const taskFormPanel = _getTaskFormPanelModel();
   const isMulti = _modalPhases.length > 1;
   const totalProg = isMulti ? _weightedProg(_modalPhases) : (_modalPhases[0]?.prog ?? 0);
 
@@ -118,7 +284,7 @@ function renderModalPhases() {
       const activePct = isMulti && pi === _activePhaseIdx();
       return `<div class="mph-row">
       <div class="mph-top">
-        ${isMulti ? `<span class="mph-label">Ф${pi + 1}</span>` : `<span class="mph-label">Терм.</span>`}
+        ${isMulti ? `<span class="mph-label">Ф${pi + 1}</span>` : `<span class="mph-label">${taskFormPanel.durationLabel}</span>`}
         <input type="date" id="mph-ds-${pi}" class="mph-date-inp"
                value="${ph.dsExact || _phaseToDateStr(ph.ms, ph.ws)}"
                min="${minD}" max="${maxD}"
@@ -131,7 +297,7 @@ function renderModalPhases() {
         ${isMulti && pi > 0 ? `<span class="phase-del" onclick="modalRemovePhase(${pi})"><i data-lucide="x"></i></span>` : ""}
       </div>
       <div class="mph-prog-row">
-        <span class="mph-hint">Вик.</span>
+        <span class="mph-hint">${taskFormPanel.progressLabel}</span>
         <input type="range" id="mph-prog-${pi}" class="mph-range-inp"
                min="0" max="100" step="5" value="${ph.prog || 0}"
                ${locked ? "disabled" : ""} oninput="onModalProgChange(${pi},this.value)">
@@ -142,7 +308,7 @@ function renderModalPhases() {
     .join("");
 
   const summary = isMulti
-    ? `<div class="mph-summary">Загальне: <b>${totalProg}%</b></div>`
+    ? `<div class="mph-summary">${taskFormPanel.totalProgressLabel}: <b>${totalProg}%</b></div>`
     : "";
 
   document.getElementById("modal-phases").innerHTML = rows + summary;
@@ -351,6 +517,7 @@ function renderModalNet() {
 
 /** Рендерить чіпи залежностей. */
 function renderDepTags() {
+  const dependencyEditor = _getDependencyEditorModel();
   const tagsEl = document.getElementById("dep-tags");
   if (!tagsEl) return;
 
@@ -362,7 +529,7 @@ function renderDepTags() {
       const t = tasks.find((x) => x.id === dep.id);
       const label = t
         ? `#${t.n} ${t.name.slice(0, 20)}${t.name.length > 20 ? "…" : ""}`
-        : `#?`;
+        : dependencyEditor.dropdownFallbackLabel;
       const badge =
         dep.type === "SS" && dep.threshold
           ? `${TYPE_LABELS[dep.type]} ${dep.threshold}%`
@@ -371,7 +538,7 @@ function renderDepTags() {
                    onclick="editDepTag('${dep.id}')">
         <span class="dep-tag-label">${label}</span>
         <span class="dep-tag-badge" style="background:${TYPE_COLORS[dep.type] || "var(--acc)"}">${badge}</span>
-        <span class="dep-tag-del" onclick="event.stopPropagation();removeDepTag('${dep.id}')">×</span>
+        <span class="dep-tag-del" title="${dependencyEditor.deleteBadgeLabel}" onclick="event.stopPropagation();removeDepTag('${dep.id}')">×</span>
       </div>`;
     })
     .join("");
@@ -439,6 +606,7 @@ function editDepTag(id) {
 }
 
 function renderDepTypeEditor() {
+  const dependencyEditor = _getDependencyEditorModel();
   const el = document.getElementById("dep-type-editor");
   if (!el) return;
   if (!_editingDepId) {
@@ -459,9 +627,9 @@ function renderDepTypeEditor() {
       <span class="dep-type-title">#${dispN} ${name}</span>
       <div class="dep-type-btns">
         ${[
-          { v: "FS", l: "FS", tip: "Після завершення" },
-          { v: "SS", l: "SS+%", tip: "Після початку + %" },
-          { v: "FF", l: "Незал.", tip: "Незалежний зв'язок" },
+          { v: "FS", l: "FS", tip: dependencyEditor.finishStartTip },
+          { v: "SS", l: "SS+%", tip: dependencyEditor.startStartTip },
+          { v: "FF", l: dependencyEditor.independentLabel, tip: dependencyEditor.independentTip },
         ]
           .map(
             (opt) => `<button class="dep-type-btn${dep.type === opt.v ? " active" : ""}"
@@ -471,9 +639,9 @@ function renderDepTypeEditor() {
           .join("")}
         ${
           dep.type === "SS"
-            ? `<span class="dep-threshold-lbl">Мін.:</span>
+            ? `<span class="dep-threshold-lbl">${dependencyEditor.minThresholdLabel}</span>
                <div class="dep-thr-wrap">
-                 <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',-5)">−</button>
+                  <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',-5)">−</button>
                  <input type="number" value="${dep.threshold || 25}" min="1" max="99"
                         onchange="setDepThreshold('${dep.id}',this.value)"
                         class="dep-threshold-inp">
@@ -546,6 +714,7 @@ function _updateAutoBadges(spentAuto, budgetAuto = spentAuto) {
 
 /** Оновлює рядок залишку/ставки під полями бюджету. */
 function updCalc() {
+  const taskFormPanel = _getTaskFormPanelModel();
   const hasItems = _costItems && _costItems.length > 0;
   const overrideBudget = !!document.getElementById("f-contracts-override-budget")?.checked;
   const currentBudget = +document.getElementById("f-budget").value || 0;
@@ -561,10 +730,11 @@ function updCalc() {
   const rw = ph ? remWk({ ms: ph.ms, ws: ph.ws, me: ph.me, we: ph.we }) : 0;
   const rate = rw > 0 ? Math.round(r / rw) : 0;
   document.getElementById("calc-info").innerHTML =
-    `Залишок: <b>${fmtM(r)} грн</b> · Тижнів: <b>${rw}</b> · Ставка: <b>${rw > 0 ? fmtM(rate) + " грн/тижд." : "—"}</b>`;
+    `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(r)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${rw}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${rw > 0 ? fmtM(rate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
 }
 
 function openAdd() {
+  const taskFormPanel = _getTaskFormPanelModel();
   editIdx = null;
   _editingDepId = null;
   _modalDeps = [];
@@ -573,12 +743,12 @@ function openAdd() {
   _costItems = [];
   _expandedIds = new Set();
 
-  document.getElementById("m-title").textContent = "Нова робота";
+  document.getElementById("m-title").textContent = taskFormPanel.newTaskTitle;
   document.getElementById("f-name").value = "";
   document.getElementById("f-budget").value = "";
   document.getElementById("f-spent").value = "";
   document.getElementById("f-contracts-override-budget").checked = false;
-  document.getElementById("calc-info").textContent = "Заповніть вартість для розрахунку";
+  document.getElementById("calc-info").textContent = taskFormPanel.fillCostHint;
   document.getElementById("dep-warn").classList.remove("show");
   document.getElementById("dep-type-editor").style.display = "none";
   _updateAutoBadges(false);
@@ -595,6 +765,7 @@ function openAdd() {
 }
 
 function openEdit(ti) {
+  const taskFormPanel = _getTaskFormPanelModel();
   editIdx = ti;
   _editingDepId = null;
   const t = tasks[ti];
@@ -617,7 +788,7 @@ function openEdit(ti) {
 
   const hasItems = _costItems.length > 0;
 
-  document.getElementById("m-title").textContent = t.name || "Редагувати роботу";
+  document.getElementById("m-title").textContent = t.name || taskFormPanel.editTaskFallbackTitle;
   document.getElementById("f-name").value = t.name;
   document.getElementById("f-contracts-override-budget").checked = !!t.contractsOverrideBudget;
   document.getElementById("f-budget").value = hasItems && ((+t.budget || 0) <= 0 || t.contractsOverrideBudget) ? _totalBudget() : t.budget || "";
@@ -670,7 +841,8 @@ async function saveTask() {
   const we = _modalPhases[_modalPhases.length - 1].we;
 
   if (ms * 4 + ws > me * 4 + we) {
-    Swal.fire({ icon: "warning", title: "Невірний діапазон", text: "Початок не може бути після кінця." });
+    const warningModel = _getTaskRangeWarningModel();
+    Swal.fire({ icon: "warning", title: warningModel.title, text: warningModel.text });
     return;
   }
 
@@ -709,13 +881,14 @@ async function saveTask() {
 
   const warns = checkDeps(obj);
   if (warns.length) {
+    const depWarningDialog = _getTaskDependencyWarningDialogModel();
     const res = await Swal.fire({
       icon: "warning",
-      title: "Порушення залежностей",
+      title: depWarningDialog.title,
       html: warns.map((w) => `• ${w}`).join("<br>"),
       showCancelButton: true,
-      confirmButtonText: "Зберегти",
-      cancelButtonText: "Повернутися",
+      confirmButtonText: depWarningDialog.confirmButtonText,
+      cancelButtonText: depWarningDialog.cancelButtonText,
     });
     if (!res.isConfirmed) return;
   }
@@ -736,11 +909,12 @@ async function saveTask() {
     category: savedTask?.cat ?? selCat,
     hasPhases: Array.isArray(savedTask?.phases) && savedTask.phases.length > 1,
   });
+  const savedToast = _getTaskSavedToastModel(isEdit);
   Swal.fire({
     toast: true,
     position: "top-end",
     icon: "success",
-    title: isEdit ? "Роботу оновлено" : "Роботу додано",
+    title: savedToast.title,
     showConfirmButton: false,
     timer: 2000,
   });
@@ -749,15 +923,16 @@ async function saveTask() {
 async function delTask(ti) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   const task = tasks[ti];
+  const deleteDialog = _getTaskDeleteDialogModel(task?.name || "");
 
   const res = await Swal.fire({
     icon: "warning",
-    title: "Видалити роботу?",
+    title: deleteDialog.title,
     text: `«${task.name}»`,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: deleteDialog.confirmButtonText,
+    confirmButtonColor: deleteDialog.confirmButtonColor,
+    cancelButtonText: deleteDialog.cancelButtonText,
   });
   if (!res.isConfirmed) return;
   tasks.splice(ti, 1);
@@ -781,10 +956,11 @@ function closeNotesModal() {
 }
 
 function renderNotes(notes) {
+  const notesModal = _getNotesModalModel();
   const el = document.getElementById("notes-list");
   if (!el) return;
   if (!notes || !notes.length) {
-    el.innerHTML = `<div class="note-empty">Нотаток поки немає</div>`;
+    el.innerHTML = `<div class="note-empty">${notesModal.emptyStateText}</div>`;
     return;
   }
   el.innerHTML = notes
@@ -795,29 +971,29 @@ function renderNotes(notes) {
       const histHtml = n.history?.length
         ? `<div class="note-history" id="note-hist-${i}" style="display:none">
              ${n.history
-               .map(
-                 (h) => `<div class="note-hist-item">
-               <span class="note-hist-action ${h.action}">${h.action === "edit" ? "✏ змінено" : "🗑 видалено"}</span>
-               <span class="note-hist-meta">${h.author} · ${h.date}</span>
-               <div class="note-hist-text">${_escHtml(h.text)}</div>
-             </div>`,
+                .map(
+                  (h) => `<div class="note-hist-item">
+                <span class="note-hist-action ${h.action}">${h.action === "edit" ? notesModal.editedHistoryLabel : notesModal.deletedHistoryLabel}</span>
+                <span class="note-hist-meta">${h.author} · ${h.date}</span>
+                <div class="note-hist-text">${_escHtml(h.text)}</div>
+              </div>`,
                )
                .join("")}
            </div>`
         : "";
       return `<div class="note-item" id="note-item-${i}">
-      <div class="note-meta">${n.author || "—"} · ${n.date || ""}${histBtn}</div>
+      <div class="note-meta">${n.author || notesModal.unknownAuthorLabel} · ${n.date || ""}${histBtn}</div>
       <div class="note-text" id="note-text-${i}">${_escHtml(n.text)}</div>
       <div class="note-edit-row" id="note-edit-row-${i}" style="display:none">
         <textarea class="note-edit-ta" id="note-edit-ta-${i}">${_escHtml(n.text)}</textarea>
         <div class="note-edit-actions">
-          <button class="btn btn-acc btn-sm" onclick="saveNoteEdit(${i})">Зберегти</button>
-          <button class="btn btn-sm" onclick="cancelNoteEdit(${i})">Скасувати</button>
+          <button class="btn btn-acc btn-sm" onclick="saveNoteEdit(${i})">${notesModal.saveButtonLabel}</button>
+          <button class="btn btn-sm" onclick="cancelNoteEdit(${i})">${notesModal.cancelButtonLabel}</button>
         </div>
       </div>
       <div class="note-actions">
-        <button class="note-act-btn" onclick="startNoteEdit(${i})" title="Редагувати"><i data-lucide="pencil"></i></button>
-        <button class="note-act-btn del" onclick="deleteNote(${i})" title="Видалити"><i data-lucide="trash-2"></i></button>
+        <button class="note-act-btn" onclick="startNoteEdit(${i})" title="${notesModal.editButtonLabel}"><i data-lucide="pencil"></i></button>
+        <button class="note-act-btn del" onclick="deleteNote(${i})" title="${notesModal.deleteButtonLabel}"><i data-lucide="trash-2"></i></button>
       </div>
       ${histHtml}
     </div>`;
@@ -838,13 +1014,14 @@ function _setNotes(n) {
 }
 
 function _syncNotesCell(ti) {
+  const notesModal = _getNotesModalModel();
   if (ti == null) return;
   const t = tasks[ti];
   const count = t.notes?.filter((n) => !n.deleted).length || 0;
   const cell = document.querySelector(`#tr${ti} .td-notes`);
   if (!cell) return;
   cell.className = count > 0 ? "td-notes has-notes" : "td-notes";
-  cell.title = count > 0 ? count + " нотаток" : "Нотатки";
+  cell.title = count > 0 ? notesModal.countTitle(count) : notesModal.defaultTitle;
   cell.innerHTML = count > 0
     ? `<i data-lucide="message-square-text"></i><span class="notes-count">${count}</span>`
     : `<i data-lucide="message-square"></i>`;
@@ -858,6 +1035,7 @@ function _noteDate() {
 }
 
 function addNote() {
+  const notesModal = _getNotesModalModel();
   if (!_canMutateTaskModal()) return;
   const ta = document.getElementById("note-input");
   const text = ta?.value?.trim();
@@ -866,7 +1044,7 @@ function addNote() {
   notes.push({
     id: Date.now(),
     text,
-    author: userProfile?.name || "Користувач",
+    author: userProfile?.name || notesModal.defaultAuthorLabel,
     date: _noteDate(),
     history: [],
   });
@@ -888,6 +1066,7 @@ function cancelNoteEdit(i) {
 }
 
 function saveNoteEdit(i) {
+  const notesModal = _getNotesModalModel();
   if (!_canMutateTaskModal()) return;
   const ta = document.getElementById(`note-edit-ta-${i}`);
   const txt = ta?.value?.trim();
@@ -898,7 +1077,7 @@ function saveNoteEdit(i) {
   notes[i].history.push({
     action: "edit",
     text: notes[i].text,
-    author: userProfile?.name || "Користувач",
+    author: userProfile?.name || notesModal.defaultAuthorLabel,
     date: _noteDate(),
   });
   notes[i].text = txt;
@@ -907,14 +1086,15 @@ function saveNoteEdit(i) {
 }
 
 async function deleteNote(i) {
+  const notesModal = _getNotesModalModel();
   if (!_canMutateTaskModal()) return;
   const res = await Swal.fire({
     icon: "warning",
-    title: "Видалити нотатку?",
+    title: notesModal.deleteDialogTitle,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: notesModal.deleteDialogConfirmButtonText,
+    confirmButtonColor: notesModal.deleteDialogConfirmButtonColor,
+    cancelButtonText: notesModal.deleteDialogCancelButtonText,
   });
   if (!res.isConfirmed) return;
   const notes = _getNotes();
@@ -923,10 +1103,10 @@ async function deleteNote(i) {
   notes[i].history.push({
     action: "delete",
     text: notes[i].text,
-    author: userProfile?.name || "Користувач",
+    author: userProfile?.name || notesModal.defaultAuthorLabel,
     date: _noteDate(),
   });
-  notes[i].text = "[видалено]";
+  notes[i].text = notesModal.deletedPlaceholderText;
   notes[i].deleted = true;
   _setNotes(notes);
   renderNotes(notes);
@@ -942,8 +1122,9 @@ function _escHtml(s) {
 }
 
 function openCatEditor() {
+  const categoryEditor = _getCategoryEditorModel();
   if (typeof canManageProject === "function" && !canManageProject()) {
-    Swal.fire({ icon: "info", title: "У вас немає прав на зміну категорій" });
+    Swal.fire({ icon: "info", title: categoryEditor.accessDeniedTitle });
     return;
   }
   tempCats = cats.map((c) => ({ ...c }));
@@ -952,6 +1133,7 @@ function openCatEditor() {
 }
 
 function renderCatList() {
+  const categoryEditor = _getCategoryEditorModel();
   const el = document.getElementById("cat-editor-list");
   el.innerHTML = "";
   tempCats.forEach((c, i) => {
@@ -963,7 +1145,7 @@ function renderCatList() {
     const swatch = document.createElement("button");
     swatch.className = "cat-swatch";
     swatch.style.background = c.color;
-    swatch.title = "Вибрати колір";
+    swatch.title = categoryEditor.swatchTitle;
     swatch.type = "button";
     const dropdown = document.createElement("div");
     dropdown.className = "color-dropdown";
@@ -980,22 +1162,22 @@ function renderCatList() {
     const nameInp = document.createElement("input");
     nameInp.className = "cat-name-inp";
     nameInp.value = c.name;
-    nameInp.placeholder = "Назва категорії";
+    nameInp.placeholder = categoryEditor.namePlaceholder;
     nameInp.addEventListener("input", () => { tempCats[i].name = nameInp.value; });
     const delBtn = document.createElement("span");
     delBtn.className = "cat-del";
     delBtn.innerHTML = '<i data-lucide="x"></i>';
-    delBtn.title = "Видалити";
+    delBtn.title = categoryEditor.deleteTitle;
     delBtn.addEventListener("click", async () => {
       if (tasks.some((t) => t.cat === i)) {
         const res = await Swal.fire({
           icon: "warning",
-          title: "Категорія використовується",
-          text: "Є роботи з цією категорією. Видалити?",
+          title: categoryEditor.deleteInUseTitle,
+          text: categoryEditor.deleteInUseText,
           showCancelButton: true,
-          confirmButtonText: "Видалити",
-          confirmButtonColor: "#c42b2b",
-          cancelButtonText: "Скасувати",
+          confirmButtonText: categoryEditor.deleteConfirmButtonText,
+          confirmButtonColor: categoryEditor.deleteConfirmButtonColor,
+          cancelButtonText: categoryEditor.deleteCancelButtonText,
         });
         if (!res.isConfirmed) return;
       }
@@ -1013,6 +1195,7 @@ function renderCatList() {
 }
 
 function _buildColorDropdownHTML(catIdx) {
+  const categoryEditor = _getCategoryEditorModel();
   const cur = tempCats[catIdx]?.color || "#888";
   const dots = CAT_PALETTE.map(
     (hex) =>
@@ -1022,7 +1205,7 @@ function _buildColorDropdownHTML(catIdx) {
   return `<div class="color-dropdown-inner">
     <div class="pal-grid">${dots}</div>
     <div class="color-custom-row">
-      <span class="color-custom-lbl">Свій колір:</span>
+      <span class="color-custom-lbl">${categoryEditor.colorCustomLabel}</span>
       <input type="color" value="${cur}" oninput="pickCatColor(${catIdx},this.value,null)" />
     </div></div>`;
 }
@@ -1050,12 +1233,13 @@ function flushCatNames() {
 }
 
 function addCat() {
+  const categoryEditor = _getCategoryEditorModel();
   flushCatNames();
   const usedColors = tempCats.map((c) => c.color);
   const color =
     CAT_PALETTE.find((c) => !usedColors.includes(c)) ||
     CAT_PALETTE[tempCats.length % CAT_PALETTE.length];
-  tempCats.push({ name: "Нова категорія", color });
+  tempCats.push({ name: categoryEditor.newCategoryName, color });
   renderCatList();
   setTimeout(() => {
     const rows = document.querySelectorAll("#cat-editor-list .cat-row");
@@ -1101,6 +1285,7 @@ function setDepListFilter(f) {
 }
 
 function _renderDepList() {
+  const dependencyListModal = _getDependencyListModalModel();
   const TC = { FS: "var(--acc)", SS: "var(--warn)", FF: "var(--txt3)" };
 
   // Збираємо всі залежності
@@ -1122,22 +1307,22 @@ function _renderDepList() {
   all.forEach(d => cnt[d.type] = (cnt[d.type] || 0) + 1);
 
   document.getElementById("dl-count").textContent =
-    filtered.length === all.length ? `${all.length}` : `${filtered.length} з ${all.length}`;
+    dependencyListModal.countLabel(filtered.length, all.length);
 
   // Фільтр-кнопки
   document.querySelectorAll(".dl-filter-btn").forEach(b => {
     const f = b.dataset.f;
-    b.textContent = f === "all" ? `Всі (${cnt.all})` :
-                    f === "FS"  ? `FS (${cnt.FS || 0})` :
-                    f === "SS"  ? `SS (${cnt.SS || 0})` :
-                                  `FF (${cnt.FF || 0})`;
+    b.textContent = f === "all" ? dependencyListModal.allFilterLabel(cnt.all) :
+                    f === "FS"  ? dependencyListModal.fsFilterLabel(cnt.FS || 0) :
+                    f === "SS"  ? dependencyListModal.ssFilterLabel(cnt.SS || 0) :
+                                  dependencyListModal.ffFilterLabel(cnt.FF || 0);
     b.classList.toggle("on", f === _dlFilter);
   });
 
   const body = document.getElementById("dl-body");
   if (!filtered.length) {
     body.innerHTML = `<div class="dl-empty">${
-      all.length ? "Немає залежностей вибраного типу" : "У проєкті немає залежностей між роботами"
+      all.length ? dependencyListModal.emptyFilteredText : dependencyListModal.emptyProjectText
     }</div>`;
     return;
   }
@@ -1147,7 +1332,7 @@ function _renderDepList() {
     const isCrit  = criticalSet.has(d.fromTi) && criticalSet.has(d.toTi);
     const fCol    = cats[d.fromTask.cat]?.color || "var(--txt3)";
     const tCol    = cats[d.toTask.cat]?.color   || "var(--txt3)";
-    return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="Клік — підсвітити ланцюжок на графіку">
+    return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="${dependencyListModal.rowTitle}">
       <td class="dl-i">${i + 1}</td>
       <td class="dl-task">
         <span class="dl-dot" style="background:${fCol}"></span>
@@ -1162,17 +1347,17 @@ function _renderDepList() {
         <span class="dl-tn" style="color:${tCol}">#${d.toTask.n}</span>
         <span class="dl-nm">${d.toTask.name}</span>
       </td>
-      <td class="dl-crit">${isCrit ? `<span class="dl-crit-ic" title="Критичний шлях"></span>` : ""}</td>
+      <td class="dl-crit">${isCrit ? `<span class="dl-crit-ic" title="${dependencyListModal.criticalRowTitle}"></span>` : ""}</td>
     </tr>`;
   }).join("");
 
   body.innerHTML = `<table class="dl-tbl">
     <thead><tr>
       <th class="dl-i">#</th>
-      <th>Попередник</th>
-      <th class="dl-arrow">Тип</th>
-      <th>Наступник</th>
-      <th class="dl-crit" title="Критичний шлях"><i data-lucide="activity" style="width:12px;height:12px"></i></th>
+      <th>${dependencyListModal.predecessorHeader}</th>
+      <th class="dl-arrow">${dependencyListModal.typeHeader}</th>
+      <th>${dependencyListModal.successorHeader}</th>
+      <th class="dl-crit" title="${dependencyListModal.criticalPathTitle}"><i data-lucide="activity" style="width:12px;height:12px"></i></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
@@ -1266,6 +1451,7 @@ async function saveProjSettings() {
 }
 
 function openProjManager() {
+  const projectManagerList = _getProjectManagerListModel();
   const getManagePermission = (projectId) => {
     if (typeof getProjectPermissions !== "function") return true;
     const role = typeof getStoredProjectRole === "function"
@@ -1296,7 +1482,7 @@ function openProjManager() {
       ? buildRuntimeSharedProjectMetaLine(p?._access || null)
       : (shareLabels.isShared
           ? `${shareLabels.ownerLabel ? `Власник: ${shareLabels.ownerLabel}` : ""}${shareLabels.invitedByLabel ? `${shareLabels.ownerLabel ? " · " : ""}Поділився: ${shareLabels.invitedByLabel}` : ""}`
-          : "Власний проєкт")}</div>`;
+          : projectManagerList.ownProjectMeta)}</div>`;
     return `<div class="pj-row${id === currentId ? " active" : ""}">
        <div class="pj-main">
          <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
@@ -1305,15 +1491,15 @@ function openProjManager() {
          <span class="pj-role-chip pj-role-${role}">${roleLabel}</span>
        </div>
        <div class="pj-sub">
-         <span class="pj-tasks-count">${p.tasks?.length || 0} робіт</span>
+         <span class="pj-tasks-count">${projectManagerList.tasksCountLabel(p.tasks?.length || 0)}</span>
          ${sharedMeta}
        </div>
        ${
-         canManageProjectEntry
-           ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити"><i data-lucide="trash-2"></i></span>`
-           : ""
-       }
-     </div>`;
+          canManageProjectEntry
+            ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
+            : ""
+        }
+      </div>`;
   };
 
   const renderGroup = (title, list) =>
@@ -1325,8 +1511,8 @@ function openProjManager() {
       : "";
 
   document.getElementById("proj-list-el").innerHTML = [
-    renderGroup("Мої проєкти", own),
-    renderGroup("Розшарені проєкти", shared),
+    renderGroup(projectManagerList.ownGroupTitle, own),
+    renderGroup(projectManagerList.sharedGroupTitle, shared),
   ].join("");
   lucide.createIcons({ nodes: [document.getElementById("proj-list-el")] });
   document.getElementById("projmgr-modal").style.display = "flex";
@@ -1337,19 +1523,21 @@ function closeProjMgr() {
 }
 
 async function loadDemoProject() {
+  const demoProjectDialog = _getDemoProjectDialogModel();
+  const demoProjectSeed = _getDemoProjectSeedModel();
   const { isConfirmed } = await Swal.fire({
     icon: "info",
-    title: "Завантажити демо-проєкт?",
-    html: `<div class="swal-info-text">Буде створено проєкт «Ремонт офісу» з прикладом задач, категорій та бюджету.<br><br>Ваші поточні проєкти залишаться без змін.</div>`,
+    title: demoProjectDialog.title,
+    html: demoProjectDialog.html,
     showCancelButton: true,
-    confirmButtonText: "Завантажити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: demoProjectDialog.confirmButtonText,
+    cancelButtonText: demoProjectDialog.cancelButtonText,
   });
   if (!isConfirmed) return;
 
   const id = "p_" + Date.now();
   allProjects[id] = {
-    proj: { name: "Ремонт офісу (демо)", sm: 0, sy: new Date().getFullYear(), nm: 12 },
+    proj: { name: demoProjectSeed.projectName, sm: 0, sy: new Date().getFullYear(), nm: 12 },
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: DEF_TASKS.map((t) => ({ ...t })),
     nextN: DEF_TASKS.length + 1,
@@ -1371,22 +1559,23 @@ async function loadDemoProject() {
   closeProjMgr();
   Swal.fire({
     toast: true, position: "top-end", icon: "success",
-    title: "Демо-проєкт завантажено",
+    title: demoProjectDialog.loadedToastTitle,
     showConfirmButton: false, timer: 2500,
   });
 }
 
 async function createProject() {
+  const createProjectDialog = _getCreateProjectDialogModel();
   const { value: name } = await Swal.fire({
-    title: "Новий проєкт",
+    title: createProjectDialog.title,
     input: "text",
-    inputLabel: "Назва проєкту",
-    inputValue: "Новий проєкт",
+    inputLabel: createProjectDialog.inputLabel,
+    inputValue: createProjectDialog.inputValue,
     inputAttributes: { maxlength: 80 },
     showCancelButton: true,
-    confirmButtonText: "Створити",
-    cancelButtonText: "Скасувати",
-    inputValidator: (v) => !v.trim() && "Введіть назву",
+    confirmButtonText: createProjectDialog.confirmButtonText,
+    cancelButtonText: createProjectDialog.cancelButtonText,
+    inputValidator: (v) => !v.trim() && createProjectDialog.inputRequiredMessage,
   });
   if (!name) return;
   const id = "p_" + Date.now();
@@ -1417,17 +1606,19 @@ async function deleteProject(id) {
   if (typeof canManageProject === "function" && !canManageProject(role)) return;
 
   if (Object.keys(allProjects).length <= 1) {
-    Swal.fire({ icon: "info", title: "Неможливо видалити", text: "Має залишатися хоча б один проєкт." });
+    const cannotDelete = _getCannotDeleteLastProjectModel();
+    Swal.fire({ icon: "info", title: cannotDelete.title, text: cannotDelete.text });
     return;
   }
+  const deleteProjectDialog = _getDeleteProjectDialogModel(allProjects[id]?.proj?.name || "");
   const res = await Swal.fire({
     icon: "warning",
-    title: "Видалити проєкт?",
-    html: `«${allProjects[id]?.proj?.name}»<br><small>Цю дію неможливо скасувати.</small>`,
+    title: deleteProjectDialog.title,
+    html: deleteProjectDialog.html,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: deleteProjectDialog.confirmButtonText,
+    confirmButtonColor: deleteProjectDialog.confirmButtonColor,
+    cancelButtonText: deleteProjectDialog.cancelButtonText,
   });
   if (!res.isConfirmed) return;
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
