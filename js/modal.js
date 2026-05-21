@@ -3,6 +3,76 @@ let _modalDeps = [];
 let _editingDepId = null;
 let _notesTi = null;
 
+function _getTaskRangeWarningModel() {
+  if (typeof buildRuntimeTaskRangeWarningModel === "function") return buildRuntimeTaskRangeWarningModel();
+  return { title: "Невірний діапазон", text: "Початок не може бути після кінця." };
+}
+
+function _getTaskDependencyWarningDialogModel() {
+  if (typeof buildRuntimeTaskDependencyWarningDialogModel === "function") return buildRuntimeTaskDependencyWarningDialogModel();
+  return { title: "Порушення залежностей", confirmButtonText: "Зберегти", cancelButtonText: "Повернутися" };
+}
+
+function _getTaskSavedToastModel(isEdit) {
+  if (typeof buildRuntimeTaskSavedToastModel === "function") return buildRuntimeTaskSavedToastModel(isEdit);
+  return { title: isEdit ? "Роботу оновлено" : "Роботу додано" };
+}
+
+function _getTaskDeleteDialogModel(taskName) {
+  if (typeof buildRuntimeTaskDeleteDialogModel === "function") return buildRuntimeTaskDeleteDialogModel(taskName);
+  return { title: "Видалити роботу?", confirmButtonText: "Видалити", confirmButtonColor: "#c42b2b", cancelButtonText: "Скасувати" };
+}
+
+function _getProjectManagerListModel() {
+  if (typeof buildRuntimeProjectManagerListModel === "function") return buildRuntimeProjectManagerListModel();
+  return {
+    ownGroupTitle: "Мої проєкти",
+    sharedGroupTitle: "Розшарені проєкти",
+    ownProjectMeta: "Власний проєкт",
+    tasksCountLabel: (count) => `${count} робіт`,
+    deleteTitle: "Видалити",
+  };
+}
+
+function _getDemoProjectDialogModel() {
+  if (typeof buildRuntimeDemoProjectDialogModel === "function") return buildRuntimeDemoProjectDialogModel();
+  return {
+    title: "Завантажити демо-проєкт?",
+    html: `<div class="swal-info-text">Буде створено проєкт «Ремонт офісу» з прикладом задач, категорій та бюджету.<br><br>Ваші поточні проєкти залишаться без змін.</div>`,
+    confirmButtonText: "Завантажити",
+    cancelButtonText: "Скасувати",
+    loadedToastTitle: "Демо-проєкт завантажено",
+  };
+}
+
+function _getCreateProjectDialogModel() {
+  if (typeof buildRuntimeCreateProjectDialogModel === "function") return buildRuntimeCreateProjectDialogModel();
+  return {
+    title: "Новий проєкт",
+    inputLabel: "Назва проєкту",
+    inputValue: "Новий проєкт",
+    confirmButtonText: "Створити",
+    cancelButtonText: "Скасувати",
+    inputRequiredMessage: "Введіть назву",
+  };
+}
+
+function _getCannotDeleteLastProjectModel() {
+  if (typeof buildRuntimeCannotDeleteLastProjectModel === "function") return buildRuntimeCannotDeleteLastProjectModel();
+  return { title: "Неможливо видалити", text: "Має залишатися хоча б один проєкт." };
+}
+
+function _getDeleteProjectDialogModel(projectName) {
+  if (typeof buildRuntimeDeleteProjectDialogModel === "function") return buildRuntimeDeleteProjectDialogModel(projectName);
+  return {
+    title: "Видалити проєкт?",
+    html: `«${projectName}»<br><small>Цю дію неможливо скасувати.</small>`,
+    confirmButtonText: "Видалити",
+    confirmButtonColor: "#c42b2b",
+    cancelButtonText: "Скасувати",
+  };
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -670,7 +740,8 @@ async function saveTask() {
   const we = _modalPhases[_modalPhases.length - 1].we;
 
   if (ms * 4 + ws > me * 4 + we) {
-    Swal.fire({ icon: "warning", title: "Невірний діапазон", text: "Початок не може бути після кінця." });
+    const warningModel = _getTaskRangeWarningModel();
+    Swal.fire({ icon: "warning", title: warningModel.title, text: warningModel.text });
     return;
   }
 
@@ -709,13 +780,14 @@ async function saveTask() {
 
   const warns = checkDeps(obj);
   if (warns.length) {
+    const depWarningDialog = _getTaskDependencyWarningDialogModel();
     const res = await Swal.fire({
       icon: "warning",
-      title: "Порушення залежностей",
+      title: depWarningDialog.title,
       html: warns.map((w) => `• ${w}`).join("<br>"),
       showCancelButton: true,
-      confirmButtonText: "Зберегти",
-      cancelButtonText: "Повернутися",
+      confirmButtonText: depWarningDialog.confirmButtonText,
+      cancelButtonText: depWarningDialog.cancelButtonText,
     });
     if (!res.isConfirmed) return;
   }
@@ -736,11 +808,12 @@ async function saveTask() {
     category: savedTask?.cat ?? selCat,
     hasPhases: Array.isArray(savedTask?.phases) && savedTask.phases.length > 1,
   });
+  const savedToast = _getTaskSavedToastModel(isEdit);
   Swal.fire({
     toast: true,
     position: "top-end",
     icon: "success",
-    title: isEdit ? "Роботу оновлено" : "Роботу додано",
+    title: savedToast.title,
     showConfirmButton: false,
     timer: 2000,
   });
@@ -749,15 +822,16 @@ async function saveTask() {
 async function delTask(ti) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   const task = tasks[ti];
+  const deleteDialog = _getTaskDeleteDialogModel(task?.name || "");
 
   const res = await Swal.fire({
     icon: "warning",
-    title: "Видалити роботу?",
+    title: deleteDialog.title,
     text: `«${task.name}»`,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: deleteDialog.confirmButtonText,
+    confirmButtonColor: deleteDialog.confirmButtonColor,
+    cancelButtonText: deleteDialog.cancelButtonText,
   });
   if (!res.isConfirmed) return;
   tasks.splice(ti, 1);
@@ -1266,6 +1340,7 @@ async function saveProjSettings() {
 }
 
 function openProjManager() {
+  const projectManagerList = _getProjectManagerListModel();
   const getManagePermission = (projectId) => {
     if (typeof getProjectPermissions !== "function") return true;
     const role = typeof getStoredProjectRole === "function"
@@ -1296,7 +1371,7 @@ function openProjManager() {
       ? buildRuntimeSharedProjectMetaLine(p?._access || null)
       : (shareLabels.isShared
           ? `${shareLabels.ownerLabel ? `Власник: ${shareLabels.ownerLabel}` : ""}${shareLabels.invitedByLabel ? `${shareLabels.ownerLabel ? " · " : ""}Поділився: ${shareLabels.invitedByLabel}` : ""}`
-          : "Власний проєкт")}</div>`;
+          : projectManagerList.ownProjectMeta)}</div>`;
     return `<div class="pj-row${id === currentId ? " active" : ""}">
        <div class="pj-main">
          <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
@@ -1305,15 +1380,15 @@ function openProjManager() {
          <span class="pj-role-chip pj-role-${role}">${roleLabel}</span>
        </div>
        <div class="pj-sub">
-         <span class="pj-tasks-count">${p.tasks?.length || 0} робіт</span>
+         <span class="pj-tasks-count">${projectManagerList.tasksCountLabel(p.tasks?.length || 0)}</span>
          ${sharedMeta}
        </div>
        ${
-         canManageProjectEntry
-           ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="Видалити"><i data-lucide="trash-2"></i></span>`
-           : ""
-       }
-     </div>`;
+          canManageProjectEntry
+            ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
+            : ""
+        }
+      </div>`;
   };
 
   const renderGroup = (title, list) =>
@@ -1325,8 +1400,8 @@ function openProjManager() {
       : "";
 
   document.getElementById("proj-list-el").innerHTML = [
-    renderGroup("Мої проєкти", own),
-    renderGroup("Розшарені проєкти", shared),
+    renderGroup(projectManagerList.ownGroupTitle, own),
+    renderGroup(projectManagerList.sharedGroupTitle, shared),
   ].join("");
   lucide.createIcons({ nodes: [document.getElementById("proj-list-el")] });
   document.getElementById("projmgr-modal").style.display = "flex";
@@ -1337,13 +1412,14 @@ function closeProjMgr() {
 }
 
 async function loadDemoProject() {
+  const demoProjectDialog = _getDemoProjectDialogModel();
   const { isConfirmed } = await Swal.fire({
     icon: "info",
-    title: "Завантажити демо-проєкт?",
-    html: `<div class="swal-info-text">Буде створено проєкт «Ремонт офісу» з прикладом задач, категорій та бюджету.<br><br>Ваші поточні проєкти залишаться без змін.</div>`,
+    title: demoProjectDialog.title,
+    html: demoProjectDialog.html,
     showCancelButton: true,
-    confirmButtonText: "Завантажити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: demoProjectDialog.confirmButtonText,
+    cancelButtonText: demoProjectDialog.cancelButtonText,
   });
   if (!isConfirmed) return;
 
@@ -1371,22 +1447,23 @@ async function loadDemoProject() {
   closeProjMgr();
   Swal.fire({
     toast: true, position: "top-end", icon: "success",
-    title: "Демо-проєкт завантажено",
+    title: demoProjectDialog.loadedToastTitle,
     showConfirmButton: false, timer: 2500,
   });
 }
 
 async function createProject() {
+  const createProjectDialog = _getCreateProjectDialogModel();
   const { value: name } = await Swal.fire({
-    title: "Новий проєкт",
+    title: createProjectDialog.title,
     input: "text",
-    inputLabel: "Назва проєкту",
-    inputValue: "Новий проєкт",
+    inputLabel: createProjectDialog.inputLabel,
+    inputValue: createProjectDialog.inputValue,
     inputAttributes: { maxlength: 80 },
     showCancelButton: true,
-    confirmButtonText: "Створити",
-    cancelButtonText: "Скасувати",
-    inputValidator: (v) => !v.trim() && "Введіть назву",
+    confirmButtonText: createProjectDialog.confirmButtonText,
+    cancelButtonText: createProjectDialog.cancelButtonText,
+    inputValidator: (v) => !v.trim() && createProjectDialog.inputRequiredMessage,
   });
   if (!name) return;
   const id = "p_" + Date.now();
@@ -1417,17 +1494,19 @@ async function deleteProject(id) {
   if (typeof canManageProject === "function" && !canManageProject(role)) return;
 
   if (Object.keys(allProjects).length <= 1) {
-    Swal.fire({ icon: "info", title: "Неможливо видалити", text: "Має залишатися хоча б один проєкт." });
+    const cannotDelete = _getCannotDeleteLastProjectModel();
+    Swal.fire({ icon: "info", title: cannotDelete.title, text: cannotDelete.text });
     return;
   }
+  const deleteProjectDialog = _getDeleteProjectDialogModel(allProjects[id]?.proj?.name || "");
   const res = await Swal.fire({
     icon: "warning",
-    title: "Видалити проєкт?",
-    html: `«${allProjects[id]?.proj?.name}»<br><small>Цю дію неможливо скасувати.</small>`,
+    title: deleteProjectDialog.title,
+    html: deleteProjectDialog.html,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: deleteProjectDialog.confirmButtonText,
+    confirmButtonColor: deleteProjectDialog.confirmButtonColor,
+    cancelButtonText: deleteProjectDialog.cancelButtonText,
   });
   if (!res.isConfirmed) return;
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {

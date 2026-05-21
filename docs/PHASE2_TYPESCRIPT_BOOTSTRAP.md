@@ -26,6 +26,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/baseline-ui.ts`
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
+  - `src/domain/modal-ui.ts`
   - `src/domain/user-feedback-ui.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
@@ -96,6 +97,8 @@ and Supabase adapters happen against stable interfaces.
   - baseline section title model building
   - audit modal labels and empty/error copy
   - auth/profile toast and dialog copy
+  - task modal alert/toast copy
+  - project manager dialog and grouping labels
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape

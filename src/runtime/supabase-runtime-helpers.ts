@@ -18,6 +18,17 @@ import { buildBaselinePanelModel } from "../domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/settings-ui";
 import { buildAccountSectionModel } from "../domain/account-section-ui";
 import {
+  buildCannotDeleteLastProjectModel,
+  buildCreateProjectDialogModel,
+  buildDeleteProjectDialogModel,
+  buildDemoProjectDialogModel,
+  buildProjectManagerListModel,
+  buildTaskDeleteDialogModel,
+  buildTaskDependencyWarningDialogModel,
+  buildTaskRangeWarningModel,
+  buildTaskSavedToastModel,
+} from "../domain/modal-ui";
+import {
   buildAuditEntryViewModel,
   buildAuditLogModalModel,
   getAuditActorLabel,
@@ -204,6 +215,15 @@ const runtimeHelpers = {
   buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
   buildRuntimeThemePanelModel: buildThemePanelModel,
   buildRuntimeAccountSectionModel: buildAccountSectionModel,
+  buildRuntimeTaskRangeWarningModel: buildTaskRangeWarningModel,
+  buildRuntimeTaskDependencyWarningDialogModel: buildTaskDependencyWarningDialogModel,
+  buildRuntimeTaskSavedToastModel: buildTaskSavedToastModel,
+  buildRuntimeTaskDeleteDialogModel: buildTaskDeleteDialogModel,
+  buildRuntimeProjectManagerListModel: buildProjectManagerListModel,
+  buildRuntimeDemoProjectDialogModel: buildDemoProjectDialogModel,
+  buildRuntimeCreateProjectDialogModel: buildCreateProjectDialogModel,
+  buildRuntimeCannotDeleteLastProjectModel: buildCannotDeleteLastProjectModel,
+  buildRuntimeDeleteProjectDialogModel: buildDeleteProjectDialogModel,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

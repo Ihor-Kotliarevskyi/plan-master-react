@@ -190,6 +190,77 @@
     };
   }
 
+  // src/domain/modal-ui.ts
+  function buildTaskRangeWarningModel() {
+    return {
+      title: "Невірний діапазон",
+      text: "Початок не може бути після кінця."
+    };
+  }
+  function buildTaskDependencyWarningDialogModel() {
+    return {
+      title: "Порушення залежностей",
+      confirmButtonText: "Зберегти",
+      cancelButtonText: "Повернутися"
+    };
+  }
+  function buildTaskSavedToastModel(isEdit) {
+    return {
+      title: isEdit ? "Роботу оновлено" : "Роботу додано"
+    };
+  }
+  function buildTaskDeleteDialogModel(taskName) {
+    return {
+      title: "Видалити роботу?",
+      confirmButtonText: "Видалити",
+      confirmButtonColor: "#c42b2b",
+      cancelButtonText: "Скасувати"
+    };
+  }
+  function buildProjectManagerListModel() {
+    return {
+      ownGroupTitle: "Мої проєкти",
+      sharedGroupTitle: "Розшарені проєкти",
+      ownProjectMeta: "Власний проєкт",
+      tasksCountLabel: (count) => `${count} робіт`,
+      deleteTitle: "Видалити"
+    };
+  }
+  function buildDemoProjectDialogModel() {
+    return {
+      title: "Завантажити демо-проєкт?",
+      html: `<div class="swal-info-text">Буде створено проєкт «Ремонт офісу» з прикладом задач, категорій та бюджету.<br><br>Ваші поточні проєкти залишаться без змін.</div>`,
+      confirmButtonText: "Завантажити",
+      cancelButtonText: "Скасувати",
+      loadedToastTitle: "Демо-проєкт завантажено"
+    };
+  }
+  function buildCreateProjectDialogModel() {
+    return {
+      title: "Новий проєкт",
+      inputLabel: "Назва проєкту",
+      inputValue: "Новий проєкт",
+      confirmButtonText: "Створити",
+      cancelButtonText: "Скасувати",
+      inputRequiredMessage: "Введіть назву"
+    };
+  }
+  function buildCannotDeleteLastProjectModel() {
+    return {
+      title: "Неможливо видалити",
+      text: "Має залишатися хоча б один проєкт."
+    };
+  }
+  function buildDeleteProjectDialogModel(projectName) {
+    return {
+      title: "Видалити проєкт?",
+      html: `«${projectName}»<br><small>Цю дію неможливо скасувати.</small>`,
+      confirmButtonText: "Видалити",
+      confirmButtonColor: "#c42b2b",
+      cancelButtonText: "Скасувати"
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -689,6 +760,15 @@
     buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
     buildRuntimeThemePanelModel: buildThemePanelModel,
     buildRuntimeAccountSectionModel: buildAccountSectionModel,
+    buildRuntimeTaskRangeWarningModel: buildTaskRangeWarningModel,
+    buildRuntimeTaskDependencyWarningDialogModel: buildTaskDependencyWarningDialogModel,
+    buildRuntimeTaskSavedToastModel: buildTaskSavedToastModel,
+    buildRuntimeTaskDeleteDialogModel: buildTaskDeleteDialogModel,
+    buildRuntimeProjectManagerListModel: buildProjectManagerListModel,
+    buildRuntimeDemoProjectDialogModel: buildDemoProjectDialogModel,
+    buildRuntimeCreateProjectDialogModel: buildCreateProjectDialogModel,
+    buildRuntimeCannotDeleteLastProjectModel: buildCannotDeleteLastProjectModel,
+    buildRuntimeDeleteProjectDialogModel: buildDeleteProjectDialogModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

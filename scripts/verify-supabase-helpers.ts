@@ -16,6 +16,17 @@ import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/pro
 import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
+import {
+  buildCannotDeleteLastProjectModel,
+  buildCreateProjectDialogModel,
+  buildDeleteProjectDialogModel,
+  buildDemoProjectDialogModel,
+  buildProjectManagerListModel,
+  buildTaskDeleteDialogModel,
+  buildTaskDependencyWarningDialogModel,
+  buildTaskRangeWarningModel,
+  buildTaskSavedToastModel,
+} from "../src/domain/modal-ui";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -372,6 +383,35 @@ assert.equal(profileFeedback.avatarTooLargeText, "Максимум 2 МБ.");
 const auditModal = buildAuditLogModalModel();
 assert.equal(auditModal.modalTitle, "Журнал змін");
 assert.equal(auditModal.actorCaption, "Хто");
+
+const taskRangeWarning = buildTaskRangeWarningModel();
+assert.equal(taskRangeWarning.title, "Невірний діапазон");
+
+const taskDepWarning = buildTaskDependencyWarningDialogModel();
+assert.equal(taskDepWarning.confirmButtonText, "Зберегти");
+
+const taskSavedToast = buildTaskSavedToastModel(true);
+assert.equal(taskSavedToast.title, "Роботу оновлено");
+
+const taskDeleteDialog = buildTaskDeleteDialogModel("Task");
+assert.equal(taskDeleteDialog.cancelButtonText, "Скасувати");
+
+const projectManagerList = buildProjectManagerListModel();
+assert.equal(projectManagerList.ownGroupTitle, "Мої проєкти");
+assert.equal(projectManagerList.tasksCountLabel(3), "3 робіт");
+
+const demoProjectDialog = buildDemoProjectDialogModel();
+assert.equal(demoProjectDialog.loadedToastTitle, "Демо-проєкт завантажено");
+
+const createProjectDialog = buildCreateProjectDialogModel();
+assert.equal(createProjectDialog.inputLabel, "Назва проєкту");
+
+const cannotDeleteLastProject = buildCannotDeleteLastProjectModel();
+assert.equal(cannotDeleteLastProject.text, "Має залишатися хоча б один проєкт.");
+
+const deleteProjectDialog = buildDeleteProjectDialogModel("Alpha");
+assert.equal(deleteProjectDialog.title, "Видалити проєкт?");
+assert.ok(deleteProjectDialog.html.includes("Alpha"));
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
