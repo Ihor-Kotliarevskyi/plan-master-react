@@ -18,6 +18,7 @@ import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/dom
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
   buildDependencyEditorModel,
+  buildDemoProjectSeedModel,
   buildCannotDeleteLastProjectModel,
   buildCategoryEditorModel,
   buildCreateProjectDialogModel,
@@ -26,6 +27,7 @@ import {
   buildDemoProjectDialogModel,
   buildNotesModalModel,
   buildProjectManagerListModel,
+  buildTaskFormPanelModel,
   buildTaskDeleteDialogModel,
   buildTaskDependencyWarningDialogModel,
   buildTaskRangeWarningModel,
@@ -437,6 +439,13 @@ assert.equal(dependencyListModal.criticalRowTitle, "Критична залеж�
 const dependencyEditor = buildDependencyEditorModel();
 assert.equal(dependencyEditor.independentLabel, "Незал.");
 assert.equal(dependencyEditor.minThresholdLabel, "Мін.:");
+
+const taskFormPanel = buildTaskFormPanelModel();
+assert.equal(taskFormPanel.newTaskTitle, "Нова робота");
+assert.equal(taskFormPanel.weeklyRateUnit, "грн/тижд.");
+
+const demoProjectSeed = buildDemoProjectSeedModel();
+assert.equal(demoProjectSeed.projectName, "Ремонт офісу (демо)");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

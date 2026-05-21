@@ -323,6 +323,26 @@
       dropdownFallbackLabel: "#?"
     };
   }
+  function buildTaskFormPanelModel() {
+    return {
+      newTaskTitle: "Нова робота",
+      editTaskFallbackTitle: "Редагувати роботу",
+      newTaskNameFallback: "Нова робота",
+      fillCostHint: "Заповніть вартість для розрахунку",
+      totalProgressLabel: "Загальне",
+      durationLabel: "Терм.",
+      progressLabel: "Вик.",
+      budgetRemainderLabel: "Залишок",
+      weeksLabel: "Тижнів",
+      weeklyRateLabel: "Ставка",
+      weeklyRateUnit: "грн/тижд."
+    };
+  }
+  function buildDemoProjectSeedModel() {
+    return {
+      projectName: "Ремонт офісу (демо)"
+    };
+  }
 
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
@@ -836,6 +856,8 @@
     buildRuntimeCategoryEditorModel: buildCategoryEditorModel,
     buildRuntimeDependencyEditorModel: buildDependencyEditorModel,
     buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
+    buildRuntimeTaskFormPanelModel: buildTaskFormPanelModel,
+    buildRuntimeDemoProjectSeedModel: buildDemoProjectSeedModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

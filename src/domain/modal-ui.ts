@@ -117,6 +117,24 @@ export interface DependencyEditorModel {
   dropdownFallbackLabel: string;
 }
 
+export interface TaskFormPanelModel {
+  newTaskTitle: string;
+  editTaskFallbackTitle: string;
+  newTaskNameFallback: string;
+  fillCostHint: string;
+  totalProgressLabel: string;
+  durationLabel: string;
+  progressLabel: string;
+  budgetRemainderLabel: string;
+  weeksLabel: string;
+  weeklyRateLabel: string;
+  weeklyRateUnit: string;
+}
+
+export interface DemoProjectSeedModel {
+  projectName: string;
+}
+
 export function buildTaskRangeWarningModel(): TaskRangeWarningModel {
   return {
     title: "Невірний діапазон",
@@ -260,5 +278,27 @@ export function buildDependencyEditorModel(): DependencyEditorModel {
     independentTip: "Незалежний зв'язок",
     minThresholdLabel: "Мін.:",
     dropdownFallbackLabel: "#?",
+  };
+}
+
+export function buildTaskFormPanelModel(): TaskFormPanelModel {
+  return {
+    newTaskTitle: "Нова робота",
+    editTaskFallbackTitle: "Редагувати роботу",
+    newTaskNameFallback: "Нова робота",
+    fillCostHint: "Заповніть вартість для розрахунку",
+    totalProgressLabel: "Загальне",
+    durationLabel: "Терм.",
+    progressLabel: "Вик.",
+    budgetRemainderLabel: "Залишок",
+    weeksLabel: "Тижнів",
+    weeklyRateLabel: "Ставка",
+    weeklyRateUnit: "грн/тижд.",
+  };
+}
+
+export function buildDemoProjectSeedModel(): DemoProjectSeedModel {
+  return {
+    projectName: "Ремонт офісу (демо)",
   };
 }

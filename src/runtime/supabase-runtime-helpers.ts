@@ -27,10 +27,12 @@ import {
   buildDemoProjectDialogModel,
   buildNotesModalModel,
   buildProjectManagerListModel,
+  buildTaskFormPanelModel,
   buildTaskDeleteDialogModel,
   buildTaskDependencyWarningDialogModel,
   buildTaskRangeWarningModel,
   buildTaskSavedToastModel,
+  buildDemoProjectSeedModel,
 } from "../domain/modal-ui";
 import {
   buildAuditEntryViewModel,
@@ -232,6 +234,8 @@ const runtimeHelpers = {
   buildRuntimeCategoryEditorModel: buildCategoryEditorModel,
   buildRuntimeDependencyEditorModel: buildDependencyEditorModel,
   buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
+  buildRuntimeTaskFormPanelModel: buildTaskFormPanelModel,
+  buildRuntimeDemoProjectSeedModel: buildDemoProjectSeedModel,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

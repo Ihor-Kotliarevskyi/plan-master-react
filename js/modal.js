@@ -144,6 +144,30 @@ function _getDependencyEditorModel() {
   };
 }
 
+function _getTaskFormPanelModel() {
+  if (typeof buildRuntimeTaskFormPanelModel === "function") return buildRuntimeTaskFormPanelModel();
+  return {
+    newTaskTitle: "Нова робота",
+    editTaskFallbackTitle: "Редагувати роботу",
+    newTaskNameFallback: "Нова робота",
+    fillCostHint: "Заповніть вартість для розрахунку",
+    totalProgressLabel: "Загальне",
+    durationLabel: "Терм.",
+    progressLabel: "Вик.",
+    budgetRemainderLabel: "Залишок",
+    weeksLabel: "Тижнів",
+    weeklyRateLabel: "Ставка",
+    weeklyRateUnit: "грн/тижд.",
+  };
+}
+
+function _getDemoProjectSeedModel() {
+  if (typeof buildRuntimeDemoProjectSeedModel === "function") return buildRuntimeDemoProjectSeedModel();
+  return {
+    projectName: "Ремонт офісу (демо)",
+  };
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -247,6 +271,7 @@ function _weightedProg(phases) {
 
 /** Рендерить інлайн-список фаз у модалі задачі. */
 function renderModalPhases() {
+  const taskFormPanel = _getTaskFormPanelModel();
   const isMulti = _modalPhases.length > 1;
   const totalProg = isMulti ? _weightedProg(_modalPhases) : (_modalPhases[0]?.prog ?? 0);
 
@@ -259,7 +284,7 @@ function renderModalPhases() {
       const activePct = isMulti && pi === _activePhaseIdx();
       return `<div class="mph-row">
       <div class="mph-top">
-        ${isMulti ? `<span class="mph-label">Ф${pi + 1}</span>` : `<span class="mph-label">Терм.</span>`}
+        ${isMulti ? `<span class="mph-label">Ф${pi + 1}</span>` : `<span class="mph-label">${taskFormPanel.durationLabel}</span>`}
         <input type="date" id="mph-ds-${pi}" class="mph-date-inp"
                value="${ph.dsExact || _phaseToDateStr(ph.ms, ph.ws)}"
                min="${minD}" max="${maxD}"
@@ -272,7 +297,7 @@ function renderModalPhases() {
         ${isMulti && pi > 0 ? `<span class="phase-del" onclick="modalRemovePhase(${pi})"><i data-lucide="x"></i></span>` : ""}
       </div>
       <div class="mph-prog-row">
-        <span class="mph-hint">Вик.</span>
+        <span class="mph-hint">${taskFormPanel.progressLabel}</span>
         <input type="range" id="mph-prog-${pi}" class="mph-range-inp"
                min="0" max="100" step="5" value="${ph.prog || 0}"
                ${locked ? "disabled" : ""} oninput="onModalProgChange(${pi},this.value)">
@@ -283,7 +308,7 @@ function renderModalPhases() {
     .join("");
 
   const summary = isMulti
-    ? `<div class="mph-summary">Загальне: <b>${totalProg}%</b></div>`
+    ? `<div class="mph-summary">${taskFormPanel.totalProgressLabel}: <b>${totalProg}%</b></div>`
     : "";
 
   document.getElementById("modal-phases").innerHTML = rows + summary;
@@ -689,6 +714,7 @@ function _updateAutoBadges(spentAuto, budgetAuto = spentAuto) {
 
 /** Оновлює рядок залишку/ставки під полями бюджету. */
 function updCalc() {
+  const taskFormPanel = _getTaskFormPanelModel();
   const hasItems = _costItems && _costItems.length > 0;
   const overrideBudget = !!document.getElementById("f-contracts-override-budget")?.checked;
   const currentBudget = +document.getElementById("f-budget").value || 0;
@@ -704,10 +730,11 @@ function updCalc() {
   const rw = ph ? remWk({ ms: ph.ms, ws: ph.ws, me: ph.me, we: ph.we }) : 0;
   const rate = rw > 0 ? Math.round(r / rw) : 0;
   document.getElementById("calc-info").innerHTML =
-    `Залишок: <b>${fmtM(r)} грн</b> · Тижнів: <b>${rw}</b> · Ставка: <b>${rw > 0 ? fmtM(rate) + " грн/тижд." : "—"}</b>`;
+    `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(r)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${rw}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${rw > 0 ? fmtM(rate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
 }
 
 function openAdd() {
+  const taskFormPanel = _getTaskFormPanelModel();
   editIdx = null;
   _editingDepId = null;
   _modalDeps = [];
@@ -716,12 +743,12 @@ function openAdd() {
   _costItems = [];
   _expandedIds = new Set();
 
-  document.getElementById("m-title").textContent = "Нова робота";
+  document.getElementById("m-title").textContent = taskFormPanel.newTaskTitle;
   document.getElementById("f-name").value = "";
   document.getElementById("f-budget").value = "";
   document.getElementById("f-spent").value = "";
   document.getElementById("f-contracts-override-budget").checked = false;
-  document.getElementById("calc-info").textContent = "Заповніть вартість для розрахунку";
+  document.getElementById("calc-info").textContent = taskFormPanel.fillCostHint;
   document.getElementById("dep-warn").classList.remove("show");
   document.getElementById("dep-type-editor").style.display = "none";
   _updateAutoBadges(false);
@@ -738,6 +765,7 @@ function openAdd() {
 }
 
 function openEdit(ti) {
+  const taskFormPanel = _getTaskFormPanelModel();
   editIdx = ti;
   _editingDepId = null;
   const t = tasks[ti];
@@ -760,7 +788,7 @@ function openEdit(ti) {
 
   const hasItems = _costItems.length > 0;
 
-  document.getElementById("m-title").textContent = t.name || "Редагувати роботу";
+  document.getElementById("m-title").textContent = t.name || taskFormPanel.editTaskFallbackTitle;
   document.getElementById("f-name").value = t.name;
   document.getElementById("f-contracts-override-budget").checked = !!t.contractsOverrideBudget;
   document.getElementById("f-budget").value = hasItems && ((+t.budget || 0) <= 0 || t.contractsOverrideBudget) ? _totalBudget() : t.budget || "";
@@ -1496,6 +1524,7 @@ function closeProjMgr() {
 
 async function loadDemoProject() {
   const demoProjectDialog = _getDemoProjectDialogModel();
+  const demoProjectSeed = _getDemoProjectSeedModel();
   const { isConfirmed } = await Swal.fire({
     icon: "info",
     title: demoProjectDialog.title,
@@ -1508,7 +1537,7 @@ async function loadDemoProject() {
 
   const id = "p_" + Date.now();
   allProjects[id] = {
-    proj: { name: "Ремонт офісу (демо)", sm: 0, sy: new Date().getFullYear(), nm: 12 },
+    proj: { name: demoProjectSeed.projectName, sm: 0, sy: new Date().getFullYear(), nm: 12 },
     cats: DEF_CATS.map((c) => ({ ...c })),
     tasks: DEF_TASKS.map((t) => ({ ...t })),
     nextN: DEF_TASKS.length + 1,
