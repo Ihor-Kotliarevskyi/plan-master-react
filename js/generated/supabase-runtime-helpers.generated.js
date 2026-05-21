@@ -301,7 +301,12 @@
       allFilterLabel: (count) => `Всі (${count})`,
       fsFilterLabel: (count) => `FS (${count})`,
       ssFilterLabel: (count) => `SS (${count})`,
-      ffFilterLabel: (count) => `FF (${count})`
+      ffFilterLabel: (count) => `FF (${count})`,
+      rowTitle: "Клік — підсвітити ланцюжок на графіку",
+      predecessorHeader: "Попередник",
+      typeHeader: "Тип",
+      successorHeader: "Наступник",
+      criticalPathTitle: "Критичний шлях"
     };
   }
   function buildDependencyEditorModel() {

@@ -97,6 +97,11 @@ export interface DependencyListModalModel {
   fsFilterLabel: (count: number) => string;
   ssFilterLabel: (count: number) => string;
   ffFilterLabel: (count: number) => string;
+  rowTitle: string;
+  predecessorHeader: string;
+  typeHeader: string;
+  successorHeader: string;
+  criticalPathTitle: string;
 }
 
 export interface DependencyEditorModel {
@@ -231,6 +236,11 @@ export function buildDependencyListModalModel(): DependencyListModalModel {
     fsFilterLabel: (count: number) => `FS (${count})`,
     ssFilterLabel: (count: number) => `SS (${count})`,
     ffFilterLabel: (count: number) => `FF (${count})`,
+    rowTitle: "Клік — підсвітити ланцюжок на графіку",
+    predecessorHeader: "Попередник",
+    typeHeader: "Тип",
+    successorHeader: "Наступник",
+    criticalPathTitle: "Критичний шлях",
   };
 }
 

@@ -428,6 +428,8 @@ assert.equal(categoryEditor.newCategoryName, "Нова категорія");
 const dependencyListModal = buildDependencyListModalModel();
 assert.equal(dependencyListModal.emptyFilteredText, "Немає залежностей вибраного типу");
 assert.equal(dependencyListModal.allFilterLabel(4), "Всі (4)");
+assert.equal(dependencyListModal.predecessorHeader, "Попередник");
+assert.equal(dependencyListModal.criticalPathTitle, "Критичний шлях");
 
 const dependencyEditor = buildDependencyEditorModel();
 assert.equal(dependencyEditor.independentLabel, "Незал.");

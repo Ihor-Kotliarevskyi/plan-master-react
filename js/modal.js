@@ -1296,7 +1296,7 @@ function _renderDepList() {
     const isCrit  = criticalSet.has(d.fromTi) && criticalSet.has(d.toTi);
     const fCol    = cats[d.fromTask.cat]?.color || "var(--txt3)";
     const tCol    = cats[d.toTask.cat]?.color   || "var(--txt3)";
-    return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="Клік — підсвітити ланцюжок на графіку">
+    return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="${dependencyListModal.rowTitle}">
       <td class="dl-i">${i + 1}</td>
       <td class="dl-task">
         <span class="dl-dot" style="background:${fCol}"></span>
@@ -1318,10 +1318,10 @@ function _renderDepList() {
   body.innerHTML = `<table class="dl-tbl">
     <thead><tr>
       <th class="dl-i">#</th>
-      <th>Попередник</th>
-      <th class="dl-arrow">Тип</th>
-      <th>Наступник</th>
-      <th class="dl-crit" title="Критичний шлях"><i data-lucide="activity" style="width:12px;height:12px"></i></th>
+      <th>${dependencyListModal.predecessorHeader}</th>
+      <th class="dl-arrow">${dependencyListModal.typeHeader}</th>
+      <th>${dependencyListModal.successorHeader}</th>
+      <th class="dl-crit" title="${dependencyListModal.criticalPathTitle}"><i data-lucide="activity" style="width:12px;height:12px"></i></th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table>`;
