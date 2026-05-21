@@ -245,6 +245,24 @@
     };
   }
 
+  // src/domain/app-ui.ts
+  function buildAppUiModel() {
+    return {
+      importedProjectFallbackName: "Імпортований проєкт",
+      copiedTaskSuffix: " (копія)",
+      duplicateProjectTitle: "Проєкт з такою назвою вже існує",
+      duplicateProjectText: "Щоб не плутати копії, задайте назву для імпортованого проєкту.",
+      importConfirmButtonText: "Імпортувати",
+      cancelButtonText: "Скасувати",
+      requiredProjectNameMessage: "Введіть назву проєкту",
+      duplicateProjectNameMessage: "Проєкт з такою назвою вже існує",
+      numberedCopySuffix: (count) => ` (копія ${count})`,
+      importSuccessTitle: (projectName) => `Імпортовано: «${projectName}»`,
+      importInvalidTitle: "Помилка",
+      importInvalidText: "Не вдалося прочитати файл. Перевірте формат JSON."
+    };
+  }
+
   // src/domain/modal-ui.ts
   function buildTaskRangeWarningModel() {
     return {
@@ -893,6 +911,7 @@
     buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
     buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
     buildRuntimeTableLabels: buildTableLabels,
+    buildRuntimeAppUiModel: buildAppUiModel,
     buildRuntimeAuthFormModel: buildAuthFormModel,
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeThemeToggleModel: buildThemeToggleModel,

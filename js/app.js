@@ -166,6 +166,9 @@ function toggleCat(i, e) {
 
 function copyTask(ti) {
   const src = tasks[ti];
+  const appUi = typeof buildRuntimeAppUiModel === "function"
+    ? buildRuntimeAppUiModel()
+    : { copiedTaskSuffix: " (копія)" };
   const copy = {
     ...src,
     id: genId(),
@@ -176,6 +179,7 @@ function copyTask(ti) {
     costItems: taskCostItems(src).length ? taskCostItems(src).map((c) => ({ ...c })) : null,
     deps: [],
   };
+  copy.name = src.name + appUi.copiedTaskSuffix;
   tasks.splice(ti + 1, 0, copy);
   saveAll();
   renderTable();
@@ -357,6 +361,18 @@ function _projectNameExists(name) {
 }
 
 function _uniqueProjectName(baseName) {
+  if (typeof buildRuntimeAppUiModel === "function") {
+    const appUi = buildRuntimeAppUiModel();
+    const cleanBase = String(baseName || appUi.importedProjectFallbackName).trim() || appUi.importedProjectFallbackName;
+    if (!_projectNameExists(cleanBase)) return cleanBase;
+    const firstCopy = `${cleanBase}${appUi.copiedTaskSuffix}`;
+    if (!_projectNameExists(firstCopy)) return firstCopy;
+    for (let i = 2; i < 1000; i++) {
+      const candidate = `${cleanBase}${appUi.numberedCopySuffix(i)}`;
+      if (!_projectNameExists(candidate)) return candidate;
+    }
+    return `${cleanBase}${appUi.numberedCopySuffix(Date.now())}`;
+  }
   const cleanBase = String(baseName || "Імпортований проєкт").trim() || "Імпортований проєкт";
   if (!_projectNameExists(cleanBase)) return cleanBase;
   const firstCopy = `${cleanBase} (копія)`;
@@ -369,6 +385,31 @@ function _uniqueProjectName(baseName) {
 }
 
 async function _resolveImportProjectName(baseName) {
+  if (typeof buildRuntimeAppUiModel === "function") {
+    const appUi = buildRuntimeAppUiModel();
+    const name = String(baseName || appUi.importedProjectFallbackName).trim() || appUi.importedProjectFallbackName;
+    if (!_projectNameExists(name)) return name;
+
+    const suggested = _uniqueProjectName(name);
+    const result = await Swal.fire({
+      icon: "question",
+      title: appUi.duplicateProjectTitle,
+      text: appUi.duplicateProjectText,
+      input: "text",
+      inputValue: suggested,
+      showCancelButton: true,
+      confirmButtonText: appUi.importConfirmButtonText,
+      cancelButtonText: appUi.cancelButtonText,
+      inputValidator: (value) => {
+        const nextName = String(value || "").trim();
+        if (!nextName) return appUi.requiredProjectNameMessage;
+        if (_projectNameExists(nextName)) return appUi.duplicateProjectNameMessage;
+        return null;
+      },
+    });
+
+    return result.isConfirmed ? String(result.value || suggested).trim() : null;
+  }
   const name = String(baseName || "Імпортований проєкт").trim() || "Імпортований проєкт";
   if (!_projectNameExists(name)) return name;
 
@@ -407,6 +448,9 @@ function _normalizeImportedBaseline(baseline, idMap) {
 function importJSON(e) {
   const f = e.target.files[0];
   if (!f) return;
+  const appUi = typeof buildRuntimeAppUiModel === "function"
+    ? buildRuntimeAppUiModel()
+    : null;
   const r = new FileReader();
   r.onload = async (ev) => {
     try {
@@ -493,6 +537,16 @@ function importJSON(e) {
         updateProjSel();
         if (typeof _updateReadOnlyUI === "function") _updateReadOnlyUI();
 
+        if (appUi) {
+          Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "success",
+            title: appUi.importSuccessTitle(allProjects[id].proj.name),
+            showConfirmButton: false,
+            timer: 3000,
+          });
+        } else
         Swal.fire({
           toast: true,
           position: "top-end",
@@ -503,11 +557,19 @@ function importJSON(e) {
         });
       }
     } catch {
+      if (appUi) {
+        Swal.fire({
+          icon: "error",
+          title: appUi.importInvalidTitle,
+          text: appUi.importInvalidText,
+        });
+      } else
       Swal.fire({
         icon: "error",
         title: "Помилка",
         text: "Не вдалося прочитати файл. Перевірте формат JSON.",
       });
+      }
     }
   };
   r.readAsText(f);

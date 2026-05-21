@@ -21,6 +21,7 @@ import {
   buildProjectSelectLabels,
   buildTableLabels,
 } from "../src/domain/render-ui";
+import { buildAppUiModel } from "../src/domain/app-ui";
 import {
   buildDependencyEditorModel,
   buildDemoProjectSeedModel,
@@ -457,6 +458,12 @@ const tableLabels = buildTableLabels();
 assert.equal(tableLabels.addTaskLabel, "+ Робота");
 assert.equal(tableLabels.notesCountLabel(3), "3 нотаток");
 assert.equal(tableLabels.phaseCountTitle(2), "2 фаз");
+
+const appUi = buildAppUiModel();
+assert.equal(appUi.importedProjectFallbackName, "Імпортований проєкт");
+assert.equal(appUi.copiedTaskSuffix, " (копія)");
+assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
+assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");

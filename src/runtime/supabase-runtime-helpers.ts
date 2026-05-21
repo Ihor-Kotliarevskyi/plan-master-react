@@ -22,6 +22,7 @@ import {
   buildProjectSelectLabels,
   buildTableLabels,
 } from "../domain/render-ui";
+import { buildAppUiModel } from "../domain/app-ui";
 import {
   buildDependencyEditorModel,
   buildCategoryEditorModel,
@@ -221,6 +222,7 @@ const runtimeHelpers = {
   buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
   buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
   buildRuntimeTableLabels: buildTableLabels,
+  buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeAuthFormModel: buildAuthFormModel,
   getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeThemeToggleModel: buildThemeToggleModel,
