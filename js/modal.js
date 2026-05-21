@@ -116,6 +116,23 @@ function _getDependencyListModalModel() {
   return {
     emptyFilteredText: "Немає залежностей вибраного типу",
     emptyProjectText: "У проєкті немає залежностей між роботами",
+    allFilterLabel: (count) => `Всі (${count})`,
+    fsFilterLabel: (count) => `FS (${count})`,
+    ssFilterLabel: (count) => `SS (${count})`,
+    ffFilterLabel: (count) => `FF (${count})`,
+  };
+}
+
+function _getDependencyEditorModel() {
+  if (typeof buildRuntimeDependencyEditorModel === "function") return buildRuntimeDependencyEditorModel();
+  return {
+    deleteBadgeLabel: "Видалити",
+    independentLabel: "Незал.",
+    finishStartTip: "Після завершення",
+    startStartTip: "Після початку + %",
+    independentTip: "Незалежний зв'язок",
+    minThresholdLabel: "Мін.:",
+    dropdownFallbackLabel: "#?",
   };
 }
 
@@ -467,6 +484,7 @@ function renderModalNet() {
 
 /** Рендерить чіпи залежностей. */
 function renderDepTags() {
+  const dependencyEditor = _getDependencyEditorModel();
   const tagsEl = document.getElementById("dep-tags");
   if (!tagsEl) return;
 
@@ -478,7 +496,7 @@ function renderDepTags() {
       const t = tasks.find((x) => x.id === dep.id);
       const label = t
         ? `#${t.n} ${t.name.slice(0, 20)}${t.name.length > 20 ? "…" : ""}`
-        : `#?`;
+        : dependencyEditor.dropdownFallbackLabel;
       const badge =
         dep.type === "SS" && dep.threshold
           ? `${TYPE_LABELS[dep.type]} ${dep.threshold}%`
@@ -487,7 +505,7 @@ function renderDepTags() {
                    onclick="editDepTag('${dep.id}')">
         <span class="dep-tag-label">${label}</span>
         <span class="dep-tag-badge" style="background:${TYPE_COLORS[dep.type] || "var(--acc)"}">${badge}</span>
-        <span class="dep-tag-del" onclick="event.stopPropagation();removeDepTag('${dep.id}')">×</span>
+        <span class="dep-tag-del" title="${dependencyEditor.deleteBadgeLabel}" onclick="event.stopPropagation();removeDepTag('${dep.id}')">×</span>
       </div>`;
     })
     .join("");
@@ -555,6 +573,7 @@ function editDepTag(id) {
 }
 
 function renderDepTypeEditor() {
+  const dependencyEditor = _getDependencyEditorModel();
   const el = document.getElementById("dep-type-editor");
   if (!el) return;
   if (!_editingDepId) {
@@ -575,9 +594,9 @@ function renderDepTypeEditor() {
       <span class="dep-type-title">#${dispN} ${name}</span>
       <div class="dep-type-btns">
         ${[
-          { v: "FS", l: "FS", tip: "Після завершення" },
-          { v: "SS", l: "SS+%", tip: "Після початку + %" },
-          { v: "FF", l: "Незал.", tip: "Незалежний зв'язок" },
+          { v: "FS", l: "FS", tip: dependencyEditor.finishStartTip },
+          { v: "SS", l: "SS+%", tip: dependencyEditor.startStartTip },
+          { v: "FF", l: dependencyEditor.independentLabel, tip: dependencyEditor.independentTip },
         ]
           .map(
             (opt) => `<button class="dep-type-btn${dep.type === opt.v ? " active" : ""}"
@@ -587,9 +606,9 @@ function renderDepTypeEditor() {
           .join("")}
         ${
           dep.type === "SS"
-            ? `<span class="dep-threshold-lbl">Мін.:</span>
+            ? `<span class="dep-threshold-lbl">${dependencyEditor.minThresholdLabel}</span>
                <div class="dep-thr-wrap">
-                 <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',-5)">−</button>
+                  <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',-5)">−</button>
                  <input type="number" value="${dep.threshold || 25}" min="1" max="99"
                         onchange="setDepThreshold('${dep.id}',this.value)"
                         class="dep-threshold-inp">
@@ -1257,10 +1276,10 @@ function _renderDepList() {
   // Фільтр-кнопки
   document.querySelectorAll(".dl-filter-btn").forEach(b => {
     const f = b.dataset.f;
-    b.textContent = f === "all" ? `Всі (${cnt.all})` :
-                    f === "FS"  ? `FS (${cnt.FS || 0})` :
-                    f === "SS"  ? `SS (${cnt.SS || 0})` :
-                                  `FF (${cnt.FF || 0})`;
+    b.textContent = f === "all" ? dependencyListModal.allFilterLabel(cnt.all) :
+                    f === "FS"  ? dependencyListModal.fsFilterLabel(cnt.FS || 0) :
+                    f === "SS"  ? dependencyListModal.ssFilterLabel(cnt.SS || 0) :
+                                  dependencyListModal.ffFilterLabel(cnt.FF || 0);
     b.classList.toggle("on", f === _dlFilter);
   });
 

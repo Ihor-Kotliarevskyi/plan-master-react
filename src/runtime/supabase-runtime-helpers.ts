@@ -18,6 +18,7 @@ import { buildBaselinePanelModel } from "../domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/settings-ui";
 import { buildAccountSectionModel } from "../domain/account-section-ui";
 import {
+  buildDependencyEditorModel,
   buildCategoryEditorModel,
   buildCannotDeleteLastProjectModel,
   buildCreateProjectDialogModel,
@@ -229,6 +230,7 @@ const runtimeHelpers = {
   buildRuntimeDeleteProjectDialogModel: buildDeleteProjectDialogModel,
   buildRuntimeNotesModalModel: buildNotesModalModel,
   buildRuntimeCategoryEditorModel: buildCategoryEditorModel,
+  buildRuntimeDependencyEditorModel: buildDependencyEditorModel,
   buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,

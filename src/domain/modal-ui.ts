@@ -93,6 +93,20 @@ export interface CategoryEditorModel {
 export interface DependencyListModalModel {
   emptyFilteredText: string;
   emptyProjectText: string;
+  allFilterLabel: (count: number) => string;
+  fsFilterLabel: (count: number) => string;
+  ssFilterLabel: (count: number) => string;
+  ffFilterLabel: (count: number) => string;
+}
+
+export interface DependencyEditorModel {
+  deleteBadgeLabel: string;
+  independentLabel: string;
+  finishStartTip: string;
+  startStartTip: string;
+  independentTip: string;
+  minThresholdLabel: string;
+  dropdownFallbackLabel: string;
 }
 
 export function buildTaskRangeWarningModel(): TaskRangeWarningModel {
@@ -213,5 +227,21 @@ export function buildDependencyListModalModel(): DependencyListModalModel {
   return {
     emptyFilteredText: "Немає залежностей вибраного типу",
     emptyProjectText: "У проєкті немає залежностей між роботами",
+    allFilterLabel: (count: number) => `Всі (${count})`,
+    fsFilterLabel: (count: number) => `FS (${count})`,
+    ssFilterLabel: (count: number) => `SS (${count})`,
+    ffFilterLabel: (count: number) => `FF (${count})`,
+  };
+}
+
+export function buildDependencyEditorModel(): DependencyEditorModel {
+  return {
+    deleteBadgeLabel: "Видалити",
+    independentLabel: "Незал.",
+    finishStartTip: "Після завершення",
+    startStartTip: "Після початку + %",
+    independentTip: "Незалежний зв'язок",
+    minThresholdLabel: "Мін.:",
+    dropdownFallbackLabel: "#?",
   };
 }

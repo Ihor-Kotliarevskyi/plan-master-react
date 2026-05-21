@@ -102,6 +102,7 @@ and Supabase adapters happen against stable interfaces.
   - notes modal labels and confirm dialogs
   - category editor labels and delete confirms
   - dependency list empty-state copy
+  - dependency editor labels, tooltips, and filter captions
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape

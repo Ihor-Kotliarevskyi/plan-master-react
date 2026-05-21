@@ -297,7 +297,22 @@
   function buildDependencyListModalModel() {
     return {
       emptyFilteredText: "Немає залежностей вибраного типу",
-      emptyProjectText: "У проєкті немає залежностей між роботами"
+      emptyProjectText: "У проєкті немає залежностей між роботами",
+      allFilterLabel: (count) => `Всі (${count})`,
+      fsFilterLabel: (count) => `FS (${count})`,
+      ssFilterLabel: (count) => `SS (${count})`,
+      ffFilterLabel: (count) => `FF (${count})`
+    };
+  }
+  function buildDependencyEditorModel() {
+    return {
+      deleteBadgeLabel: "Видалити",
+      independentLabel: "Незал.",
+      finishStartTip: "Після завершення",
+      startStartTip: "Після початку + %",
+      independentTip: "Незалежний зв'язок",
+      minThresholdLabel: "Мін.:",
+      dropdownFallbackLabel: "#?"
     };
   }
 
@@ -811,6 +826,7 @@
     buildRuntimeDeleteProjectDialogModel: buildDeleteProjectDialogModel,
     buildRuntimeNotesModalModel: buildNotesModalModel,
     buildRuntimeCategoryEditorModel: buildCategoryEditorModel,
+    buildRuntimeDependencyEditorModel: buildDependencyEditorModel,
     buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,

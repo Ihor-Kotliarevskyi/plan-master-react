@@ -17,6 +17,7 @@ import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
+  buildDependencyEditorModel,
   buildCannotDeleteLastProjectModel,
   buildCategoryEditorModel,
   buildCreateProjectDialogModel,
@@ -426,6 +427,11 @@ assert.equal(categoryEditor.newCategoryName, "Нова категорія");
 
 const dependencyListModal = buildDependencyListModalModel();
 assert.equal(dependencyListModal.emptyFilteredText, "Немає залежностей вибраного типу");
+assert.equal(dependencyListModal.allFilterLabel(4), "Всі (4)");
+
+const dependencyEditor = buildDependencyEditorModel();
+assert.equal(dependencyEditor.independentLabel, "Незал.");
+assert.equal(dependencyEditor.minThresholdLabel, "Мін.:");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
