@@ -60,6 +60,48 @@ export interface ContractorTableLabels {
   deleteActTitle: string;
   editPaymentTitle: string;
   deletePaymentTitle: string;
+  noSelectedContractorsTitle: string;
+  noVisibleContractorsTitle: string;
+  bulkDeleteConfirmTitle: string;
+  bulkDeleteContinueLabel: string;
+  finalDeleteTitle: string;
+  finalDeleteInputLabel: string;
+  finalDeleteConfirmLabel: string;
+  finalDeleteValidationMessage: string;
+  noContractsTitle: string;
+  noContractsText: string;
+  saveLabel: string;
+  cancelLabel: string;
+  deleteLabel: string;
+  noWorksTitle: string;
+  noWorksText: string;
+  contractorUpdatedTitle: string;
+  noPaymentsTitle: string;
+  noPaymentsRegisterText: string;
+  registerNameTitle: string;
+  registerNameValidation: string;
+  noPaymentsExportTitle: string;
+  noPaymentsPrintTitle: string;
+  printBlockedTitle: string;
+  printBlockedText: string;
+  deleteRegisterTitle: string;
+  noImportRightsTitle: string;
+  importUnavailableTitle: string;
+  importUnavailableText: string;
+  importNoRowsTitle: string;
+  importDoneTitle: string;
+  importNoChangesTitle: string;
+  importErrorTitle: string;
+  importErrorText: string;
+  importMappingTitle: string;
+  importMappingDefaultTaskLabel: string;
+  importProjectFieldHeader: string;
+  importFileColumnHeader: string;
+  importExamplesHeader: string;
+  importContinueLabel: string;
+  importReviewTitle: string;
+  importLabel: string;
+  importOkLabel: string;
 }
 
 export function buildContractorSummaryLabels(): ContractorSummaryLabels {
@@ -131,5 +173,47 @@ export function buildContractorTableLabels(): ContractorTableLabels {
     deleteActTitle: "Видалити акт",
     editPaymentTitle: "Редагувати платіж",
     deletePaymentTitle: "Видалити платіж",
+    noSelectedContractorsTitle: "Немає вибраних контрагентів",
+    noVisibleContractorsTitle: "Немає контрагентів для видалення",
+    bulkDeleteConfirmTitle: "Підтвердьте видалення",
+    bulkDeleteContinueLabel: "Продовжити",
+    finalDeleteTitle: "Фінальне підтвердження",
+    finalDeleteInputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+    finalDeleteConfirmLabel: 'Введіть слово "ВИДАЛИТИ"',
+    finalDeleteValidationMessage: 'Введіть слово "ВИДАЛИТИ"',
+    noContractsTitle: "Немає договорів",
+    noContractsText: "Спочатку додайте договір для цього контрагента.",
+    saveLabel: "Зберегти",
+    cancelLabel: "Скасувати",
+    deleteLabel: "Видалити",
+    noWorksTitle: "Немає робіт",
+    noWorksText: "Спочатку додайте роботу на графіку.",
+    contractorUpdatedTitle: "Контрагента оновлено",
+    noPaymentsTitle: "Немає платежів",
+    noPaymentsRegisterText: "Поточний фільтр не містить платежів для реєстру.",
+    registerNameTitle: "Назва реєстру",
+    registerNameValidation: "Вкажіть назву реєстру",
+    noPaymentsExportTitle: "Немає платежів для експорту",
+    noPaymentsPrintTitle: "Немає платежів для друку",
+    printBlockedTitle: "Браузер заблокував друк",
+    printBlockedText: "Дозвольте спливаюче вікно для друку реєстру.",
+    deleteRegisterTitle: "Видалити реєстр?",
+    noImportRightsTitle: "У вас немає прав на імпорт",
+    importUnavailableTitle: "Імпорт недоступний",
+    importUnavailableText: "Бібліотека XLSX не завантажилась.",
+    importNoRowsTitle: "У файлі не знайдено рядків для імпорту",
+    importDoneTitle: "Імпорт завершено",
+    importNoChangesTitle: "Немає змін для імпорту",
+    importErrorTitle: "Помилка імпорту",
+    importErrorText: "Не вдалося прочитати файл. Перевірте формат таблиці або скористайтесь шаблоном.",
+    importMappingTitle: "Імпорт платежів",
+    importMappingDefaultTaskLabel: "Робота за замовчуванням, якщо у файлі не знайдено роботу",
+    importProjectFieldHeader: "Поле проєкту",
+    importFileColumnHeader: "Колонка у файлі",
+    importExamplesHeader: "Приклади",
+    importContinueLabel: "Продовжити",
+    importReviewTitle: "Перевірка імпорту",
+    importLabel: "Імпортувати",
+    importOkLabel: "OK",
   };
 }

@@ -489,6 +489,9 @@ assert.equal(contractorTableLabels.paymentsCountHeader, "Платежів");
 assert.equal(contractorTableLabels.emDash, "—");
 assert.equal(contractorTableLabels.contractActEmptyText, "Договорів по цьому контрагенту ще немає");
 assert.equal(contractorTableLabels.addPaymentTitle, "Додати платіж");
+assert.equal(contractorTableLabels.bulkDeleteConfirmTitle, "Підтвердьте видалення");
+assert.equal(contractorTableLabels.registerNameTitle, "Назва реєстру");
+assert.equal(contractorTableLabels.importReviewTitle, "Перевірка імпорту");
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");

@@ -1391,7 +1391,7 @@ async function deleteSelectedContractors() {
   if (!_canMutateContractors(true)) return;
   const keys = _selectedContractorKeys();
   if (!keys.length) {
-    Swal.fire({ icon: "info", title: "Немає вибраних контрагентів" });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noSelectedContractorsTitle });
     return;
   }
   await _bulkDeleteContractors(keys, "вибраних контрагентів");
@@ -1401,7 +1401,7 @@ async function deleteVisibleContractors() {
   if (!_canMutateContractors(true)) return;
   const keys = _visibleDeletableContractorRows().map((row) => row.key);
   if (!keys.length) {
-    Swal.fire({ icon: "info", title: "Немає контрагентів для видалення" });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noVisibleContractorsTitle });
     return;
   }
   await _bulkDeleteContractors(keys, "усіх контрагентів за поточним фільтром");
@@ -1423,7 +1423,7 @@ async function _bulkDeleteContractors(keys, scopeLabel) {
 
   const confirmOne = await Swal.fire({
     icon: "warning",
-    title: "Підтвердьте видалення",
+    title: CONTRACTOR_UI.bulkDeleteConfirmTitle,
     html: `
       <div style="text-align:left">
         Буде видалено <b>${summary.contractors}</b> контрагентів.<br>
@@ -1433,24 +1433,24 @@ async function _bulkDeleteContractors(keys, scopeLabel) {
         Сценарій: <b>${_ctEsc(scopeLabel)}</b>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Продовжити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.bulkDeleteContinueLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     confirmButtonColor: "#dc2626",
   });
   if (!confirmOne.isConfirmed) return;
 
   const confirmTwo = await Swal.fire({
     icon: "warning",
-    title: "Фінальне підтвердження",
+    title: CONTRACTOR_UI.finalDeleteTitle,
     input: "text",
-    inputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+    inputLabel: CONTRACTOR_UI.finalDeleteInputLabel,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.deleteLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     confirmButtonColor: "#dc2626",
     preConfirm: (value) => {
       if (String(value || "").trim().toUpperCase() !== "ВИДАЛИТИ") {
-        Swal.showValidationMessage('Введіть слово "ВИДАЛИТИ"');
+        Swal.showValidationMessage(CONTRACTOR_UI.finalDeleteConfirmLabel);
         return false;
       }
       return true;
@@ -1486,7 +1486,7 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
   const supplier = pathContract ? _contractorName(pathContract.item.supplier) : decodeURIComponent(prefillSupplier || "");
   const contracts = pathContract ? [{ task: pathContract.task, ti: pathContract.ti, item: pathContract.item }] : _contractorContractsForSupplier(supplier);
   if (!contracts.length) {
-    Swal.fire({ icon: "info", title: "Немає договорів", text: "Спочатку додайте договір для цього контрагента." });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noContractsTitle, text: CONTRACTOR_UI.noContractsText });
     return;
   }
   const initialItemName = pathContract?.item?.name || contracts[0]?.item?.name || "";
@@ -1510,8 +1510,8 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
         <label class="swal-span-2">Примітка<input id="act-note" class="swal2-input"></label>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Зберегти",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.saveLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
       const contractSelect = document.getElementById("act-contract");
       const itemNameInput = document.getElementById("act-item-name");
@@ -1643,8 +1643,8 @@ async function deleteContractorAct(path) {
     icon: "warning",
     title: "Видалити акт?",
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.deleteLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     confirmButtonColor: "#dc2626",
   });
   if (!result.isConfirmed) return;
@@ -1688,8 +1688,8 @@ async function openContractorPaymentModal(contractPath = "", actPath = "") {
         <label class="swal-span-2">Примітка<input id="pay-add-note" class="swal2-input"></label>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Зберегти",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.saveLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("pay-add-amount")?.value);
       if (amount === null || amount <= 0) {
@@ -1743,7 +1743,7 @@ function openContractorEntryModal(prefillSupplier = "", lockSupplier = false) {
       toast: true,
       position: "top-end",
       icon: "warning",
-      title: "У вас немає прав на редагування",
+      title: CONTRACTOR_UI.noPermissionTitle,
       showConfirmButton: false,
       timer: 3200,
     });
@@ -1751,7 +1751,7 @@ function openContractorEntryModal(prefillSupplier = "", lockSupplier = false) {
   }
 
   if (!tasks.length) {
-    Swal.fire({ icon: "info", title: "Немає робіт", text: "Спочатку додайте роботу на графіку." });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noWorksTitle, text: CONTRACTOR_UI.noWorksText });
     return;
   }
 
@@ -1915,7 +1915,7 @@ function saveContractorEntry() {
     toast: true,
     position: "top-end",
     icon: "success",
-    title: "Контрагента оновлено",
+    title: CONTRACTOR_UI.contractorUpdatedTitle,
     showConfirmButton: false,
     timer: 2200,
   });
@@ -2012,19 +2012,19 @@ function renderPaymentRegisterModal() {
 async function createPaymentRegisterFromFilters() {
   const rows = _paymentRegisterRowsFromFilters();
   if (!rows.length) {
-    Swal.fire({ icon: "info", title: "Немає платежів", text: "Поточний фільтр не містить платежів для реєстру." });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noPaymentsTitle, text: CONTRACTOR_UI.noPaymentsRegisterText });
     return;
   }
   const suggested = `Реєстр платежів ${new Date().toLocaleDateString("uk-UA")}`;
   const result = await Swal.fire({
     icon: "question",
-    title: "Назва реєстру",
+    title: CONTRACTOR_UI.registerNameTitle,
     input: "text",
     inputValue: suggested,
     showCancelButton: true,
-    confirmButtonText: "Зберегти",
-    cancelButtonText: "Скасувати",
-    inputValidator: (value) => (!_ctText(value) ? "Вкажіть назву реєстру" : null),
+    confirmButtonText: CONTRACTOR_UI.saveLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    inputValidator: (value) => (!_ctText(value) ? CONTRACTOR_UI.registerNameValidation : null),
   });
   if (!result.isConfirmed) return;
 
@@ -2073,7 +2073,7 @@ function _paymentRegisterAoA(rows) {
 
 function _exportPaymentRegisterRows(name, rows, type) {
   if (!rows.length) {
-    Swal.fire({ icon: "info", title: "Немає платежів для експорту" });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noPaymentsExportTitle });
     return;
   }
   const fileBase = `${name}`.replace(/[\\/:*?"<>|]+/g, "_");
@@ -2103,7 +2103,7 @@ function printPaymentRegister(id) {
 
 function _printPaymentRegisterRows(name, rows, subtitle = "") {
   if (!rows.length) {
-    Swal.fire({ icon: "info", title: "Немає платежів для друку" });
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noPaymentsPrintTitle });
     return;
   }
   const total = _paymentRegisterTotal(rows);
@@ -2119,7 +2119,7 @@ function _printPaymentRegisterRows(name, rows, subtitle = "") {
     </tr>`).join("");
   const win = window.open("", "_blank");
   if (!win) {
-    Swal.fire({ icon: "warning", title: "Браузер заблокував друк", text: "Дозвольте спливаюче вікно для друку реєстру." });
+    Swal.fire({ icon: "warning", title: CONTRACTOR_UI.printBlockedTitle, text: CONTRACTOR_UI.printBlockedText });
     return;
   }
   win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${_ctEsc(name)}</title>
@@ -2147,11 +2147,11 @@ async function deletePaymentRegister(id) {
   if (!register) return;
   const result = await Swal.fire({
     icon: "warning",
-    title: "Видалити реєстр?",
+    title: CONTRACTOR_UI.deleteRegisterTitle,
     text: register.name,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.deleteLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     confirmButtonColor: "#dc2626",
   });
   if (!result.isConfirmed) return;
@@ -2203,7 +2203,7 @@ function importContractorTable(event) {
       toast: true,
       position: "top-end",
       icon: "warning",
-      title: "У вас немає прав на імпорт",
+      title: CONTRACTOR_UI.noImportRightsTitle,
       showConfirmButton: false,
       timer: 3200,
     });
@@ -2211,7 +2211,7 @@ function importContractorTable(event) {
   }
 
   if (typeof XLSX === "undefined") {
-    Swal.fire({ icon: "error", title: "Імпорт недоступний", text: "Бібліотека XLSX не завантажилась." });
+    Swal.fire({ icon: "error", title: CONTRACTOR_UI.importUnavailableTitle, text: CONTRACTOR_UI.importUnavailableText });
     return;
   }
 
@@ -2221,7 +2221,7 @@ function importContractorTable(event) {
       const wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array", cellDates: true });
       const rows = _readContractorImportRows(wb);
       if (!rows.length) {
-        Swal.fire({ icon: "warning", title: "У файлі не знайдено рядків для імпорту" });
+        Swal.fire({ icon: "warning", title: CONTRACTOR_UI.importNoRowsTitle });
         return;
       }
 
@@ -2248,7 +2248,7 @@ function importContractorTable(event) {
 
       Swal.fire({
         icon: result.changed ? "success" : "info",
-        title: result.changed ? "Імпорт завершено" : "Немає змін для імпорту",
+        title: result.changed ? CONTRACTOR_UI.importDoneTitle : CONTRACTOR_UI.importNoChangesTitle,
         html: `
           <div style="text-align:left">
             Оброблено рядків: <b>${result.processed}</b><br>
@@ -2263,8 +2263,8 @@ function importContractorTable(event) {
       console.error(err);
       Swal.fire({
         icon: "error",
-        title: "Помилка імпорту",
-        text: "Не вдалося прочитати файл. Перевірте формат таблиці або скористайтесь шаблоном.",
+        title: CONTRACTOR_UI.importErrorTitle,
+        text: CONTRACTOR_UI.importErrorText,
       });
     }
   };
@@ -2366,7 +2366,7 @@ async function _confirmContractorImportMapping(rows) {
     .concat((tasks || []).map((task) => `<option value="${_ctEsc(task.id || String(task.n))}">#${task.n} ${_ctEsc(task.name || "")}</option>`))
     .join("");
   const result = await Swal.fire({
-    title: "Імпорт платежів",
+    title: CONTRACTOR_UI.importMappingTitle,
     width: 940,
     customClass: {
       popup: "contractor-import-modal",
@@ -2375,18 +2375,18 @@ async function _confirmContractorImportMapping(rows) {
     },
     html: `
       <div class="contractor-import-mapping">
-        <p><span>Робота за замовчуванням, якщо у файлі не знайдено роботу</span></p>
+        <p><span>${CONTRACTOR_UI.importMappingDefaultTaskLabel}</span></p>
         <label class="contractor-import-default-task">
           <select id="contractor-import-default-task">${defaultTaskOptions}</select>
         </label>
         <table>
-          <thead><tr><th>Поле проєкту</th><th>Колонка у файлі</th><th>Приклади</th></tr></thead>
+          <thead><tr><th>${CONTRACTOR_UI.importProjectFieldHeader}</th><th>${CONTRACTOR_UI.importFileColumnHeader}</th><th>${CONTRACTOR_UI.importExamplesHeader}</th></tr></thead>
           <tbody>${body}</tbody>
         </table>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Продовжити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.importContinueLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
       document.querySelectorAll(".contractor-import-map-select").forEach((select) => {
         select.addEventListener("change", () => {
@@ -2769,7 +2769,7 @@ async function _confirmContractorImport(preview) {
   const hasImportableRows = summary.itemsCreated > 0 || summary.itemsUpdated > 0 || summary.paymentsAdded > 0 || hasDecisionOptions;
   const result = await Swal.fire({
     icon: issueEntries.length ? "warning" : "question",
-    title: "Перевірка імпорту",
+    title: CONTRACTOR_UI.importReviewTitle,
     width: 1040,
     customClass: {
       popup: "contractor-import-modal",
@@ -2804,8 +2804,8 @@ async function _confirmContractorImport(preview) {
           </div>` : ""}
       </div>`,
     showCancelButton: hasImportableRows,
-    confirmButtonText: hasImportableRows ? "Імпортувати" : "OK",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: hasImportableRows ? CONTRACTOR_UI.importLabel : CONTRACTOR_UI.importOkLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
       const applyFilter = (filter) => {
         document.querySelectorAll("[data-import-filter]").forEach((card) => {
