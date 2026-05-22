@@ -29,6 +29,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/modal-ui.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
+  - `src/domain/finance-ui.ts`
   - `src/domain/contractors-ui.ts`
   - `src/domain/costs-ui.ts`
   - `src/domain/guard-ui.ts`
@@ -96,6 +97,10 @@ and Supabase adapters happen against stable interfaces.
   - totals/footer labels
   - contract/payment placeholders
   - payment count/action labels
+- `js/finance.js` now uses the generated helper layer for:
+  - filter/search labels
+  - bulk delete confirmation copy
+  - chart dataset and tooltip labels
 - `js/user.js` now uses the generated helper layer for:
   - project sync-state calculation
   - sync-badge resolution

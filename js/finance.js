@@ -4,6 +4,56 @@ let weeklyCostChart = null;
 let _finResize = null;
 let showWeeklyCostBars = false;
 let financeChartHeight = 260;
+const FINANCE_UI = typeof buildRuntimeFinanceUiModel === "function"
+  ? buildRuntimeFinanceUiModel()
+  : {
+      statusOptions: [
+        { value: "done", label: "Завершено (100%)" },
+        { value: "active", label: "В роботі" },
+        { value: "pending", label: "Не розпочато" },
+        { value: "warn", label: "З порушеннями" },
+      ],
+      filters: {
+        overviewTabLabel: "Графік",
+        tableTabLabel: "Таблиця",
+        searchPlaceholder: "Пошук у фінансах...",
+        clearSearchTitle: "Очистити пошук",
+        categoryLabel: "Категорія",
+        categoryAllLabel: "Усі категорії",
+        statusLabel: "Статус",
+        statusAllLabel: "Усі",
+        contractorLabel: "Підрядник",
+        contractorAllLabel: "Усі",
+        budgetMinLabel: "Бюджет від",
+        budgetMaxLabel: "Бюджет до",
+        budgetMinPlaceholder: "0",
+        budgetMaxPlaceholder: "∞",
+        onlyBudgetLabel: "Тільки з бюджетом",
+        resetFiltersTitle: "Скинути фільтри фінансів",
+        evmToggleLabel: "EVM",
+        evmToggleTitle: "Показати/сховати EVM метрики",
+        deleteTasksLabel: "Видалити роботи",
+        deleteTasksTitle: "Видалити всі роботи за поточними фільтрами",
+      },
+      deleteDialogs: {
+        noTasksTitle: "Немає робіт для видалення",
+        confirmTitle: "Підтвердьте видалення",
+        continueLabel: "Продовжити",
+        finalTitle: "Фінальне підтвердження",
+        finalInputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+        finalConfirmLabel: "Видалити",
+        cancelLabel: "Скасувати",
+        validationMessage: 'Введіть слово "ВИДАЛИТИ"',
+        filteredScopeLabel: "роботи за поточними фільтрами",
+        fullScopeLabel: "усі роботи проєкту",
+      },
+      chart: {
+        plannedLabel: "План, грн",
+        actualLabel: "Факт, грн",
+        projectedLabel: "Прогноз, грн",
+        tooltipCurrencyUnit: "грн",
+      },
+    };
 
 const FIN_COL_SK = "gantt_fin_col_widths";
 const FIN_COL_DEFAULTS = {
@@ -123,60 +173,55 @@ function switchFinTab(tab) {
 function renderFinFilters() {
   const contrs = uniqContractors();
   const catOptions = cats.map((c, i) => ({ value: i, label: c.name }));
-  const statusOptions = [
-    { value: "done", label: "Завершено (100%)" },
-    { value: "active", label: "В роботі" },
-    { value: "pending", label: "Не розпочато" },
-    { value: "warn", label: "З порушеннями" },
-  ];
+  const statusOptions = FINANCE_UI.statusOptions;
   const contractorOptions = contrs.map((c) => ({ value: c, label: c }));
   const hasFinFilters = _hasFinanceFilters();
   document.getElementById("fin-filters").innerHTML = `
     <div class="fin-filter-tabs">
       <button class="fin-tab" id="fin-tab-overview" onclick="switchFinTab('overview')" type="button">
-        <i data-lucide="trending-up"></i> Графік
+        <i data-lucide="trending-up"></i> ${FINANCE_UI.filters.overviewTabLabel}
       </button>
       <button class="fin-tab" id="fin-tab-table" onclick="switchFinTab('table')" type="button">
-        <i data-lucide="table-2"></i> Таблиця
+        <i data-lucide="table-2"></i> ${FINANCE_UI.filters.tableTabLabel}
       </button>
     </div>
     <div class="fin-search-wrap">
       <i data-lucide="search" class="fin-search-icon"></i>
       <input type="text" id="fin-search-inp" class="fin-search-inp"
-             placeholder="Пошук у фінансах..."
+             placeholder="${FINANCE_UI.filters.searchPlaceholder}"
              value="${htmlEsc(finFilters.q || "")}"
              oninput="onFinSearch(this.value)"
              onkeydown="if(event.key==='Escape'){clearFinSearch()}">
       <button type="button" id="fin-search-clear" class="fin-search-clear${finFilters.q ? " show" : ""}"
-              onclick="clearFinSearch()" title="Очистити пошук">
+              onclick="clearFinSearch()" title="${FINANCE_UI.filters.clearSearchTitle}">
         <i data-lucide="x"></i>
       </button>
     </div>
-    ${renderMultiFilter("finFilters.cat", "Категорія", "Усі категорії", catOptions, "renderFinance", "ff-multi")}
-    ${renderMultiFilter("finFilters.stat", "Статус", "Усі", statusOptions, "renderFinance", "ff-multi")}
-    ${renderMultiFilter("finFilters.contr", "Підрядник", "Усі", contractorOptions, "renderFinance", "ff-multi mf-wide")}
+    ${renderMultiFilter("finFilters.cat", FINANCE_UI.filters.categoryLabel, FINANCE_UI.filters.categoryAllLabel, catOptions, "renderFinance", "ff-multi")}
+    ${renderMultiFilter("finFilters.stat", FINANCE_UI.filters.statusLabel, FINANCE_UI.filters.statusAllLabel, statusOptions, "renderFinance", "ff-multi")}
+    ${renderMultiFilter("finFilters.contr", FINANCE_UI.filters.contractorLabel, FINANCE_UI.filters.contractorAllLabel, contractorOptions, "renderFinance", "ff-multi mf-wide")}
     <div class="ff-group">
-      <label>Бюджет від</label>
+      <label>${FINANCE_UI.filters.budgetMinLabel}</label>
       <input type="number" min="0" step="10000" value="${finFilters.budgetMin}" class="ff-input-narrow"
-             placeholder="0" onchange="finFilters.budgetMin=this.value;renderFinFilters();renderFinance()">
+             placeholder="${FINANCE_UI.filters.budgetMinPlaceholder}" onchange="finFilters.budgetMin=this.value;renderFinFilters();renderFinance()">
     </div>
     <div class="ff-group">
-      <label>Бюджет до</label>
+      <label>${FINANCE_UI.filters.budgetMaxLabel}</label>
       <input type="number" min="0" step="10000" value="${finFilters.budgetMax}" class="ff-input-narrow"
-             placeholder="∞" onchange="finFilters.budgetMax=this.value;renderFinFilters();renderFinance()">
+             placeholder="${FINANCE_UI.filters.budgetMaxPlaceholder}" onchange="finFilters.budgetMax=this.value;renderFinFilters();renderFinance()">
     </div>
     <div class="ff-group ff-group-actions">
       <label class="ff-checkbox">
         <input type="checkbox" ${finFilters.onlyBudget ? "checked" : ""}
-               onchange="finFilters.onlyBudget=this.checked;renderFinFilters();renderFinance()"> Тільки з бюджетом
+               onchange="finFilters.onlyBudget=this.checked;renderFinFilters();renderFinance()"> ${FINANCE_UI.filters.onlyBudgetLabel}
       </label>
-      ${hasFinFilters ? `<button class="btn btn-sm" onclick="resetFinanceFilters()" title="Скинути фільтри фінансів"><i data-lucide="rotate-ccw"></i></button>` : ""}
+      ${hasFinFilters ? `<button class="btn btn-sm" onclick="resetFinanceFilters()" title="${FINANCE_UI.filters.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
       <button class="btn btn-sm btn-tog${showEVM ? " on" : ""}"
-              onclick="showEVM=!showEVM;renderFinance()" title="Показати/сховати EVM метрики">
-        <i data-lucide="bar-chart-2"></i> EVM
+              onclick="showEVM=!showEVM;renderFinance()" title="${FINANCE_UI.filters.evmToggleTitle}">
+        <i data-lucide="bar-chart-2"></i> ${FINANCE_UI.filters.evmToggleLabel}
       </button>
-      <button class="btn btn-sm danger" onclick="deleteVisibleFinanceTasks()" title="Видалити всі роботи за поточними фільтрами">
-        <i data-lucide="trash"></i> Видалити роботи
+      <button class="btn btn-sm danger" onclick="deleteVisibleFinanceTasks()" title="${FINANCE_UI.filters.deleteTasksTitle}">
+        <i data-lucide="trash"></i> ${FINANCE_UI.filters.deleteTasksLabel}
       </button>
     </div>`;
   lucide.createIcons({ nodes: [document.getElementById("fin-filters")] });
@@ -222,7 +267,7 @@ async function deleteVisibleFinanceTasks() {
     .sort((a, b) => b - a);
 
   if (!indexes.length) {
-    Swal.fire({ icon: "info", title: "Немає робіт для видалення" });
+    Swal.fire({ icon: "info", title: FINANCE_UI.deleteDialogs.noTasksTitle });
     return;
   }
 
@@ -240,10 +285,12 @@ async function deleteVisibleFinanceTasks() {
     return acc;
   }, { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 });
 
-  const scope = _hasFinanceFilters() || finFilters.q ? "роботи за поточними фільтрами" : "усі роботи проєкту";
+  const scope = _hasFinanceFilters() || finFilters.q
+    ? FINANCE_UI.deleteDialogs.filteredScopeLabel
+    : FINANCE_UI.deleteDialogs.fullScopeLabel;
   const confirmOne = await Swal.fire({
     icon: "warning",
-    title: "Підтвердьте видалення",
+    title: FINANCE_UI.deleteDialogs.confirmTitle,
     html: `
       <div style="text-align:left">
         Буде видалено: <b>${summary.tasks}</b> робіт.<br>
@@ -255,24 +302,24 @@ async function deleteVisibleFinanceTasks() {
         Сценарій: <b>${htmlEsc(scope)}</b>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Продовжити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: FINANCE_UI.deleteDialogs.continueLabel,
+    cancelButtonText: FINANCE_UI.deleteDialogs.cancelLabel,
     confirmButtonColor: "#dc2626",
   });
   if (!confirmOne.isConfirmed) return;
 
   const confirmTwo = await Swal.fire({
     icon: "warning",
-    title: "Фінальне підтвердження",
+    title: FINANCE_UI.deleteDialogs.finalTitle,
     input: "text",
-    inputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+    inputLabel: FINANCE_UI.deleteDialogs.finalInputLabel,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: FINANCE_UI.deleteDialogs.finalConfirmLabel,
+    cancelButtonText: FINANCE_UI.deleteDialogs.cancelLabel,
     confirmButtonColor: "#dc2626",
     preConfirm: (value) => {
       if (String(value || "").trim().toUpperCase() !== "ВИДАЛИТИ") {
-        Swal.showValidationMessage('Введіть слово "ВИДАЛИТИ"');
+        Swal.showValidationMessage(FINANCE_UI.deleteDialogs.validationMessage);
         return false;
       }
       return true;
@@ -721,7 +768,7 @@ function renderSCurve() {
       labels,
       datasets: [
         {
-          label: "План, грн",
+          label: FINANCE_UI.chart.plannedLabel,
           data: cumPlanned,
           yAxisID: "y",
           borderColor: "rgba(30,80,200,0.85)",
@@ -733,7 +780,7 @@ function renderSCurve() {
           order: 1,
         },
         {
-          label: "Факт, грн",
+          label: FINANCE_UI.chart.actualLabel,
           data: cumActual,
           yAxisID: "y",
           borderColor: "rgba(22,128,60,0.9)",
@@ -747,7 +794,7 @@ function renderSCurve() {
         },
         ...(hasProjected
           ? [{
-              label: "Прогноз, грн",
+              label: FINANCE_UI.chart.projectedLabel,
               data: cumProjected,
               yAxisID: "y",
               borderColor: "rgba(234,117,0,0.85)",
@@ -774,7 +821,7 @@ function renderSCurve() {
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} грн`,
+            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} ${FINANCE_UI.chart.tooltipCurrencyUnit}`,
           },
         },
       },
@@ -936,7 +983,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
       labels,
       datasets: [
         {
-          label: "План, грн",
+          label: FINANCE_UI.chart.plannedLabel,
           data: plannedValues,
           backgroundColor: "rgba(30,80,200,0.22)",
           borderColor: "rgba(30,80,200,0.72)",
@@ -947,7 +994,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
           barPercentage: 0.82,
         },
         {
-          label: "Факт, грн",
+          label: FINANCE_UI.chart.actualLabel,
           data: actualValues,
           backgroundColor: "rgba(22,128,60,0.28)",
           borderColor: "rgba(22,128,60,0.78)",
@@ -959,7 +1006,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
         },
         ...(hasProjected
           ? [{
-              label: "Прогноз, грн",
+              label: FINANCE_UI.chart.projectedLabel,
               data: projectedValues,
               backgroundColor: "rgba(234,117,0,0.16)",
               borderColor: "rgba(234,117,0,0.76)",
@@ -985,7 +1032,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} грн`,
+            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} ${FINANCE_UI.chart.tooltipCurrencyUnit}`,
           },
         },
       },

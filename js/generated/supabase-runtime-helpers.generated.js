@@ -282,6 +282,58 @@
     };
   }
 
+  // src/domain/finance-ui.ts
+  function buildFinanceUiModel() {
+    return {
+      statusOptions: [
+        { value: "done", label: "Завершено (100%)" },
+        { value: "active", label: "В роботі" },
+        { value: "pending", label: "Не розпочато" },
+        { value: "warn", label: "З порушеннями" }
+      ],
+      filters: {
+        overviewTabLabel: "Графік",
+        tableTabLabel: "Таблиця",
+        searchPlaceholder: "Пошук у фінансах...",
+        clearSearchTitle: "Очистити пошук",
+        categoryLabel: "Категорія",
+        categoryAllLabel: "Усі категорії",
+        statusLabel: "Статус",
+        statusAllLabel: "Усі",
+        contractorLabel: "Підрядник",
+        contractorAllLabel: "Усі",
+        budgetMinLabel: "Бюджет від",
+        budgetMaxLabel: "Бюджет до",
+        budgetMinPlaceholder: "0",
+        budgetMaxPlaceholder: "∞",
+        onlyBudgetLabel: "Тільки з бюджетом",
+        resetFiltersTitle: "Скинути фільтри фінансів",
+        evmToggleLabel: "EVM",
+        evmToggleTitle: "Показати/сховати EVM метрики",
+        deleteTasksLabel: "Видалити роботи",
+        deleteTasksTitle: "Видалити всі роботи за поточними фільтрами"
+      },
+      deleteDialogs: {
+        noTasksTitle: "Немає робіт для видалення",
+        confirmTitle: "Підтвердьте видалення",
+        continueLabel: "Продовжити",
+        finalTitle: "Фінальне підтвердження",
+        finalInputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+        finalConfirmLabel: "Видалити",
+        cancelLabel: "Скасувати",
+        validationMessage: 'Введіть слово "ВИДАЛИТИ"',
+        filteredScopeLabel: "роботи за поточними фільтрами",
+        fullScopeLabel: "усі роботи проєкту"
+      },
+      chart: {
+        plannedLabel: "План, грн",
+        actualLabel: "Факт, грн",
+        projectedLabel: "Прогноз, грн",
+        tooltipCurrencyUnit: "грн"
+      }
+    };
+  }
+
   // src/domain/contractors-ui.ts
   function buildContractorSummaryLabels() {
     return {
@@ -1152,6 +1204,7 @@
     buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
     buildRuntimeTableLabels: buildTableLabels,
     buildRuntimeAppUiModel: buildAppUiModel,
+    buildRuntimeFinanceUiModel: buildFinanceUiModel,
     buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
     buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
     buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
