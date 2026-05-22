@@ -168,45 +168,147 @@ function _getDemoProjectSeedModel() {
   };
 }
 
+function _buildProjectLifecycleMeta() {
+  if (typeof buildRuntimeInitialProjectSnapshotMeta === "function") {
+    return buildRuntimeInitialProjectSnapshotMeta();
+  }
+  return {
+    _localUpdatedAt: new Date().toISOString(),
+    _localVersion: 1,
+    _serverVersion: 0,
+  };
+}
+
+function _buildProjectSettingsUpdate(snapshot, updates) {
+  if (typeof buildRuntimeProjectSettingsUpdate === "function") {
+    return buildRuntimeProjectSettingsUpdate({
+      snapshot,
+      name: updates.name,
+      sm: updates.sm,
+      sy: updates.sy,
+      nm: updates.nm,
+    });
+  }
+
+  const before = { name: snapshot.proj.name, sm: snapshot.proj.sm, sy: snapshot.proj.sy, nm: snapshot.proj.nm };
+  const name = updates.name.trim() || snapshot.proj.name;
+  const sm = +updates.sm;
+  const sy = +updates.sy;
+  const nm = Math.min(120, Math.max(3, +updates.nm));
+  const oldAbsStart = snapshot.proj.sy * 12 + snapshot.proj.sm;
+  const newAbsStart = sy * 12 + sm;
+  const shift = oldAbsStart - newAbsStart;
+  const shiftedTasks = shift !== 0;
+
+  return {
+    snapshot: {
+      ...snapshot,
+      proj: { ...snapshot.proj, name, sm, sy, nm },
+      tasks: shiftedTasks
+        ? snapshot.tasks.map((task) => ({
+            ...task,
+            ms: Math.max(0, task.ms + shift),
+            me: Math.max(0, task.me + shift),
+            phases: task.phases
+              ? task.phases.map((phase) => ({
+                  ...phase,
+                  ms: Math.max(0, phase.ms + shift),
+                  me: Math.max(0, phase.me + shift),
+                }))
+              : task.phases || null,
+          }))
+        : snapshot.tasks,
+    },
+    before,
+    after: { name, sm, sy, nm },
+    shift,
+    shiftedTasks,
+  };
+}
+
+function _buildEmptyProjectSnapshot(name, defaults) {
+  const meta = _buildProjectLifecycleMeta();
+  if (typeof buildRuntimeCreateEmptyProjectSnapshot === "function") {
+    return buildRuntimeCreateEmptyProjectSnapshot({
+      name,
+      defaults,
+      categories: DEF_CATS,
+      meta,
+    });
+  }
+
+  return {
+    proj: {
+      name: name.trim(),
+      sm: defaults.sm,
+      sy: defaults.sy,
+      nm: defaults.nm,
+    },
+    cats: DEF_CATS.map((c) => ({ ...c })),
+    tasks: [],
+    nextN: 1,
+    ...meta,
+  };
+}
+
+function _buildDemoProjectSnapshot(projectName, startYear) {
+  const meta = _buildProjectLifecycleMeta();
+  if (typeof buildRuntimeCreateDemoProjectSnapshot === "function") {
+    return buildRuntimeCreateDemoProjectSnapshot({
+      projectName,
+      startYear,
+      categories: DEF_CATS,
+      tasks: DEF_TASKS,
+      nextN: DEF_TASKS.length + 1,
+      meta,
+    });
+  }
+
+  return {
+    proj: { name: projectName, sm: 0, sy: startYear, nm: 12 },
+    cats: DEF_CATS.map((c) => ({ ...c })),
+    tasks: DEF_TASKS.map((t) => ({ ...t })),
+    nextN: DEF_TASKS.length + 1,
+    ...meta,
+  };
+}
+
+function _canDeleteProjectCount(projectCount) {
+  if (typeof canRuntimeDeleteProjectCount === "function") return canRuntimeDeleteProjectCount(projectCount);
+  return projectCount > 1;
+}
+
+function _resolveNextProjectAfterDeletion(projectIds, currentProjectId, deletedProjectId) {
+  if (typeof resolveRuntimeNextProjectAfterDeletion === "function") {
+    return resolveRuntimeNextProjectAfterDeletion(projectIds, currentProjectId, deletedProjectId);
+  }
+  if (currentProjectId !== deletedProjectId) return currentProjectId;
+  return projectIds.find((projectId) => projectId !== deletedProjectId) || null;
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
 function _snapToHalfWeek(dateStr) {
-  if (!dateStr) return dateStr;
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const HW = [1, 4, 8, 11, 15, 18, 22, 25];
-  let best = HW[0], bestDiff = Math.abs(d - HW[0]);
-  for (const h of HW) {
-    const diff = Math.abs(d - h);
-    if (diff < bestDiff) { bestDiff = diff; best = h; }
-  }
-  return `${y}-${String(m).padStart(2, '0')}-${String(best).padStart(2, '0')}`;
+  if (typeof buildRuntimeSnapToHalfWeek === "function") return buildRuntimeSnapToHalfWeek(dateStr);
+  return dateStr;
 }
 
 function _phaseToDateStr(mi, wi) {
-  const absMonth = proj.sy * 12 + proj.sm + mi;
-  const y = Math.floor(absMonth / 12);
-  const m = absMonth % 12;
-  const day = Math.min(1 + wi * 7, 28);
-  return `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  if (typeof buildRuntimePhaseToDateStr === "function") return buildRuntimePhaseToDateStr(proj, mi, wi);
+  return "";
 }
 function _dateStrToPhase(str) {
-  if (!str) return { mi: 0, wi: 0 };
-  const [y, m, d] = str.split('-').map(Number);
-  const absMonth = y * 12 + (m - 1);
-  const projStart = proj.sy * 12 + proj.sm;
-  const mi = Math.max(0, Math.min(proj.nm - 1, absMonth - projStart));
-  const wi = Math.min(3, Math.max(0, Math.floor((d - 1) / 7)));
-  return { mi, wi };
+  if (typeof buildRuntimeDateStrToPhase === "function") return buildRuntimeDateStrToPhase(proj, str);
+  return { mi: 0, wi: 0 };
 }
 function _projMinDate() {
-  return `${proj.sy}-${String(proj.sm + 1).padStart(2, '0')}-01`;
+  if (typeof buildRuntimeProjectMinDate === "function") return buildRuntimeProjectMinDate(proj);
+  return "";
 }
 function _projMaxDate() {
-  const absEnd = proj.sy * 12 + proj.sm + proj.nm - 1;
-  const y = Math.floor(absEnd / 12);
-  const m = absEnd % 12 + 1;
-  return `${y}-${String(m).padStart(2, '0')}-28`;
+  if (typeof buildRuntimeProjectMaxDate === "function") return buildRuntimeProjectMaxDate(proj);
+  return "";
 }
 
 function adjNum(id, delta) {
@@ -263,10 +365,8 @@ function _applyNotesModalPermissions() {
 
 /** Зважений загальний прогрес фаз з урахуванням тривалості кожної. */
 function _weightedProg(phases) {
-  if (!phases || phases.length === 0) return 0;
-  if (phases.length === 1) return phases[0].prog || 0;
-  const totalDur = phases.reduce((s, p) => s + Math.max(1, (p.me * 4 + p.we) - (p.ms * 4 + p.ws) + 1), 0);
-  return Math.round(phases.reduce((s, p) => s + (p.prog || 0) * Math.max(1, (p.me * 4 + p.we) - (p.ms * 4 + p.ws) + 1), 0) / totalDur);
+  if (typeof buildRuntimeWeightedProgress === "function") return buildRuntimeWeightedProgress(phases || []);
+  return 0;
 }
 
 /** Рендерить інлайн-список фаз у модалі задачі. */
@@ -319,11 +419,8 @@ function renderModalPhases() {
 
 /** Повертає індекс активної фази (остання з prog > 0, або перша). */
 function _activePhaseIdx() {
-  let last = 0;
-  _modalPhases.forEach((p, i) => {
-    if ((p.prog || 0) > 0) last = i;
-  });
-  return last;
+  if (typeof buildRuntimeActivePhaseIndex === "function") return buildRuntimeActivePhaseIndex(_modalPhases || []);
+  return 0;
 }
 
 /** Зчитує поточні значення полів фаз у _modalPhases. */
@@ -725,12 +822,15 @@ function updCalc() {
     document.getElementById("f-spent").value = s;
   }
   _updateAutoBadges(hasItems, hasItems && (overrideBudget || currentBudget <= 0));
-  const r = b - s;
-  const ph = _modalPhases[0];
-  const rw = ph ? remWk({ ms: ph.ms, ws: ph.ws, me: ph.me, we: ph.we }) : 0;
-  const rate = rw > 0 ? Math.round(r / rw) : 0;
+  const calc = typeof buildRuntimeTaskCalcModel === "function"
+    ? buildRuntimeTaskCalcModel({
+        budget: b,
+        spent: s,
+        phase: _modalPhases[0] || null,
+      })
+    : { remainder: b - s, weeks: 0, weeklyRate: 0 };
   document.getElementById("calc-info").innerHTML =
-    `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(r)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${rw}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${rw > 0 ? fmtM(rate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
+    `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(calc.remainder)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${calc.weeks}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${calc.weeks > 0 ? fmtM(calc.weeklyRate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
 }
 
 function openAdd() {
@@ -1287,67 +1387,53 @@ function setDepListFilter(f) {
 function _renderDepList() {
   const dependencyListModal = _getDependencyListModalModel();
   const TC = { FS: "var(--acc)", SS: "var(--warn)", FF: "var(--txt3)" };
-
-  // Збираємо всі залежності
-  const all = [];
-  tasks.forEach((t, toTi) => {
-    (t.deps || []).forEach(raw => {
-      const dep = normDep(raw);
-      const fromTask = tasks.find(ft => ft.id === dep.id);
-      if (!fromTask) return;
-      const fromTi = tasks.indexOf(fromTask);
-      all.push({ fromTask, fromTi, toTask: t, toTi, type: dep.type || "FS", threshold: dep.threshold || 0 });
-    });
-  });
-
-  const filtered = _dlFilter === "all" ? all : all.filter(d => d.type === _dlFilter);
-
-  // Лічильники для фільтрів
-  const cnt = { all: all.length, FS: 0, SS: 0, FF: 0 };
-  all.forEach(d => cnt[d.type] = (cnt[d.type] || 0) + 1);
+  const depState = typeof buildRuntimeDependencyListState === "function"
+    ? buildRuntimeDependencyListState({
+        tasks,
+        filter: _dlFilter,
+        criticalSet,
+        categories: cats,
+        normDep,
+      })
+    : { allCount: 0, filteredCount: 0, counts: { all: 0, FS: 0, SS: 0, FF: 0 }, rows: [] };
 
   document.getElementById("dl-count").textContent =
-    dependencyListModal.countLabel(filtered.length, all.length);
+    dependencyListModal.countLabel(depState.filteredCount, depState.allCount);
 
-  // Фільтр-кнопки
   document.querySelectorAll(".dl-filter-btn").forEach(b => {
     const f = b.dataset.f;
-    b.textContent = f === "all" ? dependencyListModal.allFilterLabel(cnt.all) :
-                    f === "FS"  ? dependencyListModal.fsFilterLabel(cnt.FS || 0) :
-                    f === "SS"  ? dependencyListModal.ssFilterLabel(cnt.SS || 0) :
-                                  dependencyListModal.ffFilterLabel(cnt.FF || 0);
+    b.textContent = f === "all" ? dependencyListModal.allFilterLabel(depState.counts.all) :
+                    f === "FS"  ? dependencyListModal.fsFilterLabel(depState.counts.FS || 0) :
+                    f === "SS"  ? dependencyListModal.ssFilterLabel(depState.counts.SS || 0) :
+                                  dependencyListModal.ffFilterLabel(depState.counts.FF || 0);
     b.classList.toggle("on", f === _dlFilter);
   });
 
   const body = document.getElementById("dl-body");
-  if (!filtered.length) {
+  if (!depState.rows.length) {
     body.innerHTML = `<div class="dl-empty">${
-      all.length ? dependencyListModal.emptyFilteredText : dependencyListModal.emptyProjectText
+      depState.allCount ? dependencyListModal.emptyFilteredText : dependencyListModal.emptyProjectText
     }</div>`;
     return;
   }
 
-  const rows = filtered.map((d, i) => {
-    const typeLbl = d.type === "SS" && d.threshold ? `SS+${d.threshold}%` : d.type;
-    const isCrit  = criticalSet.has(d.fromTi) && criticalSet.has(d.toTi);
-    const fCol    = cats[d.fromTask.cat]?.color || "var(--txt3)";
-    const tCol    = cats[d.toTask.cat]?.color   || "var(--txt3)";
+  const rows = depState.rows.map((d) => {
     return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="${dependencyListModal.rowTitle}">
-      <td class="dl-i">${i + 1}</td>
+      <td class="dl-i">${d.index}</td>
       <td class="dl-task">
-        <span class="dl-dot" style="background:${fCol}"></span>
-        <span class="dl-tn" style="color:${fCol}">#${d.fromTask.n}</span>
+        <span class="dl-dot" style="background:${d.fromColor}"></span>
+        <span class="dl-tn" style="color:${d.fromColor}">#${d.fromTask.n}</span>
         <span class="dl-nm">${d.fromTask.name}</span>
       </td>
       <td class="dl-arrow">
-        <span class="dep-tag-badge" style="background:${TC[d.type] || "var(--acc)"}">${typeLbl}</span>
+        <span class="dep-tag-badge" style="background:${TC[d.type] || "var(--acc)"}">${d.typeLabel}</span>
       </td>
       <td class="dl-task">
-        <span class="dl-dot" style="background:${tCol}"></span>
-        <span class="dl-tn" style="color:${tCol}">#${d.toTask.n}</span>
+        <span class="dl-dot" style="background:${d.toColor}"></span>
+        <span class="dl-tn" style="color:${d.toColor}">#${d.toTask.n}</span>
         <span class="dl-nm">${d.toTask.name}</span>
       </td>
-      <td class="dl-crit">${isCrit ? `<span class="dl-crit-ic" title="${dependencyListModal.criticalRowTitle}"></span>` : ""}</td>
+      <td class="dl-crit">${d.isCritical ? `<span class="dl-crit-ic" title="${dependencyListModal.criticalRowTitle}"></span>` : ""}</td>
     </tr>`;
   }).join("");
 
@@ -1418,35 +1504,30 @@ function closeProjModal() {
 async function saveProjSettings() {
   if (typeof canManageProject === "function" && !canManageProject()) return;
 
-  const oldAbsStart = proj.sy * 12 + proj.sm;
-  const before = { name: proj.name, sm: proj.sm, sy: proj.sy, nm: proj.nm };
-  proj.name = document.getElementById("p-name").value.trim() || proj.name;
-  const newSm = +document.getElementById("p-sm").value;
-  const newSy = +document.getElementById("p-sy").value;
-  proj.nm = Math.min(120, Math.max(3, +document.getElementById("p-nm").value));
-  const newAbsStart = newSy * 12 + newSm;
-  const shift = oldAbsStart - newAbsStart;
-  if (shift !== 0) {
-    tasks.forEach((t) => {
-      t.ms = Math.max(0, t.ms + shift);
-      t.me = Math.max(0, t.me + shift);
-      if (t.phases)
-        t.phases = t.phases.map((p) => ({
-          ...p,
-          ms: Math.max(0, p.ms + shift),
-          me: Math.max(0, p.me + shift),
-        }));
-    });
-  }
-  proj.sm = newSm;
-  proj.sy = newSy;
+  const updated = _buildProjectSettingsUpdate(
+    {
+      proj: { ...proj },
+      cats: cats.map((c) => ({ ...c })),
+      tasks: tasks.map((t) => ({ ...t })),
+      nextN,
+    },
+    {
+      name: document.getElementById("p-name").value,
+      sm: +document.getElementById("p-sm").value,
+      sy: +document.getElementById("p-sy").value,
+      nm: +document.getElementById("p-nm").value,
+    },
+  );
+
+  proj = { ...updated.snapshot.proj };
+  tasks = updated.snapshot.tasks.map((t) => ({ ...t }));
   closeProjModal();
   saveAll();
   render();
   await logProjectMutation(AUDIT_EVENT_TYPES.PROJECT_SETTINGS_UPDATED, {
-    before,
-    after: { name: proj.name, sm: proj.sm, sy: proj.sy, nm: proj.nm },
-    shiftedTasks: shift !== 0,
+    before: updated.before,
+    after: updated.after,
+    shiftedTasks: updated.shiftedTasks,
   });
 }
 
@@ -1536,19 +1617,7 @@ async function loadDemoProject() {
   if (!isConfirmed) return;
 
   const id = "p_" + Date.now();
-  allProjects[id] = {
-    proj: { name: demoProjectSeed.projectName, sm: 0, sy: new Date().getFullYear(), nm: 12 },
-    cats: DEF_CATS.map((c) => ({ ...c })),
-    tasks: DEF_TASKS.map((t) => ({ ...t })),
-    nextN: DEF_TASKS.length + 1,
-    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
-      ? buildRuntimeInitialProjectSnapshotMeta()
-      : {
-          _localUpdatedAt: new Date().toISOString(),
-          _localVersion: 1,
-          _serverVersion: 0,
-        }),
-  };
+  allProjects[id] = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
   try {
     const payload = typeof buildRuntimeStorageBufferPayload === "function"
       ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
@@ -1579,21 +1648,11 @@ async function createProject() {
   });
   if (!name) return;
   const id = "p_" + Date.now();
-  allProjects[id] = {
-    proj: {
-      ...DEF_PROJ,
-      name: name.trim(),
-      sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
-      sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
-      nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
-    },
-    cats: DEF_CATS.map((c) => ({ ...c })),
-    tasks: [],
-    nextN: 1,
-    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
-      ? buildRuntimeInitialProjectSnapshotMeta()
-      : { _localUpdatedAt: new Date().toISOString(), _localVersion: 1, _serverVersion: 0 }),
-  };
+  allProjects[id] = _buildEmptyProjectSnapshot(name, {
+    sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
+    sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
+    nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
+  });
   saveAll();
   switchProject(id);
   openProjManager();
@@ -1605,7 +1664,7 @@ async function deleteProject(id) {
     : allProjects?.[id]?._role || (id === currentId ? _projectRole : "owner");
   if (typeof canManageProject === "function" && !canManageProject(role)) return;
 
-  if (Object.keys(allProjects).length <= 1) {
+  if (!_canDeleteProjectCount(Object.keys(allProjects).length)) {
     const cannotDelete = _getCannotDeleteLastProjectModel();
     Swal.fire({ icon: "info", title: cannotDelete.title, text: cannotDelete.text });
     return;
@@ -1624,10 +1683,11 @@ async function deleteProject(id) {
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
     await apiDeleteProject(id);
   }
+  const nextProjectId = _resolveNextProjectAfterDeletion(Object.keys(allProjects), currentId, id);
   delete allProjects[id];
   if (currentId === id) {
-    currentId = Object.keys(allProjects)[0];
-    loadCurrent();
+    currentId = nextProjectId;
+    if (currentId) loadCurrent();
   }
   saveAll();
   render();

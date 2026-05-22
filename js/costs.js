@@ -2,6 +2,28 @@ let _costTi = null;
 let _costItems = [];
 let _expandedIds = new Set();
 let _costIdSeq = 1;
+const COST_UI =
+  typeof buildRuntimeCostUiModel === "function"
+    ? buildRuntimeCostUiModel()
+    : {
+        labels: {
+          emptyStateText: "Рядків немає — натисніть кнопку \"Тип\" вище щоб додати",
+          budgetLabel: "Кошторис:",
+          spentLabel: "Сплачено:",
+          restLabel: "Залишок:",
+          contractPlaceholder: "Договір №",
+          supplierPlaceholder: "Контрагент",
+          notePlaceholder: "Примітки",
+          paymentAmountPlaceholder: "Сума (грн)",
+          paymentNotePlaceholder: "Примітка (акт №, аванс тощо)",
+          addPaymentLabel: "+ Платіж",
+          paymentCountLabel: (count, isOpen) => `${isOpen ? "▾" : "▸"} ${count} плат.`,
+          deleteItemTitle: "Видалити",
+          contractNamePrefix: "Договір",
+          defaultUnit: "договір",
+          currencyUnit: "грн",
+        },
+      };
 
 const COST_TYPES = {
   material: { label: "Матеріали", icon: "🧱" },
@@ -25,6 +47,22 @@ const UNITS = [
 
 function _nextCostId() {
   return ++_costIdSeq + (Date.now() % 1000000);
+}
+
+function _getCostTotals() {
+  if (typeof buildRuntimeCalculateCostTotals === "function") {
+    return buildRuntimeCalculateCostTotals(_costItems);
+  }
+  const budget = Math.round(_costItems.reduce((s, it) => s + _costItemTotal(it), 0));
+  const spent = Math.round(
+    _costItems.reduce(
+      (s, it) => s + (it.payments || []).reduce((sp, p) => sp + (+p.amount || 0), 0),
+      0,
+    ),
+  );
+  const rest = budget - spent;
+  const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+  return { budget, spent, rest, pct };
 }
 
 function openCostModal(ti) {
@@ -52,10 +90,7 @@ function renderCostTable() {
     tbody.innerHTML = _costItems.map((it) => _renderCostRow(it)).join("");
   }
 
-  const budget = _totalBudget();
-  const spent = _totalSpent();
-  const rest = budget - spent;
-  const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+  const { budget, spent, rest, pct } = _getCostTotals();
 
   if (foot)
     foot.innerHTML = `
@@ -80,7 +115,9 @@ function renderCostTable() {
 
 function _renderCostRow(it) {
   const total = _costItemTotal(it);
-  const paid = (it.payments || []).reduce((s, p) => s + (+p.amount || 0), 0);
+  const paid = typeof buildRuntimeCalculateCostSpent === "function"
+    ? buildRuntimeCalculateCostSpent(it)
+    : (it.payments || []).reduce((s, p) => s + (+p.amount || 0), 0);
   const isOpen = _expandedIds.has(it.id);
   const id = it.id;
 
@@ -169,10 +206,7 @@ function _recalcRow(id) {
 }
 
 function _refreshTotals() {
-  const budget = _totalBudget();
-  const spent = _totalSpent();
-  const rest = budget - spent;
-  const pct = budget > 0 ? Math.round((spent / budget) * 100) : 0;
+  const { budget, spent, rest, pct } = _getCostTotals();
   const foot = document.getElementById("cost-footer");
   if (!foot) return;
   foot.innerHTML = `
@@ -195,18 +229,22 @@ function _refreshTotals() {
 function addCostItem(type = "material") {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
-  _costItems.push({
-    id: _nextCostId(),
-    type,
-    name: "",
-    supplier: "",
-    unit: "договір",
-    qty: 1,
-    unitPrice: null,
-    contractNo: "",
-    contractNote: "",
-    payments: [],
-  });
+  const itemId = _nextCostId();
+  const nextItem = typeof buildRuntimeCreateCostItem === "function"
+    ? buildRuntimeCreateCostItem({ id: itemId, type, defaultUnit: COST_UI.labels.defaultUnit })
+    : {
+        id: itemId,
+        type,
+        name: "",
+        supplier: "",
+        unit: COST_UI.labels.defaultUnit,
+        qty: 1,
+        unitPrice: null,
+        contractNo: "",
+        contractNote: "",
+        payments: [],
+      };
+  _costItems.push(nextItem);
   renderCostTable();
   setTimeout(
     () => document.querySelector(`#cn${_costItems[_costItems.length - 1].id}`)?.focus(),
@@ -217,48 +255,70 @@ function addCostItem(type = "material") {
 function deleteCostItem(id) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
-  _costItems = _costItems.filter((it) => it.id !== id);
+  _costItems = typeof buildRuntimeRemoveCostItem === "function"
+    ? buildRuntimeRemoveCostItem(_costItems, id)
+    : _costItems.filter((it) => it.id !== id);
   _expandedIds.delete(id);
   renderCostTable();
 }
 
 function setCostField(id, field, value) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
-  const it = _costItems.find((it) => it.id === id);
-  if (!it) return;
-  it[field] = value === "__custom" ? "" : value;
-  if (field === "contractNote") it.note = it[field];
+  _costItems = typeof buildRuntimeUpdateCostItemField === "function"
+    ? buildRuntimeUpdateCostItemField(_costItems, id, field, value)
+    : _costItems.map((it) => {
+        if (it.id !== id) return it;
+        const nextValue = value === "__custom" ? "" : value;
+        return { ...it, [field]: nextValue, ...(field === "contractNote" ? { note: nextValue } : {}) };
+      });
 }
 
 function setCostContractNo(id, value) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
-  const it = _costItems.find((it) => it.id === id);
-  if (!it) return;
-  it.contractNo = value;
-  it.name = value ? `Договір ${value}` : "";
+  _costItems = typeof buildRuntimeUpdateCostItemContract === "function"
+    ? buildRuntimeUpdateCostItemContract(_costItems, id, value, COST_UI.labels.contractNamePrefix)
+    : _costItems.map((it) =>
+        it.id !== id
+          ? it
+          : { ...it, contractNo: value, name: value ? `${COST_UI.labels.contractNamePrefix} ${value}` : "" }
+      );
 }
 
 function toggleCostPayments(id) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
-  if (_expandedIds.has(id)) _expandedIds.delete(id);
-  else _expandedIds.add(id);
+  const nextExpanded = typeof buildRuntimeToggleExpandedCostId === "function"
+    ? buildRuntimeToggleExpandedCostId(Array.from(_expandedIds), id)
+    : (_expandedIds.has(id)
+        ? Array.from(_expandedIds).filter((entry) => entry !== id)
+        : [...Array.from(_expandedIds), id]);
+  _expandedIds = new Set(nextExpanded);
   renderCostTable();
 }
 
 function addPayment(itemId) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
-  const it = _costItems.find((it) => it.id === itemId);
-  if (!it) return;
-  if (!it.payments) it.payments = [];
-  it.payments.push({
-    id: _nextCostId(),
-    date: new Date().toISOString().slice(0, 10),
-    type: "act",
-    amount: null,
-    note: "",
-  });
+  const payment = typeof buildRuntimeCreateCostPayment === "function"
+    ? buildRuntimeCreateCostPayment({
+        id: _nextCostId(),
+        date: new Date().toISOString().slice(0, 10),
+        type: "act",
+      })
+    : {
+        id: _nextCostId(),
+        date: new Date().toISOString().slice(0, 10),
+        type: "act",
+        amount: null,
+        note: "",
+      };
+  _costItems = typeof buildRuntimeAddPaymentToCostItem === "function"
+    ? buildRuntimeAddPaymentToCostItem(_costItems, itemId, payment)
+    : _costItems.map((it) =>
+        it.id !== itemId
+          ? it
+          : { ...it, payments: [...(Array.isArray(it.payments) ? it.payments : []), payment] }
+      );
   _expandedIds.add(itemId);
   renderCostTable();
   setTimeout(() => {
@@ -270,17 +330,26 @@ function addPayment(itemId) {
 function deletePayment(itemId, pi) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
   _flushCostEdits();
-  const it = _costItems.find((it) => it.id === itemId);
-  if (it?.payments) {
-    it.payments.splice(pi, 1);
-    renderCostTable();
-  }
+  _costItems = typeof buildRuntimeRemovePaymentFromCostItem === "function"
+    ? buildRuntimeRemovePaymentFromCostItem(_costItems, itemId, pi)
+    : _costItems.map((it) => {
+        if (it.id !== itemId || !Array.isArray(it.payments)) return it;
+        return { ...it, payments: it.payments.filter((_, idx) => idx !== pi) };
+      });
+  renderCostTable();
 }
 
 function setPayField(itemId, pi, field, value) {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
-  const it = _costItems.find((it) => it.id === itemId);
-  if (it?.payments?.[pi]) it.payments[pi][field] = value;
+  _costItems = typeof buildRuntimeUpdateCostPaymentField === "function"
+    ? buildRuntimeUpdateCostPaymentField(_costItems, itemId, pi, field, value)
+    : _costItems.map((it) => {
+        if (it.id !== itemId || !Array.isArray(it.payments)) return it;
+        return {
+          ...it,
+          payments: it.payments.map((payment, idx) => idx !== pi ? payment : { ...payment, [field]: value }),
+        };
+      });
 }
 
 /** Зчитує поточні значення DOM у _costItems перед збереженням. */
@@ -293,11 +362,11 @@ function _flushCostEdits() {
     const noteEl = document.getElementById(`cnote${id}`);
     if (nameEl) {
       it.contractNo = nameEl.value;
-      it.name = nameEl.value ? `Договір ${nameEl.value}` : "";
+      it.name = nameEl.value ? `${COST_UI.labels.contractNamePrefix} ${nameEl.value}` : "";
     }
     if (supEl) it.supplier = supEl.value;
     it.qty = 1;
-    it.unit = "договір";
+    it.unit = COST_UI.labels.defaultUnit;
     if (priceEl) it.unitPrice = parseFloat(priceEl.value) || 0;
     if (noteEl) {
       it.contractNote = noteEl.value;
@@ -318,21 +387,17 @@ function _flushCostEdits() {
 }
 
 function _totalBudget() {
-  return Math.round(_costItems.reduce((s, it) => s + _costItemTotal(it), 0));
+  return _getCostTotals().budget;
 }
 
 function _costItemTotal(it) {
+  if (typeof buildRuntimeCalculateCostItemTotal === "function") return buildRuntimeCalculateCostItemTotal(it);
   const qty = it.qty == null ? 1 : (+it.qty || 0);
   return qty * (+it.unitPrice || 0);
 }
 
 function _totalSpent() {
-  return Math.round(
-    _costItems.reduce(
-      (s, it) => s + (it.payments || []).reduce((sp, p) => sp + (+p.amount || 0), 0),
-      0,
-    ),
-  );
+  return _getCostTotals().spent;
 }
 
 /** Екранує спецсимволи HTML для підстановки в атрибути. */

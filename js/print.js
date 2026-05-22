@@ -16,6 +16,53 @@ const PRINT_PAPER_MM = {
 let _printPreviewTimer = null;
 let _printPreviewBound = false;
 let _printPreviewPage = 0;
+const PRINT_UI = typeof buildRuntimePrintUiModel === "function"
+  ? buildRuntimePrintUiModel()
+  : {
+      noChartsText: "No charts available",
+      previewLoadingText: "Refreshing preview...",
+      previewPagesLabel: (pages) => `${pages} pages`,
+      reportTitle: "Report",
+      nothingSelectedText: "Nothing selected for print.",
+      projectFallbackTitle: "Project",
+      ganttTitle: "Gantt chart",
+      ganttEmptyText: "No tasks available for print.",
+      financeTitle: "Financial report",
+      sCurveTitle: "S-curve",
+      sCurveAlt: "S-curve",
+      sCurveUnavailableText: "S-curve is unavailable for print.",
+      weeklyCostTitle: "Weekly cost chart",
+      weeklyCostAlt: "Weekly cost chart",
+      weeklyCostUnavailableText: "Weekly cost chart is unavailable for print.",
+      chartFallbackTitle: "Chart",
+      exportPdfTitle: "Generating PDF...",
+      exportPdfProgressText: "Preparing...",
+      exportPdfSuccessTitle: "PDF saved",
+      exportPdfErrorTitle: "PDF error",
+      pdfPageProgressText: (current, total) => `Page ${current} of ${total}...`,
+      ganttPageTitlePrefix: "Gantt chart: weeks",
+      tasksMetaLabel: "tasks",
+      workTypeHeader: "Work type",
+      plannedLabel: "Planned",
+      actualLabel: "Actual",
+      financeBudgetLabel: "Budget",
+      financeSpentLabel: "Spent",
+      financeRestLabel: "Remaining",
+      financeTasksLabel: "Tasks",
+      financeDoneSuffix: "done",
+      currencyUnit: "UAH",
+      financeTableHeaders: {
+        task: "Task",
+        category: "Category",
+        weeks: "Weeks",
+        budget: "Budget",
+        spent: "Spent",
+        rest: "Remaining",
+        progress: "%",
+      },
+      noTasksShortText: "No tasks.",
+      chartPageFallbackTitle: "Chart",
+    };
 
 function openPrintDialog() {
   const restore = _preparePrintSources({ charts: true });
@@ -34,7 +81,7 @@ function openPrintDialog() {
              </label>`,
         )
         .join("")
-    : `<div class="print-no-charts">Немає побудованих графіків</div>`;
+    : `<div class="print-no-charts">${PRINT_UI.noChartsText}</div>`;
 
   document.getElementById("print-modal").style.display = "flex";
   _bindPrintPreviewEvents();
@@ -71,13 +118,16 @@ async function doPrint() {
 }
 
 function _getPrintSections() {
-  return {
+  const raw = {
     gantt: document.getElementById("print-gantt")?.checked ?? true,
     finance: document.getElementById("print-finance")?.checked ?? false,
     charts: document.getElementById("print-charts")?.checked ?? false,
     chartIds: [...document.querySelectorAll(".print-chart-cb:checked")].map((c) => c.value),
     range: document.getElementById("print-range")?.value || "all",
   };
+  return typeof buildRuntimeResolvePrintSections === "function"
+    ? buildRuntimeResolvePrintSections(raw)
+    : raw;
 }
 
 function _getPrintSettings() {
@@ -85,36 +135,38 @@ function _getPrintSettings() {
     const value = Number.parseFloat(document.getElementById(id)?.value);
     return Number.isFinite(value) ? value : fallback;
   };
-  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
-  const paper = document.getElementById("print-paper")?.value || PRINT_DEFAULTS.paper;
-  const orientation = document.getElementById("print-orientation")?.value || PRINT_DEFAULTS.orientation;
-  const fitMode = document.getElementById("print-fit")?.value || PRINT_DEFAULTS.fitMode;
-
-  return {
-    paper: ["a3", "a4", "letter"].includes(paper) ? paper : PRINT_DEFAULTS.paper,
-    orientation: ["landscape", "portrait"].includes(orientation) ? orientation : PRINT_DEFAULTS.orientation,
-    contentScale: clamp(numberValue("print-scale", PRINT_DEFAULTS.contentScale), 0.25, 1),
-    renderScale: clamp(numberValue("print-quality", PRINT_DEFAULTS.renderScale), 1, 2),
-    margin: clamp(numberValue("print-margin", PRINT_DEFAULTS.margin), 0, 25),
-    fitMode: ["paginate", "width", "height", "page"].includes(fitMode) ? fitMode : PRINT_DEFAULTS.fitMode,
+  const raw = {
+    paper: document.getElementById("print-paper")?.value || PRINT_DEFAULTS.paper,
+    orientation: document.getElementById("print-orientation")?.value || PRINT_DEFAULTS.orientation,
+    contentScale: numberValue("print-scale", PRINT_DEFAULTS.contentScale),
+    renderScale: numberValue("print-quality", PRINT_DEFAULTS.renderScale),
+    margin: numberValue("print-margin", PRINT_DEFAULTS.margin),
+    fitMode: document.getElementById("print-fit")?.value || PRINT_DEFAULTS.fitMode,
   };
+  return typeof buildRuntimeResolvePrintSettings === "function"
+    ? buildRuntimeResolvePrintSettings(raw, PRINT_DEFAULTS)
+    : raw;
 }
 
 function _getPrintMetrics(settings) {
-  const base = PRINT_PAPER_MM[settings.paper] || PRINT_PAPER_MM.a3;
-  const pageW = settings.orientation === "landscape" ? base.h : base.w;
-  const pageH = settings.orientation === "landscape" ? base.w : base.h;
-  const contentWmm = Math.max(50, pageW - settings.margin * 2);
-  const contentHmm = Math.max(50, pageH - settings.margin * 2);
-  const pxPerMm = 96 / 25.4;
-  return {
-    pageW,
-    pageH,
-    contentWmm,
-    contentHmm,
-    contentWpx: Math.round(contentWmm * pxPerMm),
-    contentHpx: Math.round(contentHmm * pxPerMm),
-  };
+  return typeof buildRuntimeGetPrintMetrics === "function"
+    ? buildRuntimeGetPrintMetrics(settings, PRINT_PAPER_MM)
+    : (() => {
+        const base = PRINT_PAPER_MM[settings.paper] || PRINT_PAPER_MM.a3;
+        const pageW = settings.orientation === "landscape" ? base.h : base.w;
+        const pageH = settings.orientation === "landscape" ? base.w : base.h;
+        const contentWmm = Math.max(50, pageW - settings.margin * 2);
+        const contentHmm = Math.max(50, pageH - settings.margin * 2);
+        const pxPerMm = 96 / 25.4;
+        return {
+          pageW,
+          pageH,
+          contentWmm,
+          contentHmm,
+          contentWpx: Math.round(contentWmm * pxPerMm),
+          contentHpx: Math.round(contentHmm * pxPerMm),
+        };
+      })();
 }
 
 function _applyDynamicPrintStyle(settings) {
@@ -441,7 +493,7 @@ function _buildSCurvePrintData() {
     labels: ml.map((m) => `${m.name.slice(0, 3)} ${m.y}`),
     datasets: [
       {
-        label: "РџР»Р°РЅРѕРІРёР№",
+        label: PRINT_UI.plannedLabel,
         data: cumPlanned,
         borderColor: "rgba(30,80,200,0.9)",
         backgroundColor: "rgba(30,80,200,0.08)",
@@ -451,7 +503,7 @@ function _buildSCurvePrintData() {
         pointRadius: 3,
       },
       {
-        label: "Р¤Р°РєС‚РёС‡РЅРёР№",
+        label: PRINT_UI.actualLabel,
         data: cumActual.map((v, i) => (i <= cutoff ? v : null)),
         borderColor: "rgba(22,128,60,0.95)",
         backgroundColor: "rgba(22,128,60,0.08)",
@@ -493,7 +545,7 @@ function _renderPrintPreview() {
   if (!target || !modal || modal.style.display === "none") return;
 
   _removePrintRoot();
-  target.innerHTML = `<div class="print-preview-empty">РћРЅРѕРІР»РµРЅРЅСЏ РїРµСЂРµРґРїРµСЂРµРіР»СЏРґСѓ...</div>`;
+  target.innerHTML = `<div class="print-preview-empty">${PRINT_UI.previewLoadingText}</div>`;
 
   const root = _buildPrintRoot(_getPrintSections(), _getPrintSettings());
   const clone = root.cloneNode(true);
@@ -523,7 +575,7 @@ function _renderPrintPreview() {
     target.style.height = `${clone.scrollHeight * scale}px`;
     if (meta) {
       const pages = clone.querySelectorAll(".print-page").length;
-      meta.textContent = `${pages} СЃС‚РѕСЂ.`;
+      meta.textContent = PRINT_UI.previewPagesLabel(pages);
     }
   });
 }
@@ -546,20 +598,31 @@ function _syncPrintPreviewPage() {
   const availableH = Math.max(220, (shell?.clientHeight || target.clientHeight || 500) - 12);
   const pageW = active.scrollWidth || active.getBoundingClientRect().width || availableW;
   const pageH = active.scrollHeight || active.getBoundingClientRect().height || availableH;
-  const scale = Math.min(1, availableW / pageW, availableH / pageH);
+  const previewState = typeof buildRuntimeGetPrintPreviewState === "function"
+    ? buildRuntimeGetPrintPreviewState({
+        currentPage: _printPreviewPage,
+        pagesCount: pages.length,
+        availableWidth: availableW,
+        availableHeight: availableH,
+        pageWidth: pageW,
+        pageHeight: pageH,
+      })
+    : null;
+  if (!previewState) return;
+  _printPreviewPage = previewState.pageIndex;
 
-  clone.style.transform = `scale(${scale})`;
+  clone.style.transform = `scale(${previewState.scale})`;
   clone.style.transformOrigin = "top left";
-  clone.style.width = `${pageW}px`;
-  clone.style.height = `${pageH}px`;
-  target.style.width = `${Math.ceil(pageW * scale)}px`;
-  target.style.height = `${Math.ceil(pageH * scale)}px`;
-  target.style.left = `${Math.max(0, (availableW - pageW * scale) / 2)}px`;
-  target.style.top = `${Math.max(0, (availableH - pageH * scale) / 2)}px`;
+  clone.style.width = `${previewState.cloneWidth}px`;
+  clone.style.height = `${previewState.cloneHeight}px`;
+  target.style.width = `${previewState.targetWidth}px`;
+  target.style.height = `${previewState.targetHeight}px`;
+  target.style.left = `${previewState.targetLeft}px`;
+  target.style.top = `${previewState.targetTop}px`;
 
-  if (meta) meta.textContent = `${_printPreviewPage + 1} / ${pages.length}`;
-  if (prevBtn) prevBtn.disabled = _printPreviewPage <= 0;
-  if (nextBtn) nextBtn.disabled = _printPreviewPage >= pages.length - 1;
+  if (meta) meta.textContent = previewState.pageLabel;
+  if (prevBtn) prevBtn.disabled = previewState.prevDisabled;
+  if (nextBtn) nextBtn.disabled = previewState.nextDisabled;
 }
 
 function _printEsc(value) {
@@ -585,7 +648,7 @@ function _buildPrintRoot(sections, settings) {
     if (sections.charts && sections.chartIds.length) _appendPrintCharts(root, sections.chartIds, metrics);
 
   if (!root.children.length) {
-    root.appendChild(_createPrintPage("Р—РІС–С‚", `<div class="print-empty">РќС–С‡РѕРіРѕ РЅРµ РІРёР±СЂР°РЅРѕ РґР»СЏ РґСЂСѓРєСѓ.</div>`));
+    root.appendChild(_createPrintPage(PRINT_UI.reportTitle, `<div class="print-empty">${PRINT_UI.nothingSelectedText}</div>`));
   }
 
   } finally {
@@ -602,7 +665,7 @@ function _createPrintPage(title, bodyHtml, meta = "") {
   page.innerHTML = `
     <div class="print-page-head">
       <div>
-        <div class="print-project">${_printEsc(proj.name || "РџСЂРѕС”РєС‚")}</div>
+        <div class="print-project">${_printEsc(proj.name || PRINT_UI.projectFallbackTitle)}</div>
         <div class="print-title">${_printEsc(title)}</div>
       </div>
       <div class="print-meta">${_printEsc(meta || new Date().toLocaleDateString("uk-UA"))}</div>
@@ -617,7 +680,7 @@ function _appendPrintGantt(root, settings, metrics) {
   const firstWeek = Math.min(Math.max(0, visStart()), Math.max(0, allWeeks - 1));
   const visibleWeeks = Math.max(0, allWeeks - firstWeek);
   if (!visibleTasks.length || !allWeeks) {
-    root.appendChild(_createPrintPage("Р”С–Р°РіСЂР°РјР° Р“Р°РЅС‚Р°", `<div class="print-empty">РќРµРјР°С” СЂРѕР±С–С‚ РґР»СЏ РґСЂСѓРєСѓ.</div>`));
+    root.appendChild(_createPrintPage(PRINT_UI.ganttTitle, `<div class="print-empty">${PRINT_UI.ganttEmptyText}</div>`));
     return;
   }
 
@@ -627,8 +690,8 @@ function _appendPrintGantt(root, settings, metrics) {
     const weekEnd = Math.min(allWeeks - 1, weekStart + layout.weeksPerPage - 1);
     for (let rowStart = 0; rowStart < visibleTasks.length; rowStart += layout.rowsPerPage) {
       const rowTasks = visibleTasks.slice(rowStart, rowStart + layout.rowsPerPage);
-      const pageTitle = `Р”С–Р°РіСЂР°РјР° Р“Р°РЅС‚Р°: С‚РёР¶РЅС– ${weekStart + 1}-${weekEnd + 1}`;
-      const meta = `${rowStart + 1}-${rowStart + rowTasks.length} Р· ${visibleTasks.length} СЂРѕР±С–С‚`;
+      const pageTitle = `${PRINT_UI.ganttPageTitlePrefix} ${weekStart + 1}-${weekEnd + 1}`;
+      const meta = `${rowStart + 1}-${rowStart + rowTasks.length} з ${visibleTasks.length} ${PRINT_UI.tasksMetaLabel}`;
       root.appendChild(
         _createPrintPage(
           pageTitle,
@@ -641,37 +704,41 @@ function _appendPrintGantt(root, settings, metrics) {
 }
 
 function _resolvePrintGanttLayout(settings, metrics, taskCount, allWeeks) {
-  const density = settings.contentScale;
-  const headH = 118;
-  const nW = Math.max(20, Math.round(34 * density));
-  const nameW = Math.max(110, Math.round(220 * density));
-  const progW = Math.max(34, Math.round(46 * density));
-  const fixedW = nW + nameW + progW;
-  let weekW = Math.max(8, Math.round(22 * density));
-  let rowH = Math.max(22, Math.round(28 * density));
+  return typeof buildRuntimeResolvePrintGanttLayout === "function"
+    ? buildRuntimeResolvePrintGanttLayout({ settings, metrics, taskCount, allWeeks })
+    : (() => {
+        const density = settings.contentScale;
+        const headH = 118;
+        const nW = Math.max(20, Math.round(34 * density));
+        const nameW = Math.max(110, Math.round(220 * density));
+        const progW = Math.max(34, Math.round(46 * density));
+        const fixedW = nW + nameW + progW;
+        let weekW = Math.max(8, Math.round(22 * density));
+        let rowH = Math.max(22, Math.round(28 * density));
 
-  if (settings.fitMode === "width" || settings.fitMode === "page") {
-    weekW = Math.max(2, Math.floor((metrics.contentWpx - fixedW - 2) / Math.max(1, allWeeks)));
-  }
+        if (settings.fitMode === "width" || settings.fitMode === "page") {
+          weekW = Math.max(2, Math.floor((metrics.contentWpx - fixedW - 2) / Math.max(1, allWeeks)));
+        }
 
-  if (settings.fitMode === "height" || settings.fitMode === "page") {
-    rowH = Math.max(12, Math.floor((metrics.contentHpx - headH) / Math.max(1, taskCount)));
-  }
+        if (settings.fitMode === "height" || settings.fitMode === "page") {
+          rowH = Math.max(12, Math.floor((metrics.contentHpx - headH) / Math.max(1, taskCount)));
+        }
 
-  return {
-    nW,
-    nameW,
-    progW,
-    fixedW,
-    weekW,
-    rowH,
-    weeksPerPage: settings.fitMode === "width" || settings.fitMode === "page"
-      ? Math.max(1, allWeeks)
-      : Math.max(4, Math.floor((metrics.contentWpx - fixedW - 2) / weekW)),
-    rowsPerPage: settings.fitMode === "height" || settings.fitMode === "page"
-      ? Math.max(1, taskCount)
-      : Math.max(8, Math.floor((metrics.contentHpx - headH) / rowH)),
-  };
+        return {
+          nW,
+          nameW,
+          progW,
+          fixedW,
+          weekW,
+          rowH,
+          weeksPerPage: settings.fitMode === "width" || settings.fitMode === "page"
+            ? Math.max(1, allWeeks)
+            : Math.max(4, Math.floor((metrics.contentWpx - fixedW - 2) / weekW)),
+          rowsPerPage: settings.fitMode === "height" || settings.fitMode === "page"
+            ? Math.max(1, taskCount)
+            : Math.max(8, Math.floor((metrics.contentHpx - headH) / rowH)),
+        };
+      })();
 }
 
 function _renderPrintGanttPage(rowTasks, weekStart, weekEnd, layout) {
@@ -694,7 +761,7 @@ function _renderPrintGanttPage(rowTasks, weekStart, weekEnd, layout) {
     <div class="print-gantt" style="${colStyle}">
       <div class="pg-row pg-head pg-month-row">
         <div class="pg-fixed pg-num" style="grid-row:span 2">#</div>
-        <div class="pg-fixed pg-name" style="grid-row:span 2">Р’РёРґ СЂРѕР±С–С‚</div>
+        <div class="pg-fixed pg-name" style="grid-row:span 2">${PRINT_UI.workTypeHeader}</div>
         <div class="pg-fixed pg-prog" style="grid-row:span 2">%</div>
         ${monthCells}
       </div>
@@ -760,10 +827,10 @@ function _appendPrintFinance(root, metrics, settings) {
   const totalRest = totalBudget - totalSpent;
   const done = tasks.filter((t) => +t.prog >= 100).length;
   const cards = [
-    ["Бюджет", fmtM(totalBudget), "грн"],
-    ["Витрачено", fmtM(totalSpent), "грн"],
-    ["Залишок", fmtM(totalRest), "грн"],
-    ["Робіт", String(tasks.length), `${done} завершено`],
+    [PRINT_UI.financeBudgetLabel, fmtM(totalBudget), PRINT_UI.currencyUnit],
+    [PRINT_UI.financeSpentLabel, fmtM(totalSpent), PRINT_UI.currencyUnit],
+    [PRINT_UI.financeRestLabel, fmtM(totalRest), PRINT_UI.currencyUnit],
+    [PRINT_UI.financeTasksLabel, String(tasks.length), `${done} ${PRINT_UI.financeDoneSuffix}`],
   ]
     .map(([label, value, sub]) => `<div class="print-fin-card"><span>${_printEsc(label)}</span><b>${_printEsc(value)}</b><small>${_printEsc(sub)}</small></div>`)
     .join("");
@@ -786,25 +853,25 @@ function _appendPrintFinance(root, metrics, settings) {
   const weeklyCostImg = _getWeeklyCostImage();
   root.appendChild(
     _createPrintPage(
-      "Фінансовий звіт",
+      PRINT_UI.financeTitle,
       `<div class="print-fin-cards">${cards}</div>`,
     ),
   );
   root.appendChild(
     _createPrintPage(
-      "S-крива освоєння бюджету",
+      PRINT_UI.sCurveTitle,
       sCurveImg
-        ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${sCurveImg}" alt="S-крива"></div>`
-        : `<div class="print-empty">S-крива недоступна для друку.</div>`,
+        ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${sCurveImg}" alt="${PRINT_UI.sCurveAlt}"></div>`
+        : `<div class="print-empty">${PRINT_UI.sCurveUnavailableText}</div>`,
     ),
   );
   if (showWeeklyCostBars) {
     root.appendChild(
       _createPrintPage(
-        "Тижневий графік витрат",
+        PRINT_UI.weeklyCostTitle,
         weeklyCostImg
-          ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${weeklyCostImg}" alt="Тижневий графік витрат"></div>`
-          : `<div class="print-empty">Тижневий графік витрат недоступний для друку.</div>`,
+          ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${weeklyCostImg}" alt="${PRINT_UI.weeklyCostAlt}"></div>`
+          : `<div class="print-empty">${PRINT_UI.weeklyCostUnavailableText}</div>`,
       ),
     );
   }
@@ -818,7 +885,7 @@ function _appendPrintFinance(root, metrics, settings) {
     const chunk = financeRows.slice(i, i + rowsPerPage).join("");
     root.appendChild(
       _createPrintPage(
-        "Фінансовий звіт",
+        PRINT_UI.financeTitle,
         `<table class="print-fin-table${fitFinanceTable ? " fit" : ""}" style="--fin-font:${fitFont}px">
           <colgroup>
             <col style="width:5%">
@@ -830,10 +897,10 @@ function _appendPrintFinance(root, metrics, settings) {
             <col style="width:10%">
             <col style="width:6%">
           </colgroup>
-          <thead><tr><th>#</th><th>Робота</th><th>Категорія</th><th>Тиж.</th><th>Бюджет</th><th>Витрачено</th><th>Залишок</th><th>%</th></tr></thead>
-          <tbody>${chunk || `<tr><td colspan="8">Немає робіт.</td></tr>`}</tbody>
+          <thead><tr><th>#</th><th>${PRINT_UI.financeTableHeaders.task}</th><th>${PRINT_UI.financeTableHeaders.category}</th><th>${PRINT_UI.financeTableHeaders.weeks}</th><th>${PRINT_UI.financeTableHeaders.budget}</th><th>${PRINT_UI.financeTableHeaders.spent}</th><th>${PRINT_UI.financeTableHeaders.rest}</th><th>${PRINT_UI.financeTableHeaders.progress}</th></tr></thead>
+          <tbody>${chunk || `<tr><td colspan="8">${PRINT_UI.noTasksShortText}</td></tr>`}</tbody>
          </table>`,
-        financeRows.length ? `${i + 1}-${Math.min(i + rowsPerPage, financeRows.length)} з ${financeRows.length} робіт` : "",
+        financeRows.length ? `${i + 1}-${Math.min(i + rowsPerPage, financeRows.length)} ? ${financeRows.length} ${PRINT_UI.tasksMetaLabel}` : "",
       ),
     );
   }
@@ -842,7 +909,7 @@ function _appendPrintCharts(root, chartIds) {
   chartIds.forEach((cid) => {
     const card = document.getElementById(cid);
     if (!card) return;
-    const title = card.querySelector("h4 span")?.textContent || "Р“СЂР°С„С–Рє";
+    const title = card.querySelector("h4 span")?.textContent || PRINT_UI.chartPageFallbackTitle;
     const img = _getChartImage(cid);
     if (!img) return;
     root.appendChild(
@@ -860,10 +927,10 @@ async function doExportPDF() {
   const settings = _getPrintSettings();
 
   Swal.fire({
-    title: "Р“РµРЅРµСЂСѓСЋ PDF...",
+    title: PRINT_UI.exportPdfTitle,
     html: `<div class="pdf-progress-wrap">
       <div class="pdf-progress-icon">PDF</div>
-      <div id="pdf-progress" class="pdf-progress-text">РџС–РґРіРѕС‚РѕРІРєР°...</div>
+      <div id="pdf-progress" class="pdf-progress-text">${PRINT_UI.exportPdfProgressText}</div>
     </div>`,
     allowOutsideClick: false,
     showConfirmButton: false,
@@ -875,12 +942,12 @@ async function doExportPDF() {
           toast: true,
           position: "top-end",
           icon: "success",
-          title: "PDF Р·Р±РµСЂРµР¶РµРЅРѕ",
+          title: PRINT_UI.exportPdfSuccessTitle,
           showConfirmButton: false,
           timer: 2500,
         });
       } catch (e) {
-        Swal.fire({ icon: "error", title: "РџРѕРјРёР»РєР° PDF", text: e.message });
+        Swal.fire({ icon: "error", title: PRINT_UI.exportPdfErrorTitle, text: e.message });
       }
     },
   });
@@ -899,7 +966,7 @@ async function _generatePDF(sections, settings = PRINT_DEFAULTS) {
   const pages = [...root.querySelectorAll(".print-page")];
 
   for (let i = 0; i < pages.length; i++) {
-    if (progress) progress.textContent = `РЎС‚РѕСЂС–РЅРєР° ${i + 1} Р· ${pages.length}...`;
+    if (progress) progress.textContent = PRINT_UI.pdfPageProgressText(i + 1, pages.length);
     const canvas = await html2canvas(pages[i], {
       scale: settings.renderScale,
       useCORS: true,
@@ -914,4 +981,3 @@ async function _generatePDF(sections, settings = PRINT_DEFAULTS) {
   _removePrintRoot();
   pdf.save(`${proj.name}_${new Date().toLocaleDateString("uk-UA").replace(/\./g, "-")}.pdf`);
 }
-

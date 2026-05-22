@@ -58,7 +58,7 @@ export interface ContractorTableLabels {
   addPaymentTitle: string;
   editActTitle: string;
   deleteActTitle: string;
-  editPaymentTitle: string;
+  editPaymentActionTitle: string;
   deletePaymentTitle: string;
   noSelectedContractorsTitle: string;
   noVisibleContractorsTitle: string;
@@ -102,6 +102,28 @@ export interface ContractorTableLabels {
   importReviewTitle: string;
   importLabel: string;
   importOkLabel: string;
+  editPaymentTitle: (name: string) => string;
+  deletePaymentTitlePrompt: string;
+  addActTitleWithSupplier: (supplier: string) => string;
+  editActTitleWithSupplier: (supplier: string) => string;
+  deleteActTitlePrompt: string;
+  addPaymentTitleWithSupplier: (supplier: string) => string;
+  correctAmountValidation: string;
+  actNumberValidation: string;
+  actAmountValidation: string;
+  paymentAmountValidation: string;
+  supplierLockedTitle: string;
+  workFieldLabel: string;
+  contractNumberLabel: string;
+  dateFieldLabel: string;
+  amountFieldLabel: string;
+  noteFieldLabel: string;
+  contractPlaceholder: string;
+  amountPlaceholder: string;
+  contractNotePlaceholder: string;
+  supplierRequiredTitle: string;
+  addContractTitle: string;
+  contractAmountValidation: string;
 }
 
 export function buildContractorSummaryLabels(): ContractorSummaryLabels {
@@ -171,7 +193,7 @@ export function buildContractorTableLabels(): ContractorTableLabels {
     addPaymentTitle: "Додати платіж",
     editActTitle: "Редагувати акт",
     deleteActTitle: "Видалити акт",
-    editPaymentTitle: "Редагувати платіж",
+    editPaymentActionTitle: "Редагувати платіж",
     deletePaymentTitle: "Видалити платіж",
     noSelectedContractorsTitle: "Немає вибраних контрагентів",
     noVisibleContractorsTitle: "Немає контрагентів для видалення",
@@ -215,5 +237,27 @@ export function buildContractorTableLabels(): ContractorTableLabels {
     importReviewTitle: "Перевірка імпорту",
     importLabel: "Імпортувати",
     importOkLabel: "OK",
+    editPaymentTitle: (name: string) => `Редагувати платіж: ${name}`,
+    deletePaymentTitlePrompt: "Видалити платіж?",
+    addActTitleWithSupplier: (supplier: string) => `Додати акт: ${supplier}`,
+    editActTitleWithSupplier: (supplier: string) => `Редагувати акт: ${supplier}`,
+    deleteActTitlePrompt: "Видалити акт?",
+    addPaymentTitleWithSupplier: (supplier: string) => `Додати платіж: ${supplier}`,
+    correctAmountValidation: "Вкажіть коректну суму",
+    actNumberValidation: "Вкажіть номер акту",
+    actAmountValidation: "Вкажіть суму акту",
+    paymentAmountValidation: "Вкажіть суму платежу",
+    supplierLockedTitle: "Контрагент зафіксований для цього рядка",
+    workFieldLabel: "Робота",
+    contractNumberLabel: "Номер договору",
+    dateFieldLabel: "Дата",
+    amountFieldLabel: "Сума",
+    noteFieldLabel: "Примітка",
+    contractPlaceholder: "Договір №",
+    amountPlaceholder: "0",
+    contractNotePlaceholder: "Примітка до договору",
+    supplierRequiredTitle: "Вкажіть контрагента",
+    addContractTitle: "Додайте договір",
+    contractAmountValidation: "Вкажіть суму договору",
   };
 }

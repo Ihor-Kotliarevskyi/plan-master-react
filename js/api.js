@@ -13,6 +13,39 @@ const V1 = `${API_URL}/api/v1`;
 let _authToken = localStorage.getItem("gantt_token") || null;
 let _apiUser = null;
 let _projectRole = null;
+const API_UI = typeof buildRuntimeApiUiModel === "function"
+  ? buildRuntimeApiUiModel()
+  : {
+      sessionExpiredTitle: "Session expired — sign in again",
+      share: {
+        accessDeniedTitle: "You do not have access management permissions",
+        emptyText: "No one has access yet",
+        modalTitle: "Shared access",
+        projectLabel: "Project",
+        grantSectionTitle: "Grant access:",
+        confirmButtonText: API_UI.share.confirmButtonText,
+    cancelButtonText: API_UI.share.cancelButtonText,
+        emailRequiredMessage: "Enter email",
+      },
+      auth: {
+        loginTabLabel: "Sign in",
+        registerTabLabel: "Register",
+        nameLabel: "Name",
+        namePlaceholder: "Your name",
+        passwordLabel: "Password",
+        passwordPlaceholder: "Minimum 6 characters",
+        loginSubmitLabel: "Sign in",
+        registerSubmitLabel: "Create account",
+        nameRequiredMessage: "Enter name",
+        loginSuccessTitle: (name) => `Welcome, ${name}! ☁ Sync enabled`,
+        authErrorFallback: "Authentication error",
+        syncedTitle: "Synced. Click to sign out",
+        syncedLogoutPromptTitle: "Sign out?",
+        syncedLogoutPromptText: "Your data will remain in this browser.",
+        logoutConfirmButtonText: "Sign out",
+        loginButtonLabel: "☁ Sign in",
+      },
+    };
 
 function isLoggedIn() { return !!_authToken; }
 function _getCurrentRole() {
@@ -42,7 +75,7 @@ async function _fetch(path, options = {}) {
     apiLogout();
     Swal.fire({
       toast: true, position: "top-end", icon: "warning",
-      title: "Сесія закінчилась — увійдіть знову",
+      title: API_UI.sessionExpiredTitle,
       showConfirmButton: false, timer: 3500,
     });
     return null;
@@ -347,7 +380,7 @@ async function apiRemoveShare(userId) {
 
 async function openShareModal() {
   if (!canManageShares()) {
-    Swal.fire({ icon: "info", title: "У вас немає прав на керування доступом" });
+    Swal.fire({ icon: "info", title: API_UI.share.accessDeniedTitle });
     return;
   }
   const shares = await apiGetShares();
@@ -374,15 +407,15 @@ async function openShareModal() {
           },
         )
         .join("")
-    : `<div class="share-empty">Нікому не надано доступ</div>`;
+    : `<div class="share-empty">${API_UI.share.emptyText}</div>`;
 
   Swal.fire({
-    title: "👥 Спільний доступ",
+    title: API_UI.share.modalTitle,
     html: `<div class="share-modal-body">
-      <p class="share-proj-name">Проєкт: <b>${proj.name}</b></p>
+      <p class="share-proj-name">${API_UI.share.projectLabel}: <b>${proj.name}</b></p>
       <div class="share-list">${list}</div>
       <hr class="share-divider">
-      <div class="share-add-title">Надати доступ:</div>
+      <div class="share-add-title">${API_UI.share.grantSectionTitle}</div>
       <div class="share-add-row">
         <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
         <select id="share-role" class="share-role-sel">
@@ -395,7 +428,7 @@ async function openShareModal() {
     preConfirm: async () => {
       const email = document.getElementById("share-email").value.trim();
       const role = document.getElementById("share-role").value;
-      if (!email) { Swal.showValidationMessage("Введіть email"); return false; }
+      if (!email) { Swal.showValidationMessage(API_UI.share.emailRequiredMessage); return false; }
       try {
         await apiShareProject(email, role);
       } catch (err) {
@@ -438,15 +471,15 @@ function _renderAuthModal(tab) {
   const isLogin = tab === "login";
   document.getElementById("auth-modal-body").innerHTML = `
     <div class="auth-tabs">
-      <button class="auth-tab${isLogin ? " active" : ""}" onclick="_renderAuthModal('login')">Увійти</button>
-      <button class="auth-tab${!isLogin ? " active" : ""}" onclick="_renderAuthModal('register')">Реєстрація</button>
+      <button class="auth-tab${isLogin ? " active" : ""}" onclick="_renderAuthModal('login')">${API_UI.auth.loginTabLabel}</button>
+      <button class="auth-tab${!isLogin ? " active" : ""}" onclick="_renderAuthModal('register')">${API_UI.auth.registerTabLabel}</button>
     </div>
-    ${!isLogin ? `<div class="fg"><label>Ім'я</label><input id="auth-name" placeholder="Ваше ім'я"/></div>` : ""}
+    ${!isLogin ? `<div class="fg"><label>${API_UI.auth.nameLabel}</label><input id="auth-name" placeholder="${API_UI.auth.namePlaceholder}"/></div>` : ""}
     <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
-    <div class="fg"><label>Пароль</label><input id="auth-pass" type="password" placeholder="Мінімум 6 символів"/></div>
+    <div class="fg"><label>${API_UI.auth.passwordLabel}</label><input id="auth-pass" type="password" placeholder="${API_UI.auth.passwordPlaceholder}"/></div>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="btn btn-acc auth-submit-btn" onclick="_submitAuth('${tab}')">
-      ${isLogin ? "Увійти" : "Зареєструватись"}</button>`;
+      ${isLogin ? API_UI.auth.loginSubmitLabel : API_UI.auth.registerSubmitLabel}</button>`;
 }
 
 async function _submitAuth(tab) {
@@ -461,7 +494,7 @@ async function _submitAuth(tab) {
   try {
     if (tab === "login") { await apiLogin(email, pass); }
     else {
-      if (!name) { show("Введіть ім'я"); return; }
+      if (!name) { show(API_UI.auth.nameRequiredMessage); return; }
       await apiRegister(name, email, pass);
     }
     closeAuthModal();
@@ -479,11 +512,11 @@ async function _submitAuth(tab) {
     await apiLoadProjects();
     Swal.fire({
       toast: true, position: "top-end", icon: "success",
-      title: `Вітаємо, ${_apiUser?.name}! ☁ Синхронізацію увімкнено`,
+      title: API_UI.auth.loginSuccessTitle(_apiUser?.name || "user"),
       showConfirmButton: false, timer: 3000,
     });
   } catch (err) {
-    show(err.message || "Помилка авторизації");
+    show(err.message || API_UI.auth.authErrorFallback);
   }
 }
 
@@ -492,12 +525,12 @@ function updateAuthBtn() {
   if (!btn) return;
   if (isLoggedIn() && _apiUser) {
     btn.textContent = `☁ ${_apiUser.name}`;
-    btn.title = "Синхронізовано. Клік — вийти";
+    btn.title = API_UI.auth.syncedTitle;
     btn.onclick = async () => {
       const r = await Swal.fire({
-        icon: "question", title: "Вийти?",
-        text: "Дані залишаться в браузері.",
-        showCancelButton: true, confirmButtonText: "Вийти", cancelButtonText: "Скасувати",
+        icon: "question", title: API_UI.auth.syncedLogoutPromptTitle,
+        text: API_UI.auth.syncedLogoutPromptText,
+        showCancelButton: true, confirmButtonText: API_UI.auth.logoutConfirmButtonText, cancelButtonText: API_UI.share.cancelButtonText,
       });
       if (r.isConfirmed) {
         apiLogout();
@@ -507,7 +540,7 @@ function updateAuthBtn() {
       }
     };
   } else {
-    btn.textContent = "☁ Увійти";
+    btn.textContent = API_UI.auth.loginButtonLabel;
     btn.onclick = () => openAuthModal("login");
   }
   _updateReadOnlyUI();

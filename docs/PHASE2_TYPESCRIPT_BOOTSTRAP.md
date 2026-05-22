@@ -26,11 +26,27 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/baseline-ui.ts`
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
+  - `src/domain/modal.ts`
   - `src/domain/modal-ui.ts`
+  - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
+  - `src/domain/api-ui.ts`
+  - `src/domain/charts-ui.ts`
+  - `src/domain/finance-ui.ts`
+  - `src/domain/print-ui.ts`
+  - `src/domain/storage-ui.ts`
   - `src/domain/contractors-ui.ts`
+  - `src/domain/costs-ui.ts`
+  - `src/domain/guard-ui.ts`
   - `src/domain/user-feedback-ui.ts`
+  - `src/domain/project-lifecycle.ts`
+  - `src/domain/project-import.ts`
+  - `src/domain/charts.ts`
+  - `src/domain/costs.ts`
+  - `src/domain/finance.ts`
+  - `src/domain/contractors.ts`
+  - `src/domain/print.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -86,6 +102,65 @@ and Supabase adapters happen against stable interfaces.
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels
+- `js/render.js` now uses the generated helper layer for:
+  - header date-range projection
+  - legend chip state projection
+  - visible year-group projection
+  - task row / bar / phase window projection
+- `js/modal.js` now uses the generated helper layer for:
+  - project settings update and timeline-shift orchestration
+  - empty-project and demo-project snapshot creation
+  - delete-project guard evaluation
+  - next-project resolution after deletion
+  - modal phase/date conversion helpers
+  - weighted progress and active-phase resolution
+  - task cost summary calculation for modal footer
+  - dependency-list aggregation and filtered row projection
+- `js/baseline.js` and `js/guard.js` now use the generated helper layer for:
+  - baseline save/clear/missing dialogs
+  - capability-guard action labels and denial toasts
+- `js/costs.js` now uses the generated helper layer for:
+  - cost table empty state
+  - totals/footer labels
+  - contract/payment placeholders
+  - payment count/action labels
+  - cost item and payment mutation helpers
+  - cost total aggregation
+  - expanded-payment-row toggle logic
+- `js/finance.js` now uses the generated helper layer for:
+  - filter/search labels
+  - bulk delete confirmation copy
+  - chart dataset and tooltip labels
+  - finance filter-state detection
+  - scoped cost-item and payment aggregation
+  - finance search text building
+  - deletion summary calculation
+  - overview KPI calculation
+  - finance row enrichment and sorting
+- `js/charts.js` now uses the generated helper layer for:
+  - axis and title labels
+  - chart action tooltips
+  - auto-chart preset titles
+  - chart data aggregation
+  - group color resolution
+  - chart render-type normalization
+  - chart options model building
+  - auto-preset default lookup
+  - chart definition building for custom and auto charts
+- `js/print.js` now uses the generated helper layer for:
+  - print dialog empty states
+  - print-section normalization
+  - print settings normalization
+  - report/page titles
+  - print metrics calculation
+  - preview loading and page-count labels
+  - preview pagination and geometry state
+  - planned/actual chart labels
+  - PDF export feedback copy
+  - PDF page-progress copy
+  - gantt print layout resolution
+- `js/storage.js` now uses the generated helper layer for:
+  - offline sync-indicator copy
 - `js/user.js` now uses the generated helper layer for:
   - project sync-state calculation
   - sync-badge resolution
@@ -111,11 +186,30 @@ and Supabase adapters happen against stable interfaces.
   - gantt toolbar labels
   - task row labels and notes/phase captions
   - app import-conflict dialogs and import/copy feedback labels
+  - XLSX sheet/header labels
+  - overdue banner labels and duration formatting
   - contractor summary, filters, table headers, and selection labels
+  - baseline dialogs/toasts
+  - access-guard capability labels and denial toast copy
+- `js/contractors.js` now uses the generated helper layer for:
+  - contractor row aggregation and sorting
+  - selected-key normalization
+  - bulk delete summary calculation
+  - payment register row extraction and totals
+  - payment register filter-summary text
+- `js/api.js` now uses the generated helper layer for:
+  - auth modal labels and submit copy
+  - auth success/error/logout prompt copy
+  - share modal titles, empty states, and validation copy
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape
   - buffered role normalization
+- `js/app.js` now uses the generated helper layer for:
+  - task copy snapshot building
+  - project-name collision checks and unique-name suggestion
+  - imported baseline remapping
+  - imported project snapshot normalization from legacy JSON
 - `js/supabase-api.js`, `js/api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
   - role labels
   - shared-project presentation text

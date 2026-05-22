@@ -157,6 +157,25 @@
       showBaseline: options.showBaseline
     };
   }
+  function buildBaselineSavedToastModel(baselineDate) {
+    return {
+      title: `Базовий план збережено (${baselineDate})`
+    };
+  }
+  function buildBaselineClearDialogModel() {
+    return {
+      title: "Очистити базовий план?",
+      text: "Ghost-бари зникнуть. Відновити буде неможливо.",
+      confirmButtonText: "Очистити",
+      cancelButtonText: "Скасувати"
+    };
+  }
+  function buildBaselineMissingModel() {
+    return {
+      title: "Базовий план не збережено",
+      text: "Натисніть «Зберегти базовий план» щоб зафіксувати поточний стан."
+    };
+  }
 
   // src/domain/settings-ui.ts
   function buildProjectDefaultsPanelModel() {
@@ -245,6 +264,99 @@
     };
   }
 
+  // src/domain/render.ts
+  function buildHeaderDateText(months, nm) {
+    if (!months.length) return "";
+    return `${months[0]?.name} ${months[0]?.y} – ${months[months.length - 1]?.name} ${months[months.length - 1]?.y} · ${nm} міс.`;
+  }
+  function buildLegendItems(categories, filterCat, hiddenCats) {
+    const hasFilter = filterCat !== null || hiddenCats.size > 0;
+    return {
+      hasFilter,
+      items: categories.map((category, index) => {
+        const isExclusive = filterCat === index;
+        const isOff = hiddenCats.has(index);
+        let className = "cat-chip";
+        if (isExclusive) className += " active";
+        else if (isOff) className += " off";
+        else if (hasFilter) className += " dim";
+        return {
+          index,
+          name: category.name,
+          color: category.color,
+          className
+        };
+      })
+    };
+  }
+  function buildVisibleYearGroups(visibleMonths) {
+    const groups = [];
+    visibleMonths.forEach((month) => {
+      const last = groups[groups.length - 1];
+      if (last && last.year === month.y) last.cols += 4;
+      else groups.push({ year: month.y, cols: 4 });
+    });
+    return groups;
+  }
+  function buildTaskWindowModel(input) {
+    const { task, visStart, totalWeeks, zoomLevel, taskSearch, warnings, baselinePos, isCritical } = input;
+    const startWeek = task.ms * 4 + task.ws;
+    const endWeek = task.me * 4 + task.we;
+    if (endWeek < visStart || startWeek >= totalWeeks) return null;
+    const showFull = startWeek >= visStart;
+    const showPartial = !showFull && task.prog < 100 && endWeek >= visStart;
+    const showBar = showFull || showPartial;
+    const barStart = showFull ? startWeek : visStart;
+    const barWidth = showBar ? (endWeek - barStart + 1) * zoomLevel : 0;
+    const progressWidth = showBar ? Math.round(task.prog * Math.max(0, barWidth - Math.min(12, zoomLevel * 0.4)) / 100) : 0;
+    const notesCount = (task.notes || []).filter((note) => !note?.deleted).length || 0;
+    const searchNeedle = String(taskSearch || "").trim().toLowerCase();
+    const searchClass = searchNeedle ? String(task.name || "").toLowerCase().includes(searchNeedle) ? "task-search-match" : "task-search-dim" : "";
+    const baselineStartAbs = baselinePos ? Math.max(baselinePos.ms * 4 + baselinePos.ws, visStart) : null;
+    const baselineEndAbs = baselinePos ? baselinePos.me * 4 + baselinePos.we : null;
+    const baselineWidth = baselineStartAbs !== null && baselineEndAbs !== null && baselineEndAbs >= visStart ? (baselineEndAbs - baselineStartAbs + 1) * zoomLevel : 0;
+    const phases = (task.phases && task.phases.length > 1 ? task.phases : []).map((phase, index) => {
+      const phaseStart = phase.ms * 4 + phase.ws;
+      const phaseEnd = phase.me * 4 + phase.we;
+      if (phaseEnd < visStart || phaseStart >= totalWeeks) return null;
+      const progress = phase.prog || 0;
+      const phaseShowFull = phaseStart >= visStart;
+      const phaseShowPartial = !phaseShowFull && progress < 100 && phaseEnd >= visStart;
+      if (!phaseShowFull && !phaseShowPartial) return null;
+      const start = phaseShowFull ? phaseStart : visStart;
+      const width = (phaseEnd - start + 1) * zoomLevel;
+      return {
+        index,
+        start,
+        width,
+        progressWidth: Math.round(progress * Math.max(0, width - Math.min(12, zoomLevel * 0.4)) / 100),
+        progress,
+        isPartial: phaseShowPartial,
+        showFull: phaseShowFull
+      };
+    }).filter(Boolean);
+    return {
+      startWeek,
+      endWeek,
+      notesCount,
+      notesCellClass: notesCount > 0 ? "td-notes has-notes" : "td-notes",
+      searchClass,
+      isCritical,
+      warningsTitleSuffix: warnings.length ? ` ⚠ ${warnings.join("; ")}` : "",
+      baselineStart: baselineStartAbs,
+      baselineWidth,
+      bar: showBar ? {
+        start: barStart,
+        width: barWidth,
+        progressWidth,
+        isPartial: showPartial,
+        showFull,
+        showPartial
+      } : null,
+      phases
+    };
+  }
+
   // src/domain/app-ui.ts
   function buildAppUiModel() {
     return {
@@ -259,7 +371,572 @@
       numberedCopySuffix: (count) => ` (копія ${count})`,
       importSuccessTitle: (projectName) => `Імпортовано: «${projectName}»`,
       importInvalidTitle: "Помилка",
-      importInvalidText: "Не вдалося прочитати файл. Перевірте формат JSON."
+      importInvalidText: "Не вдалося прочитати файл. Перевірте формат JSON.",
+      workbookSheets: {
+        schedule: "Графік",
+        summary: "Зведення",
+        estimate: "Кошторис",
+        payments: "Платежі"
+      },
+      scheduleHeader: [
+        "№",
+        "Назва",
+        "Категорія",
+        "Підрядник",
+        "Початок (міс.)",
+        "Початок (тижд.)",
+        "Кінець (міс.)",
+        "Кінець (тижд.)",
+        "Тривалість (тижд.)",
+        "Виконання (%)",
+        "Бюджет (грн)",
+        "Витрачено (грн)",
+        "Залишок (грн)",
+        "Залежності"
+      ],
+      summaryHeader: [
+        "Категорія",
+        "Кількість робіт",
+        "Бюджет (грн)",
+        "Витрачено (грн)",
+        "Залишок (грн)",
+        "Середнє виконання (%)"
+      ],
+      estimateHeader: [
+        "№",
+        "Назва роботи",
+        "Тип",
+        "Матеріал/Послуга",
+        "Постач./Підр.",
+        "Од.",
+        "К-ть",
+        "Ціна/од.",
+        "Кошторис (грн)",
+        "Сплачено (грн)"
+      ],
+      paymentsHeader: [
+        "№",
+        "Назва роботи",
+        "Контрагент",
+        "Тип позиції",
+        "Матеріал/Послуга",
+        "Дата платежу",
+        "Тип платежу",
+        "Сума платежу (грн)",
+        "Примітка"
+      ],
+      overdueWeeksLabel: (weeks) => `${weeks} тижд.`,
+      overdueMonthsLabel: (months) => `${months} міс.`,
+      overdueRemainingLabel: (remaining) => `залишилось <b>${remaining}%</b>`,
+      overdueLateLabel: (duration) => `прострочено <b>${duration}</b>`,
+      overdueTitle: (count) => `Прострочено ${count} ${count === 1 ? "роботу" : count < 5 ? "роботи" : "робіт"}`,
+      overdueShowMoreLabel: (count) => `▼ Показати ще ${count}`,
+      overdueCollapseLabel: "▲ Згорнути",
+      overdueCloseTitle: "Закрити"
+    };
+  }
+
+  // src/domain/api-ui.ts
+  function buildApiUiModel() {
+    return {
+      sessionExpiredTitle: "Сесія закінчилась — увійдіть знову",
+      share: {
+        accessDeniedTitle: "У вас немає прав на керування доступом",
+        emptyText: "Нікому не надано доступ",
+        modalTitle: "👥 Спільний доступ",
+        projectLabel: "Проєкт",
+        grantSectionTitle: "Надати доступ:",
+        confirmButtonText: "Надати доступ",
+        cancelButtonText: "Закрити",
+        emailRequiredMessage: "Введіть email"
+      },
+      auth: {
+        loginTabLabel: "Увійти",
+        registerTabLabel: "Реєстрація",
+        nameLabel: "Ім'я",
+        namePlaceholder: "Ваше ім'я",
+        passwordLabel: "Пароль",
+        passwordPlaceholder: "Мінімум 6 символів",
+        loginSubmitLabel: "Увійти",
+        registerSubmitLabel: "Зареєструватись",
+        nameRequiredMessage: "Введіть ім'я",
+        loginSuccessTitle: (name) => `Вітаємо, ${name}! ☁ Синхронізацію увімкнено`,
+        authErrorFallback: "Помилка авторизації",
+        syncedTitle: "Синхронізовано. Клік — вийти",
+        syncedLogoutPromptTitle: "Вийти?",
+        syncedLogoutPromptText: "Дані залишаться в браузері.",
+        logoutConfirmButtonText: "Вийти",
+        loginButtonLabel: "☁ Увійти"
+      }
+    };
+  }
+
+  // src/domain/charts-ui.ts
+  function buildChartsUiModel() {
+    const axisLabels = {
+      count: "Кількість",
+      budget: "Бюджет (грн)",
+      spent: "Витрачено (грн)",
+      rest: "Залишок (грн)",
+      prog: "Виконання (%)",
+      dur: "Тривалість (тиж.)",
+      cat: "Категорія",
+      contr: "Підрядник",
+      status: "Статус",
+      month: "Місяць",
+      task: "Робота"
+    };
+    return {
+      axisLabels,
+      actionLabels: {
+        allCategoriesLabel: "Усі",
+        noContractorLabel: "(без підрядника)",
+        doneStatusLabel: "Завершено",
+        activeStatusLabel: "В роботі",
+        pendingStatusLabel: "Не розпочато",
+        editTitle: "Редагувати",
+        printTitle: "Друк",
+        deleteTitle: "Видалити",
+        chartFallbackTitle: "Chart"
+      },
+      autoCharts: [
+        { id: "a1", type: "pie", x: "cat", y: "count", title: "Кількість робіт за категорією" },
+        { id: "a2", type: "bar", x: "cat", y: "prog", title: "Середнє виконання за категорією (%)" },
+        { id: "a3", type: "doughnut", x: "status", y: "count", title: "Статус виконання" },
+        { id: "a4", type: "bar", x: "task", y: "dur", title: "Тривалість (тиж., топ 15)" },
+        { id: "a5", type: "line", x: "month", y: "count", title: "Активних робіт по місяцях" }
+      ]
+    };
+  }
+
+  // src/domain/charts.ts
+  function buildChartData(params) {
+    const src = params.tasks.filter((task) => {
+      if (params.hiddenCats.has(task.cat)) return false;
+      if (params.catFilter !== "" && task.cat !== Number(params.catFilter)) return false;
+      if (params.statFilter === "done" && task.prog < 100) return false;
+      if (params.statFilter === "active" && (task.prog === 0 || task.prog === 100)) return false;
+      if (params.statFilter === "pending" && task.prog !== 0) return false;
+      return true;
+    });
+    const groups = {};
+    const counts = {};
+    const getKey = (task) => {
+      if (params.xKey === "cat") return params.getCategoryName(task.cat);
+      if (params.xKey === "contr") {
+        const contractors = params.getTaskContractors(task);
+        return contractors.length ? contractors.join(", ") : params.noContractorLabel;
+      }
+      if (params.xKey === "status") {
+        if (task.prog === 100) return params.statusLabels.done;
+        if (task.prog > 0) return params.statusLabels.active;
+        return params.statusLabels.pending;
+      }
+      if (params.xKey === "task") return `${task.n}. ${String(task.name || "").substring(0, 22)}`;
+      if (params.xKey === "month") return params.getMonthLabel(task.ms);
+      return "?";
+    };
+    const getValue = (task) => {
+      if (params.yKey === "count") return 1;
+      if (params.yKey === "budget") return Number(task.budget) || 0;
+      if (params.yKey === "spent") return Number(task.spent) || 0;
+      if (params.yKey === "rest") return (Number(task.budget) || 0) - (Number(task.spent) || 0);
+      if (params.yKey === "prog") return Number(task.prog) || 0;
+      if (params.yKey === "dur") return params.getTaskDuration(task);
+      return 0;
+    };
+    src.forEach((task) => {
+      const key = getKey(task);
+      const value = getValue(task);
+      groups[key] = (groups[key] || 0) + value;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    if (params.yKey === "prog") {
+      Object.keys(groups).forEach((key) => {
+        groups[key] = Math.round(groups[key] / Math.max(1, counts[key] || 1));
+      });
+    }
+    const labels = Object.keys(groups);
+    const values = Object.values(groups);
+    if (params.xKey === "task") {
+      return {
+        labels: labels.slice(0, 15),
+        values: values.slice(0, 15)
+      };
+    }
+    return { labels, values };
+  }
+  function buildChartColors(params) {
+    if (params.xKey === "cat") {
+      return params.labels.map((label) => {
+        const category = params.categories.find((item) => item.name === label);
+        return category?.color || "#888";
+      });
+    }
+    if (params.xKey === "status") {
+      return params.labels.map((label) => {
+        if (label === params.statusLabels.done) return "#16803c";
+        if (label === params.statusLabels.active) return "#c07800";
+        return "#a09d97";
+      });
+    }
+    const palette = [
+      "#2563eb",
+      "#16803c",
+      "#c07800",
+      "#b71c1c",
+      "#006494",
+      "#8a6200",
+      "#5a5a5a",
+      "#7c3aed",
+      "#0891b2",
+      "#be185d"
+    ];
+    return params.labels.map((_, index) => palette[index % palette.length]);
+  }
+  function normalizeChartRenderType(type) {
+    return {
+      realType: type === "horizontalBar" ? "bar" : type,
+      isHoriz: type === "horizontalBar"
+    };
+  }
+  function buildChartOptions(type, isHoriz) {
+    return {
+      indexAxis: isHoriz ? "y" : void 0,
+      responsive: true,
+      plugins: {
+        legend: {
+          display: type === "pie" || type === "doughnut",
+          position: "bottom",
+          labels: { font: { size: 10 }, boxWidth: 10 }
+        }
+      },
+      scales: type === "pie" || type === "doughnut" ? {} : {
+        x: { ticks: { font: { size: 9 }, maxRotation: isHoriz ? 0 : 35 } },
+        y: {
+          ticks: {
+            font: { size: 9 }
+          }
+        }
+      }
+    };
+  }
+  function buildChartDefinition(input) {
+    return {
+      ...input,
+      title: `${input.axisLabels[input.yKey] || input.yKey} за ${input.axisLabels[input.xKey] || input.xKey}`
+    };
+  }
+  function getChartAutoDefaults(id, presets) {
+    const match = presets.find((preset) => preset.id === id);
+    return match || { type: "bar", x: "cat", y: "count" };
+  }
+
+  // src/domain/finance-ui.ts
+  function buildFinanceUiModel() {
+    return {
+      statusOptions: [
+        { value: "done", label: "Завершено (100%)" },
+        { value: "active", label: "В роботі" },
+        { value: "pending", label: "Не розпочато" },
+        { value: "warn", label: "З порушеннями" }
+      ],
+      filters: {
+        overviewTabLabel: "Графік",
+        tableTabLabel: "Таблиця",
+        searchPlaceholder: "Пошук у фінансах...",
+        clearSearchTitle: "Очистити пошук",
+        categoryLabel: "Категорія",
+        categoryAllLabel: "Усі категорії",
+        statusLabel: "Статус",
+        statusAllLabel: "Усі",
+        contractorLabel: "Підрядник",
+        contractorAllLabel: "Усі",
+        budgetMinLabel: "Бюджет від",
+        budgetMaxLabel: "Бюджет до",
+        budgetMinPlaceholder: "0",
+        budgetMaxPlaceholder: "∞",
+        onlyBudgetLabel: "Тільки з бюджетом",
+        resetFiltersTitle: "Скинути фільтри фінансів",
+        evmToggleLabel: "EVM",
+        evmToggleTitle: "Показати/сховати EVM метрики",
+        deleteTasksLabel: "Видалити роботи",
+        deleteTasksTitle: "Видалити всі роботи за поточними фільтрами"
+      },
+      deleteDialogs: {
+        noTasksTitle: "Немає робіт для видалення",
+        confirmTitle: "Підтвердьте видалення",
+        continueLabel: "Продовжити",
+        finalTitle: "Фінальне підтвердження",
+        finalInputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+        finalConfirmLabel: "Видалити",
+        cancelLabel: "Скасувати",
+        validationMessage: 'Введіть слово "ВИДАЛИТИ"',
+        filteredScopeLabel: "роботи за поточними фільтрами",
+        fullScopeLabel: "усі роботи проєкту"
+      },
+      chart: {
+        plannedLabel: "План, грн",
+        actualLabel: "Факт, грн",
+        projectedLabel: "Прогноз, грн",
+        tooltipCurrencyUnit: "грн"
+      }
+    };
+  }
+
+  // src/domain/finance.ts
+  function financeItemTotal(item) {
+    const qty = item?.qty == null ? 1 : +item.qty || 0;
+    return qty * (+item?.unitPrice || 0);
+  }
+  function hasFinanceFilters(filters, multiValues) {
+    return !!(multiValues(filters.cat).length || multiValues(filters.stat).length || multiValues(filters.contr).length || filters.budgetMin !== "" || filters.budgetMax !== "" || filters.onlyBudget);
+  }
+  function financeScopedCostItems(task, selectedContractors, contractorKey2, getTaskCostItems) {
+    const items = getTaskCostItems(task);
+    if (!selectedContractors.length) return items;
+    return items.filter((item) => selectedContractors.includes(contractorKey2(item.supplier)));
+  }
+  function financeTaskScope(task, selectedContractors, contractorKey2, getTaskCostItems) {
+    const items = financeScopedCostItems(task, selectedContractors, contractorKey2, getTaskCostItems);
+    const payments = items.flatMap((item) => item.payments || []);
+    if (selectedContractors.length) {
+      const budget = items.reduce((sum, item) => sum + financeItemTotal(item), 0);
+      const spent = payments.reduce((sum, payment) => sum + (+payment.amount || 0), 0);
+      return { budget, spent, payments, items };
+    }
+    return {
+      budget: +task.budget || 0,
+      spent: +task.spent || 0,
+      payments,
+      items
+    };
+  }
+  function buildFinanceSearchText(task, contractors, items, categoryName, itemTypeLabels, paymentTypeLabels) {
+    const parts = [
+      task.n,
+      task.name,
+      categoryName,
+      task.prog,
+      task.budget,
+      task.spent,
+      (+task.budget || 0) - (+task.spent || 0)
+    ];
+    contractors.forEach((name) => parts.push(name));
+    items.forEach((item) => {
+      parts.push(
+        item.type,
+        itemTypeLabels?.[item.type]?.label,
+        item.name,
+        item.supplier,
+        item.unit,
+        item.qty,
+        item.unitPrice,
+        financeItemTotal(item)
+      );
+      (item.payments || []).forEach((payment) => {
+        parts.push(
+          payment.date,
+          payment.amount,
+          payment.type,
+          paymentTypeLabels?.[payment.type],
+          payment.note
+        );
+      });
+    });
+    return parts.filter((value) => value !== null && value !== void 0).join(" ").toLocaleLowerCase("uk-UA");
+  }
+  function summarizeFinanceDeletion(indexes, tasks, getTaskCostItems) {
+    return indexes.reduce(
+      (acc, index) => {
+        const task = tasks[index];
+        const items = getTaskCostItems(task);
+        acc.tasks += 1;
+        acc.budget += +task.budget || 0;
+        acc.spent += +task.spent || 0;
+        acc.items += items.length;
+        items.forEach((item) => {
+          acc.acts += (item.acts || []).length;
+          acc.payments += (item.payments || []).length;
+        });
+        return acc;
+      },
+      { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 }
+    );
+  }
+  function calculateFinanceOverview(tasks) {
+    const budget = tasks.reduce((sum, task) => sum + (+task.budget || 0), 0);
+    const spent = tasks.reduce((sum, task) => sum + (+task.spent || 0), 0);
+    const rest = budget - spent;
+    const spentPct = budget > 0 ? Math.round(spent / budget * 100) : 0;
+    const bcwp = tasks.reduce((sum, task) => sum + (+task.budget || 0) * ((+task.prog || 0) / 100), 0);
+    const acwp = spent;
+    const bac = budget;
+    const cpi = acwp > 0 ? bcwp / acwp : null;
+    const eac = cpi && cpi > 0 ? bac / cpi : null;
+    const etc = eac !== null ? eac - acwp : null;
+    const vac = eac !== null ? bac - eac : null;
+    return { budget, spent, rest, spentPct, bcwp, acwp, bac, cpi, eac, etc, vac };
+  }
+  function buildFinanceRows(filteredTasks, sort, getDuration, getRemainingWeeks) {
+    const rows = filteredTasks.map((task, index) => ({
+      ...task,
+      ti: task.__ti ?? index,
+      dur: getDuration(task),
+      rest: (+task.budget || 0) - (+task.spent || 0),
+      pct: task.budget > 0 ? Math.round(task.spent / task.budget * 100) : 0,
+      rate: (() => {
+        const remainingWeeks = getRemainingWeeks(task);
+        const rest = (+task.budget || 0) - (+task.spent || 0);
+        return remainingWeeks > 0 ? Math.round(rest / remainingWeeks) : 0;
+      })()
+    }));
+    rows.sort((a, b) => {
+      const av = a[sort.col];
+      const bv = b[sort.col];
+      return typeof av === "string" ? sort.dir * String(av ?? "").localeCompare(String(bv ?? ""), "uk") : sort.dir * ((Number(av) || 0) - (Number(bv) || 0));
+    });
+    return rows;
+  }
+
+  // src/domain/print-ui.ts
+  function buildPrintUiModel() {
+    return {
+      noChartsText: "Немає побудованих графіків",
+      previewLoadingText: "Оновлення передперегляду...",
+      previewPagesLabel: (pages) => `${pages} стор.`,
+      reportTitle: "Звіт",
+      nothingSelectedText: "Нічого не вибрано для друку.",
+      projectFallbackTitle: "Проєкт",
+      ganttTitle: "Діаграма Ганта",
+      ganttEmptyText: "Немає робіт для друку.",
+      financeTitle: "Фінансовий звіт",
+      sCurveTitle: "S-крива освоєння бюджету",
+      sCurveAlt: "S-крива",
+      sCurveUnavailableText: "S-крива недоступна для друку.",
+      weeklyCostTitle: "Тижневий графік витрат",
+      weeklyCostAlt: "Тижневий графік витрат",
+      weeklyCostUnavailableText: "Тижневий графік витрат недоступний для друку.",
+      chartFallbackTitle: "Графік",
+      exportPdfTitle: "Генерую PDF...",
+      exportPdfProgressText: "Підготовка...",
+      exportPdfSuccessTitle: "PDF збережено",
+      exportPdfErrorTitle: "Помилка PDF",
+      pdfPageProgressText: (current, total) => `Сторінка ${current} з ${total}...`,
+      ganttPageTitlePrefix: "Діаграма Ганта: тижні",
+      tasksMetaLabel: "робіт",
+      workTypeHeader: "Вид робіт",
+      plannedLabel: "Плановий",
+      actualLabel: "Фактичний",
+      financeBudgetLabel: "Бюджет",
+      financeSpentLabel: "Витрачено",
+      financeRestLabel: "Залишок",
+      financeTasksLabel: "Робіт",
+      financeDoneSuffix: "завершено",
+      currencyUnit: "грн",
+      financeTableHeaders: {
+        task: "Робота",
+        category: "Категорія",
+        weeks: "Тиж.",
+        budget: "Бюджет",
+        spent: "Витрачено",
+        rest: "Залишок",
+        progress: "%"
+      },
+      noTasksShortText: "Немає робіт.",
+      chartPageFallbackTitle: "Графік"
+    };
+  }
+
+  // src/domain/print.ts
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+  function resolvePrintSections(input) {
+    return {
+      gantt: input.gantt ?? true,
+      finance: input.finance ?? false,
+      charts: input.charts ?? false,
+      chartIds: Array.isArray(input.chartIds) ? input.chartIds.filter(Boolean) : [],
+      range: input.range || "all"
+    };
+  }
+  function resolvePrintSettings(input, defaults) {
+    const paper = typeof input.paper === "string" ? input.paper : defaults.paper;
+    const orientation = typeof input.orientation === "string" ? input.orientation : defaults.orientation;
+    const fitMode = typeof input.fitMode === "string" ? input.fitMode : defaults.fitMode;
+    const contentScale = Number.isFinite(Number(input.contentScale)) ? Number(input.contentScale) : defaults.contentScale;
+    const renderScale = Number.isFinite(Number(input.renderScale)) ? Number(input.renderScale) : defaults.renderScale;
+    const margin = Number.isFinite(Number(input.margin)) ? Number(input.margin) : defaults.margin;
+    return {
+      paper: ["a3", "a4", "letter"].includes(paper) ? paper : "a3",
+      orientation: ["landscape", "portrait"].includes(orientation) ? orientation : "landscape",
+      contentScale: clamp(contentScale, 0.25, 1),
+      renderScale: clamp(renderScale, 1, 2),
+      margin: clamp(margin, 0, 25),
+      fitMode: ["paginate", "width", "height", "page"].includes(fitMode) ? fitMode : "paginate"
+    };
+  }
+  function getPrintMetrics(settings, paperMm) {
+    const base = paperMm[settings.paper] || paperMm.a3;
+    const pageW = settings.orientation === "landscape" ? base.h : base.w;
+    const pageH = settings.orientation === "landscape" ? base.w : base.h;
+    const contentWmm = Math.max(50, pageW - settings.margin * 2);
+    const contentHmm = Math.max(50, pageH - settings.margin * 2);
+    const pxPerMm = 96 / 25.4;
+    return {
+      pageW,
+      pageH,
+      contentWmm,
+      contentHmm,
+      contentWpx: Math.round(contentWmm * pxPerMm),
+      contentHpx: Math.round(contentHmm * pxPerMm)
+    };
+  }
+  function getPrintPreviewState(input) {
+    const { pagesCount, availableWidth, availableHeight, pageWidth, pageHeight } = input;
+    if (!pagesCount || !pageWidth || !pageHeight) return null;
+    const pageIndex = Math.min(pagesCount - 1, Math.max(0, input.currentPage));
+    const scale = Math.min(1, availableWidth / pageWidth, availableHeight / pageHeight);
+    return {
+      pageIndex,
+      pageLabel: `${pageIndex + 1} / ${pagesCount}`,
+      prevDisabled: pageIndex <= 0,
+      nextDisabled: pageIndex >= pagesCount - 1,
+      targetWidth: Math.ceil(pageWidth * scale),
+      targetHeight: Math.ceil(pageHeight * scale),
+      targetLeft: Math.max(0, (availableWidth - pageWidth * scale) / 2),
+      targetTop: Math.max(0, (availableHeight - pageHeight * scale) / 2),
+      cloneWidth: pageWidth,
+      cloneHeight: pageHeight,
+      scale
+    };
+  }
+  function resolvePrintGanttLayout(input) {
+    const { settings, metrics, taskCount, allWeeks } = input;
+    const density = settings.contentScale;
+    const headH = 118;
+    const nW = Math.max(20, Math.round(34 * density));
+    const nameW = Math.max(110, Math.round(220 * density));
+    const progW = Math.max(34, Math.round(46 * density));
+    const fixedW = nW + nameW + progW;
+    let weekW = Math.max(8, Math.round(22 * density));
+    let rowH = Math.max(22, Math.round(28 * density));
+    if (settings.fitMode === "width" || settings.fitMode === "page") {
+      weekW = Math.max(2, Math.floor((metrics.contentWpx - fixedW - 2) / Math.max(1, allWeeks)));
+    }
+    if (settings.fitMode === "height" || settings.fitMode === "page") {
+      rowH = Math.max(12, Math.floor((metrics.contentHpx - headH) / Math.max(1, taskCount)));
+    }
+    return {
+      nW,
+      nameW,
+      progW,
+      fixedW,
+      weekW,
+      rowH,
+      weeksPerPage: settings.fitMode === "width" || settings.fitMode === "page" ? Math.max(1, allWeeks) : Math.max(4, Math.floor((metrics.contentWpx - fixedW - 2) / weekW)),
+      rowsPerPage: settings.fitMode === "height" || settings.fitMode === "page" ? Math.max(1, taskCount) : Math.max(8, Math.floor((metrics.contentHpx - headH) / rowH))
     };
   }
 
@@ -328,7 +1005,7 @@
       addPaymentTitle: "Додати платіж",
       editActTitle: "Редагувати акт",
       deleteActTitle: "Видалити акт",
-      editPaymentTitle: "Редагувати платіж",
+      editPaymentActionTitle: "Редагувати платіж",
       deletePaymentTitle: "Видалити платіж",
       noSelectedContractorsTitle: "Немає вибраних контрагентів",
       noVisibleContractorsTitle: "Немає контрагентів для видалення",
@@ -371,7 +1048,420 @@
       importContinueLabel: "Продовжити",
       importReviewTitle: "Перевірка імпорту",
       importLabel: "Імпортувати",
-      importOkLabel: "OK"
+      importOkLabel: "OK",
+      editPaymentTitle: (name) => `Редагувати платіж: ${name}`,
+      deletePaymentTitlePrompt: "Видалити платіж?",
+      addActTitleWithSupplier: (supplier) => `Додати акт: ${supplier}`,
+      editActTitleWithSupplier: (supplier) => `Редагувати акт: ${supplier}`,
+      deleteActTitlePrompt: "Видалити акт?",
+      addPaymentTitleWithSupplier: (supplier) => `Додати платіж: ${supplier}`,
+      correctAmountValidation: "Вкажіть коректну суму",
+      actNumberValidation: "Вкажіть номер акту",
+      actAmountValidation: "Вкажіть суму акту",
+      paymentAmountValidation: "Вкажіть суму платежу",
+      supplierLockedTitle: "Контрагент зафіксований для цього рядка",
+      workFieldLabel: "Робота",
+      contractNumberLabel: "Номер договору",
+      dateFieldLabel: "Дата",
+      amountFieldLabel: "Сума",
+      noteFieldLabel: "Примітка",
+      contractPlaceholder: "Договір №",
+      amountPlaceholder: "0",
+      contractNotePlaceholder: "Примітка до договору",
+      supplierRequiredTitle: "Вкажіть контрагента",
+      addContractTitle: "Додайте договір",
+      contractAmountValidation: "Вкажіть суму договору"
+    };
+  }
+
+  // src/domain/contractors.ts
+  function contractorName(name, emptyName) {
+    const text = String(name ?? "").trim();
+    return text || emptyName;
+  }
+  function contractorKey(name, emptyName) {
+    return contractorName(name, emptyName).toLocaleLowerCase("uk-UA");
+  }
+  function contractorItemTotal(item) {
+    const qty = item?.qty == null ? 1 : +item.qty || 0;
+    return qty * (+item?.unitPrice || 0);
+  }
+  function contractorStatus(row) {
+    if (row.rest < -0.5) return { key: "over", label: "Переплата" };
+    if (row.budget > 0 && row.paid <= 0.5) return { key: "debt", label: "Без оплати" };
+    if (row.budget > 0 && row.rest > 0.5) return { key: "debt", label: "Залишок" };
+    if (row.budget > 0 && Math.abs(row.rest) <= 0.5) return { key: "paid", label: "Оплачено" };
+    return { key: "empty", label: "Без сум" };
+  }
+  function isPinnedContractorRow(row, emptyName) {
+    return !!row?.isForecast || row?.key === contractorKey(emptyName, emptyName);
+  }
+  function pinnedContractorRank(row, emptyName) {
+    if (row?.isForecast) return 0;
+    if (row?.key === contractorKey(emptyName, emptyName)) return 1;
+    return 2;
+  }
+  function selectedContractorKeys(selected, isBlocked) {
+    return Array.from(selected).filter((key) => !isBlocked(key));
+  }
+  function paymentRegisterTotal(rows) {
+    return rows.reduce((sum, row) => sum + (+row.amount || 0), 0);
+  }
+  function paymentRegisterRowsFromContractorRows(rows) {
+    return rows.filter((row) => !row.isForecast).flatMap(
+      (row) => (row.payments || []).map((payment) => ({
+        supplier: row.supplier,
+        date: payment.date || "",
+        amount: +payment.amount || 0,
+        type: payment.typeLabel || payment.type || "Інше",
+        taskNo: payment.taskNo,
+        taskName: payment.taskName,
+        itemName: payment.itemName,
+        note: payment.note || ""
+      }))
+    ).sort(
+      (a, b) => (a.date || "").localeCompare(b.date || "") || String(a.supplier || "").localeCompare(String(b.supplier || ""), "uk")
+    );
+  }
+  function paymentRegisterFiltersLabel(filters, multiValues, typeLabel, categoryLabel) {
+    const parts = [];
+    if (filters.q) parts.push(`пошук: ${filters.q}`);
+    const statuses = multiValues(filters.status);
+    if (statuses.length) parts.push(`статус: ${statuses.join(", ")}`);
+    const types = multiValues(filters.type);
+    if (types.length) parts.push(`тип: ${types.map(typeLabel).join(", ")}`);
+    const cats = multiValues(filters.cat);
+    if (cats.length) parts.push(`категорія: ${cats.map(categoryLabel).join(", ")}`);
+    return parts.join("; ") || "усі платежі";
+  }
+  function summarizeContractorBulkDelete(rows) {
+    return rows.reduce(
+      (acc, row) => {
+        acc.contractors += 1;
+        acc.items += row.itemsCount || 0;
+        acc.payments += row.paymentsCount || 0;
+        acc.acts += (row.acts || []).length || 0;
+        return acc;
+      },
+      { contractors: 0, items: 0, payments: 0, acts: 0 }
+    );
+  }
+  function buildContractorRows(tasks, options) {
+    const {
+      filters,
+      emptyName,
+      multiFilterHas,
+      multiFilterValues,
+      getTaskCostItems,
+      addForecastRemainder,
+      sort
+    } = options;
+    const buckets = /* @__PURE__ */ new Map();
+    tasks.forEach((task, ti) => {
+      if (!multiFilterHas(filters.cat, String(task.cat))) return;
+      const costItems = getTaskCostItems(task);
+      costItems.forEach((item, itemIndex) => {
+        if (!multiFilterHas(filters.type, item.type || "other")) return;
+        const supplier = contractorName(item.supplier, emptyName);
+        const key = contractorKey(supplier, emptyName);
+        const bucket = buckets.get(key) || {
+          key,
+          supplier,
+          budget: 0,
+          paid: 0,
+          rest: 0,
+          actsAmount: 0,
+          actsDebt: 0,
+          tasks: /* @__PURE__ */ new Set(),
+          taskNames: /* @__PURE__ */ new Map(),
+          items: [],
+          acts: [],
+          payments: [],
+          lastPayment: "",
+          search: ""
+        };
+        const itemBudget = contractorItemTotal(item);
+        const itemPayments = item.payments || [];
+        const itemPaid = itemPayments.reduce((sum, payment) => sum + (+payment.amount || 0), 0);
+        const itemName = item.name || "Опис товару/послуги";
+        bucket.budget += itemBudget;
+        bucket.paid += itemPaid;
+        bucket.tasks.add(task.id || String(task.n));
+        bucket.taskNames.set(task.id || String(task.n), task.name);
+        bucket.items.push({
+          ti,
+          itemId: item.id,
+          itemIndex,
+          taskNo: task.n,
+          taskName: task.name,
+          contractNo: item.contractNo || "-",
+          itemName,
+          type: item.type,
+          total: itemBudget,
+          budget: itemBudget,
+          paid: itemPaid,
+          note: item.contractNote || item.note || ""
+        });
+        (item.acts || []).forEach((act) => {
+          const actAmount = +act.amount || 0;
+          bucket.actsAmount += actAmount;
+          bucket.acts.push({
+            ti,
+            taskNo: task.n,
+            taskName: task.name,
+            itemName,
+            contractNo: item.contractNo || "",
+            contractAmount: itemBudget,
+            type: act.type || "contract",
+            name: act.name || "",
+            date: act.date || "",
+            amount: actAmount,
+            note: act.note || ""
+          });
+        });
+        itemPayments.forEach((payment) => {
+          bucket.payments.push({
+            ti,
+            taskNo: task.n,
+            taskName: task.name,
+            itemName,
+            date: payment.date || "",
+            type: payment.type || "other",
+            amount: +payment.amount || 0,
+            typeLabel: payment.typeLabel,
+            contractNo: item.contractNo || "",
+            contractAmount: itemBudget,
+            actId: payment.actId || "",
+            actNo: payment.actNo || "",
+            note: payment.note || ""
+          });
+          if (payment.date && payment.date > bucket.lastPayment) bucket.lastPayment = payment.date;
+        });
+        bucket.search += ` ${supplier} ${task.name} ${itemName} ${item.type || ""} ${itemPayments.map((payment) => `${payment.note || ""} ${payment.amount || ""}`).join(" ")}`;
+        buckets.set(key, bucket);
+      });
+      if (!multiFilterValues(filters.type).length && typeof addForecastRemainder === "function") {
+        addForecastRemainder(buckets, task, ti, costItems);
+      }
+    });
+    const q = String(filters.q || "").trim().toLocaleLowerCase("uk-UA");
+    const rows = Array.from(buckets.values()).map((row) => {
+      row.actsAmount = row.actsAmount || 0;
+      row.rest = row.budget - row.paid;
+      row.actsDebt = row.isForecast ? 0 : row.actsAmount - row.paid;
+      row.tasksCount = row.tasks.size;
+      row.itemsCount = row.items.length;
+      row.paymentsCount = row.payments.length;
+      row.topTask = Array.from(row.taskNames.values())[0] || "";
+      row.status = contractorStatus(row).key;
+      return row;
+    }).filter((row) => {
+      if (q && !String(row.search || "").toLocaleLowerCase("uk-UA").includes(q)) return false;
+      const statuses = multiFilterValues(filters.status);
+      if (statuses.length) {
+        const matchesStatus = statuses.includes("debt") && row.rest > 0.5 || statuses.includes("paid") && row.budget > 0 && Math.abs(row.rest) <= 0.5 || statuses.includes("over") && row.rest < -0.5 || statuses.includes("unpaid") && row.budget > 0 && row.paid <= 0.5;
+        if (!matchesStatus) return false;
+      }
+      return true;
+    });
+    rows.sort((a, b) => {
+      const ap = isPinnedContractorRow(a, emptyName);
+      const bp = isPinnedContractorRow(b, emptyName);
+      if (ap !== bp) return ap ? -1 : 1;
+      if (ap && bp) return pinnedContractorRank(a, emptyName) - pinnedContractorRank(b, emptyName);
+      const av = a[sort.col];
+      const bv = b[sort.col];
+      const cmp = typeof av === "string" ? String(av ?? "").localeCompare(String(bv ?? ""), "uk") : (Number(av) || 0) - (Number(bv) || 0);
+      return sort.dir * cmp;
+    });
+    rows.forEach((row, index) => {
+      row.rowNo = index + 1;
+    });
+    return rows;
+  }
+
+  // src/domain/costs-ui.ts
+  function buildCostUiModel() {
+    return {
+      costTypes: {
+        material: { label: "Матеріали", icon: "🧱" },
+        work: { label: "Роботи", icon: "👷" },
+        equipment: { label: "Техніка", icon: "🔧" },
+        service: { label: "Послуги", icon: "🤝" },
+        other: { label: "Інше", icon: "📦" }
+      },
+      paymentTypes: {
+        advance: "Аванс",
+        act: "Акт",
+        invoice: "Рахунок",
+        other: "Інше"
+      },
+      units: [
+        "м²",
+        "м³",
+        "пог.м",
+        "т",
+        "кг",
+        "шт",
+        "год",
+        "люд*год",
+        "день",
+        "люд*день",
+        "компл",
+        "л",
+        "рулон",
+        "уп"
+      ],
+      labels: {
+        emptyStateText: 'Рядків немає — натисніть кнопку "Тип" вище щоб додати',
+        budgetLabel: "Кошторис:",
+        spentLabel: "Сплачено:",
+        restLabel: "Залишок:",
+        contractPlaceholder: "Договір №",
+        supplierPlaceholder: "Контрагент",
+        notePlaceholder: "Примітки",
+        paymentAmountPlaceholder: "Сума (грн)",
+        paymentNotePlaceholder: "Примітка (акт №, аванс тощо)",
+        addPaymentLabel: "+ Платіж",
+        paymentCountLabel: (count, isOpen) => `${isOpen ? "▾" : "▸"} ${count} плат.`,
+        deleteItemTitle: "Видалити",
+        contractNamePrefix: "Договір",
+        defaultUnit: "договір",
+        currencyUnit: "грн"
+      }
+    };
+  }
+
+  // src/domain/costs.ts
+  function createCostItem(input) {
+    const { id, type = "material", defaultUnit } = input;
+    return {
+      id,
+      type,
+      name: "",
+      supplier: "",
+      unit: defaultUnit,
+      qty: 1,
+      unitPrice: null,
+      contractNo: "",
+      contractNote: "",
+      payments: []
+    };
+  }
+  function createCostPayment(input) {
+    const { id, date, type = "act" } = input;
+    return {
+      id,
+      date,
+      type,
+      amount: null,
+      note: ""
+    };
+  }
+  function removeCostItem(items, id) {
+    return items.filter((item) => item.id !== id);
+  }
+  function updateCostItemField(items, id, field, value) {
+    return items.map((item) => {
+      if (item.id !== id) return item;
+      const nextValue = value === "__custom" ? "" : value;
+      return {
+        ...item,
+        [field]: nextValue,
+        ...field === "contractNote" ? { note: nextValue } : {}
+      };
+    });
+  }
+  function updateCostItemContract(items, id, value, contractNamePrefix) {
+    return items.map(
+      (item) => item.id !== id ? item : {
+        ...item,
+        contractNo: value,
+        name: value ? `${contractNamePrefix} ${value}` : ""
+      }
+    );
+  }
+  function toggleExpandedCostId(expandedIds, id) {
+    return expandedIds.includes(id) ? expandedIds.filter((entry) => entry !== id) : [...expandedIds, id];
+  }
+  function addPaymentToCostItem(items, itemId, payment) {
+    return items.map(
+      (item) => item.id !== itemId ? item : {
+        ...item,
+        payments: [...Array.isArray(item.payments) ? item.payments : [], payment]
+      }
+    );
+  }
+  function removePaymentFromCostItem(items, itemId, paymentIndex) {
+    return items.map((item) => {
+      if (item.id !== itemId || !Array.isArray(item.payments)) return item;
+      return {
+        ...item,
+        payments: item.payments.filter((_, index) => index !== paymentIndex)
+      };
+    });
+  }
+  function updateCostPaymentField(items, itemId, paymentIndex, field, value) {
+    return items.map((item) => {
+      if (item.id !== itemId || !Array.isArray(item.payments)) return item;
+      return {
+        ...item,
+        payments: item.payments.map(
+          (payment, index) => index !== paymentIndex ? payment : { ...payment, [field]: value }
+        )
+      };
+    });
+  }
+  function calculateCostItemTotal(item) {
+    const qty = item.qty == null ? 1 : +item.qty || 0;
+    return qty * (+item.unitPrice || 0);
+  }
+  function calculateCostSpent(item) {
+    return (Array.isArray(item.payments) ? item.payments : []).reduce(
+      (sum, payment) => sum + (+payment.amount || 0),
+      0
+    );
+  }
+  function calculateCostTotals(items) {
+    const budget = Math.round(items.reduce((sum, item) => sum + calculateCostItemTotal(item), 0));
+    const spent = Math.round(items.reduce((sum, item) => sum + calculateCostSpent(item), 0));
+    const rest = budget - spent;
+    const pct = budget > 0 ? Math.round(spent / budget * 100) : 0;
+    return { budget, spent, rest, pct };
+  }
+
+  // src/domain/guard-ui.ts
+  function buildGuardToastModel(label) {
+    return {
+      title: `У вас немає прав на ${label}`,
+      text: "Зверніться до власника проєкту щоб отримати доступ."
+    };
+  }
+  function buildGuardedActionLabels() {
+    return {
+      openAdd: { label: "створення задачі", capability: "canEditTasks" },
+      saveTask: { label: "збереження задачі", capability: "canEditTasks" },
+      delTask: { label: "видалення задачі", capability: "canEditTasks" },
+      saveProjSettings: { label: "зміну налаштувань", capability: "canManageProject" },
+      saveCats: { label: "зміну категорій", capability: "canManageProject" },
+      saveBaseline: { label: "збереження базового плану", capability: "canEditTasks" },
+      clearBaseline: { label: "видалення базового плану", capability: "canEditTasks" },
+      savePhases: { label: "збереження фаз", capability: "canEditTasks" },
+      saveCostModal: { label: "збереження кошторису", capability: "canEditTasks" },
+      deleteProject: { label: "видалення проєкту", capability: "canManageProject" },
+      importJSON: { label: "імпорт", capability: "canEditTasks" },
+      importContractorTable: { label: "імпорт оплат", capability: "canEditTasks" },
+      saveContractorEntry: { label: "додавання контрагентів та оплат", capability: "canEditTasks" },
+      editContractor: { label: "редагування контрагентів", capability: "canEditTasks" },
+      deleteContractor: { label: "видалення контрагентів", capability: "canEditTasks" },
+      openContractorActModal: { label: "додавання актів", capability: "canEditTasks" },
+      editContractorAct: { label: "редагування актів", capability: "canEditTasks" },
+      deleteContractorAct: { label: "видалення актів", capability: "canEditTasks" },
+      openContractorPaymentModal: { label: "додавання платежів", capability: "canEditTasks" },
+      editContractorPayment: { label: "редагування платежів", capability: "canEditTasks" },
+      deleteContractorPayment: { label: "видалення платежів", capability: "canEditTasks" },
+      createPaymentRegisterFromFilters: { label: "створення реєстру платежів", capability: "canEditTasks" },
+      deletePaymentRegister: { label: "видалення реєстру платежів", capability: "canEditTasks" }
     };
   }
 
@@ -529,6 +1619,117 @@
     };
   }
 
+  // src/domain/modal.ts
+  function snapToHalfWeek(dateStr) {
+    if (!dateStr) return dateStr;
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const halfWeeks = [1, 4, 8, 11, 15, 18, 22, 25];
+    let best = halfWeeks[0];
+    let bestDiff = Math.abs(d - halfWeeks[0]);
+    for (const day of halfWeeks) {
+      const diff = Math.abs(d - day);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = day;
+      }
+    }
+    return `${y}-${String(m).padStart(2, "0")}-${String(best).padStart(2, "0")}`;
+  }
+  function phaseToDateStr(project, mi, wi) {
+    const absMonth = project.sy * 12 + project.sm + mi;
+    const year = Math.floor(absMonth / 12);
+    const month = absMonth % 12;
+    const day = Math.min(1 + wi * 7, 28);
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  function dateStrToPhase(project, str) {
+    if (!str) return { mi: 0, wi: 0 };
+    const [y, m, d] = str.split("-").map(Number);
+    const absMonth = y * 12 + (m - 1);
+    const projectStart = project.sy * 12 + project.sm;
+    return {
+      mi: Math.max(0, Math.min(project.nm - 1, absMonth - projectStart)),
+      wi: Math.min(3, Math.max(0, Math.floor((d - 1) / 7)))
+    };
+  }
+  function getProjectMinDate(project) {
+    return `${project.sy}-${String(project.sm + 1).padStart(2, "0")}-01`;
+  }
+  function getProjectMaxDate(project) {
+    const absEnd = project.sy * 12 + project.sm + project.nm - 1;
+    const year = Math.floor(absEnd / 12);
+    const month = absEnd % 12 + 1;
+    return `${year}-${String(month).padStart(2, "0")}-28`;
+  }
+  function getWeightedProgress(phases) {
+    if (!phases?.length) return 0;
+    if (phases.length === 1) return phases[0]?.prog || 0;
+    const totalDuration = phases.reduce((sum, phase) => {
+      return sum + Math.max(1, phase.me * 4 + phase.we - (phase.ms * 4 + phase.ws) + 1);
+    }, 0);
+    const weighted = phases.reduce((sum, phase) => {
+      const duration = Math.max(1, phase.me * 4 + phase.we - (phase.ms * 4 + phase.ws) + 1);
+      return sum + (phase.prog || 0) * duration;
+    }, 0);
+    return Math.round(weighted / totalDuration);
+  }
+  function getActivePhaseIndex(phases) {
+    let last = 0;
+    phases.forEach((phase, index) => {
+      if ((phase.prog || 0) > 0) last = index;
+    });
+    return last;
+  }
+  function remWeeks(phase) {
+    return Math.max(1, phase.me * 4 + phase.we - (phase.ms * 4 + phase.ws) + 1);
+  }
+  function buildTaskCalcModel(input) {
+    const remainder = input.budget - input.spent;
+    const weeks = input.phase ? remWeeks(input.phase) : 0;
+    return {
+      remainder,
+      weeks,
+      weeklyRate: weeks > 0 ? Math.round(remainder / weeks) : 0
+    };
+  }
+  function buildDependencyListState(input) {
+    const all = [];
+    input.tasks.forEach((task, toTi) => {
+      (task.deps || []).forEach((raw) => {
+        const dep = input.normDep(raw);
+        const fromTask = input.tasks.find((candidate) => candidate.id === dep.id);
+        if (!fromTask) return;
+        const fromTi = input.tasks.indexOf(fromTask);
+        const type = dep.type || "FS";
+        const threshold = dep.threshold || 0;
+        all.push({
+          index: all.length + 1,
+          fromTi,
+          toTi,
+          fromTask,
+          toTask: task,
+          type,
+          threshold,
+          typeLabel: type === "SS" && threshold ? `SS+${threshold}%` : type,
+          isCritical: input.criticalSet.has(fromTi) && input.criticalSet.has(toTi),
+          fromColor: input.categories[fromTask.cat]?.color || "var(--txt3)",
+          toColor: input.categories[task.cat]?.color || "var(--txt3)"
+        });
+      });
+    });
+    const counts = { all: all.length, FS: 0, SS: 0, FF: 0 };
+    all.forEach((row) => {
+      counts[row.type] = (counts[row.type] || 0) + 1;
+    });
+    const rows = input.filter === "all" ? all : all.filter((row) => row.type === input.filter);
+    return {
+      allCount: all.length,
+      filteredCount: rows.length,
+      counts,
+      rows
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -681,6 +1882,230 @@
       }
     });
     return allProjects;
+  }
+
+  // src/domain/storage-ui.ts
+  function buildStorageUiModel() {
+    return {
+      offlineIndicatorText: "⚠ офлайн — зміни збережено локально"
+    };
+  }
+
+  // src/domain/project-lifecycle.ts
+  function clonePhaseWithShift(phase, shift) {
+    return {
+      ...phase,
+      ms: Math.max(0, phase.ms + shift),
+      me: Math.max(0, phase.me + shift)
+    };
+  }
+  function cloneTaskWithShift(task, shift) {
+    return {
+      ...task,
+      ms: Math.max(0, task.ms + shift),
+      me: Math.max(0, task.me + shift),
+      phases: task.phases?.map((phase) => clonePhaseWithShift(phase, shift)) || task.phases || null
+    };
+  }
+  function applyProjectSettingsUpdate(input) {
+    const { snapshot, name, sm, sy, nm } = input;
+    const before = {
+      name: snapshot.proj.name,
+      sm: snapshot.proj.sm,
+      sy: snapshot.proj.sy,
+      nm: snapshot.proj.nm
+    };
+    const nextNm = Math.min(120, Math.max(3, nm));
+    const oldAbsStart = snapshot.proj.sy * 12 + snapshot.proj.sm;
+    const newAbsStart = sy * 12 + sm;
+    const shift = oldAbsStart - newAbsStart;
+    const shiftedTasks = shift !== 0;
+    return {
+      snapshot: {
+        ...snapshot,
+        proj: {
+          ...snapshot.proj,
+          name: name.trim() || snapshot.proj.name,
+          sm,
+          sy,
+          nm: nextNm
+        },
+        tasks: shiftedTasks ? snapshot.tasks.map((task) => cloneTaskWithShift(task, shift)) : snapshot.tasks
+      },
+      before,
+      after: {
+        name: name.trim() || snapshot.proj.name,
+        sm,
+        sy,
+        nm: nextNm
+      },
+      shift,
+      shiftedTasks
+    };
+  }
+  function createEmptyProjectSnapshot(input) {
+    const { name, defaults, categories, meta } = input;
+    return {
+      proj: {
+        name: name.trim(),
+        sm: defaults.sm,
+        sy: defaults.sy,
+        nm: defaults.nm
+      },
+      cats: categories.map((category) => ({ ...category })),
+      tasks: [],
+      nextN: 1,
+      ...meta || {}
+    };
+  }
+  function createDemoProjectSnapshot(input) {
+    const { projectName, startYear, categories, tasks, nextN, meta } = input;
+    return {
+      proj: {
+        name: projectName,
+        sm: 0,
+        sy: startYear,
+        nm: 12
+      },
+      cats: categories.map((category) => ({ ...category })),
+      tasks: tasks.map((task) => ({ ...task })),
+      nextN,
+      ...meta || {}
+    };
+  }
+  function canDeleteProjectCount(projectCount) {
+    return projectCount > 1;
+  }
+  function resolveNextProjectAfterDeletion(projectIds, currentId, deletedId) {
+    if (currentId !== deletedId) return currentId;
+    return projectIds.find((projectId) => projectId !== deletedId) || null;
+  }
+
+  // src/domain/project-import.ts
+  function createCopiedTask(input) {
+    const { task, nextN, newId, copiedTaskSuffix } = input;
+    return {
+      ...task,
+      id: newId,
+      n: nextN,
+      name: `${task.name}${copiedTaskSuffix}`,
+      notes: [],
+      phases: task.phases ? task.phases.map((phase) => ({ ...phase })) : null,
+      ...Array.isArray(task.costItems) ? { costItems: task.costItems.map((item) => ({ ...item })) } : {},
+      deps: []
+    };
+  }
+  function projectNameExists(projects, name) {
+    const needle = String(name || "").trim().toLowerCase();
+    if (!needle) return false;
+    return Object.values(projects || {}).some(
+      (project) => String(project?.proj?.name || "").trim().toLowerCase() === needle
+    );
+  }
+  function resolveUniqueProjectName(input) {
+    const {
+      projects,
+      baseName,
+      fallbackName,
+      copiedTaskSuffix,
+      numberedCopySuffix
+    } = input;
+    const cleanBase = String(baseName || fallbackName).trim() || fallbackName;
+    if (!projectNameExists(projects, cleanBase)) return cleanBase;
+    const firstCopy = `${cleanBase}${copiedTaskSuffix}`;
+    if (!projectNameExists(projects, firstCopy)) return firstCopy;
+    for (let i = 2; i < 1e3; i += 1) {
+      const candidate = `${cleanBase}${numberedCopySuffix(i)}`;
+      if (!projectNameExists(projects, candidate)) return candidate;
+    }
+    return `${cleanBase}${numberedCopySuffix(Date.now())}`;
+  }
+  function normalizeImportedBaseline(baseline, idMap) {
+    if (!Array.isArray(baseline)) return baseline || null;
+    return baseline.map((entry) => {
+      const mappedId = idMap.get(String(entry?.id)) || idMap.get(String(entry?.n));
+      if (!mappedId) return null;
+      return { ...entry, id: mappedId };
+    }).filter(Boolean);
+  }
+  function buildImportedProjectSnapshot(input) {
+    const {
+      data,
+      fallbackProjectName,
+      resolvedName,
+      fallbackCategories,
+      generatedTaskIds,
+      meta
+    } = input;
+    const rawTasks = Array.isArray(data?.tasks) ? data.tasks : [];
+    const idMap = /* @__PURE__ */ new Map();
+    rawTasks.forEach((task, idx) => {
+      const nextId = generatedTaskIds[idx] || `imported-task-${idx + 1}`;
+      if (task?.id) idMap.set(String(task.id), nextId);
+      if (task?.n !== void 0) idMap.set(String(task.n), nextId);
+      idMap.set(String(idx + 1), nextId);
+    });
+    const normalizeDeps = (deps) => (Array.isArray(deps) ? deps : []).map((dep) => {
+      const rawId = dep && typeof dep === "object" ? dep.id || dep.n : dep;
+      const mappedId = idMap.get(String(rawId));
+      if (!mappedId) return null;
+      return {
+        id: mappedId,
+        type: dep?.type || "FS",
+        threshold: dep?.threshold || 0
+      };
+    }).filter(Boolean);
+    const tasks = rawTasks.map((task, idx) => {
+      const taskId = idMap.get(String(task?.id || task?.n || idx + 1)) || generatedTaskIds[idx] || `imported-task-${idx + 1}`;
+      const normalizedTask = {
+        ...task,
+        id: taskId,
+        n: Number.isFinite(+task?.n) ? +task.n : idx + 1,
+        name: String(task?.name || `Task ${idx + 1}`),
+        cat: Number.isFinite(+task?.cat) ? +task.cat : 0,
+        ms: Number.isFinite(+task?.ms) ? +task.ms : 0,
+        ws: Number.isFinite(+task?.ws) ? +task.ws : 0,
+        me: Number.isFinite(+task?.me) ? +task.me : 0,
+        we: Number.isFinite(+task?.we) ? +task.we : 0,
+        prog: Number.isFinite(+task?.prog) ? +task.prog : 0,
+        budget: Number(task?.budget) || 0,
+        spent: Number(task?.spent) || 0,
+        deps: normalizeDeps(task?.deps),
+        notes: Array.isArray(task?.notes) ? task.notes.map((note) => ({ ...note })) : []
+      };
+      if (Array.isArray(task?.phases)) {
+        normalizedTask.phases = task.phases.map((phase) => ({
+          ...phase,
+          ms: Number.isFinite(+phase?.ms) ? +phase.ms : 0,
+          me: Number.isFinite(+phase?.me) ? +phase.me : 0
+        }));
+      } else {
+        normalizedTask.phases = null;
+      }
+      if (Array.isArray(task?.costItems)) {
+        normalizedTask.costItems = task.costItems.map((item) => ({ ...item }));
+      } else if (Array.isArray(task?.cost_items)) {
+        normalizedTask.costItems = task.cost_items.map((item) => ({ ...item }));
+      }
+      delete normalizedTask.cost_items;
+      return normalizedTask;
+    });
+    const maxN = tasks.reduce((maxValue, task) => Math.max(maxValue, +task.n || 0), 0);
+    const importedProj = data?.proj || { name: fallbackProjectName };
+    return {
+      proj: {
+        ...importedProj,
+        name: resolvedName,
+        baseline: normalizeImportedBaseline(importedProj.baseline, idMap)
+      },
+      cats: Array.isArray(data?.cats) ? data.cats.map((category) => ({
+        name: String(category?.name || ""),
+        color: String(category?.color || "#94a3b8")
+      })) : fallbackCategories.map((category) => ({ ...category })),
+      tasks,
+      nextN: maxN + 1,
+      ...meta || {}
+    };
   }
 
   // src/domain/audit.ts
@@ -1017,22 +2442,88 @@
     buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
     buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
+    buildRuntimeStorageUiModel: buildStorageUiModel,
+    buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+    buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
+    buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
+    canRuntimeDeleteProjectCount: canDeleteProjectCount,
+    resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
+    buildRuntimeCopiedTask: createCopiedTask,
+    checkRuntimeProjectNameExists: projectNameExists,
+    buildRuntimeUniqueProjectName: resolveUniqueProjectName,
+    buildRuntimeNormalizeImportedBaseline: normalizeImportedBaseline,
+    buildRuntimeImportedProjectSnapshot: buildImportedProjectSnapshot,
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
     buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
     buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
     buildRuntimeTableLabels: buildTableLabels,
+    buildRuntimeHeaderDateText: buildHeaderDateText,
+    buildRuntimeLegendItems: buildLegendItems,
+    buildRuntimeVisibleYearGroups: buildVisibleYearGroups,
+    buildRuntimeTaskWindowModel: buildTaskWindowModel,
     buildRuntimeAppUiModel: buildAppUiModel,
+    buildRuntimeApiUiModel: buildApiUiModel,
+    buildRuntimeChartsUiModel: buildChartsUiModel,
+    buildRuntimeChartData: buildChartData,
+    buildRuntimeChartColors: buildChartColors,
+    buildRuntimeChartOptions: buildChartOptions,
+    buildRuntimeChartDefinition: buildChartDefinition,
+    buildRuntimeChartAutoDefaults: getChartAutoDefaults,
+    buildRuntimeNormalizeChartRenderType: normalizeChartRenderType,
+    buildRuntimeFinanceUiModel: buildFinanceUiModel,
+    buildRuntimeHasFinanceFilters: hasFinanceFilters,
+    buildRuntimeFinanceItemTotal: financeItemTotal,
+    buildRuntimeFinanceScopedCostItems: financeScopedCostItems,
+    buildRuntimeFinanceTaskScope: financeTaskScope,
+    buildRuntimeFinanceSearchText: buildFinanceSearchText,
+    buildRuntimeSummarizeFinanceDeletion: summarizeFinanceDeletion,
+    buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
+    buildRuntimeBuildFinanceRows: buildFinanceRows,
+    buildRuntimePrintUiModel: buildPrintUiModel,
+    buildRuntimeResolvePrintSections: resolvePrintSections,
+    buildRuntimeResolvePrintSettings: resolvePrintSettings,
+    buildRuntimeGetPrintMetrics: getPrintMetrics,
+    buildRuntimeGetPrintPreviewState: getPrintPreviewState,
+    buildRuntimeResolvePrintGanttLayout: resolvePrintGanttLayout,
     buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
     buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
     buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
     buildRuntimeContractorTableLabels: buildContractorTableLabels,
+    buildRuntimeContractorName: contractorName,
+    buildRuntimeContractorKey: contractorKey,
+    buildRuntimeContractorItemTotal: contractorItemTotal,
+    buildRuntimeContractorStatus: contractorStatus,
+    buildRuntimeSelectedContractorKeys: selectedContractorKeys,
+    buildRuntimeSummarizeContractorBulkDelete: summarizeContractorBulkDelete,
+    buildRuntimeContractorRows: buildContractorRows,
+    buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
+    buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
+    buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
+    buildRuntimeCostUiModel: buildCostUiModel,
+    buildRuntimeCreateCostItem: createCostItem,
+    buildRuntimeCreateCostPayment: createCostPayment,
+    buildRuntimeRemoveCostItem: removeCostItem,
+    buildRuntimeUpdateCostItemField: updateCostItemField,
+    buildRuntimeUpdateCostItemContract: updateCostItemContract,
+    buildRuntimeToggleExpandedCostId: toggleExpandedCostId,
+    buildRuntimeAddPaymentToCostItem: addPaymentToCostItem,
+    buildRuntimeRemovePaymentFromCostItem: removePaymentFromCostItem,
+    buildRuntimeUpdateCostPaymentField: updateCostPaymentField,
+    buildRuntimeCalculateCostItemTotal: calculateCostItemTotal,
+    buildRuntimeCalculateCostSpent: calculateCostSpent,
+    buildRuntimeCalculateCostTotals: calculateCostTotals,
+    buildRuntimeGuardToastModel: buildGuardToastModel,
+    buildRuntimeGuardedActionLabels: buildGuardedActionLabels,
     buildRuntimeAuthFormModel: buildAuthFormModel,
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeThemeToggleModel: buildThemeToggleModel,
     buildRuntimeUserIdentityModel: buildUserIdentityModel,
     buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+    buildRuntimeBaselineSavedToastModel: buildBaselineSavedToastModel,
+    buildRuntimeBaselineClearDialogModel: buildBaselineClearDialogModel,
+    buildRuntimeBaselineMissingModel: buildBaselineMissingModel,
     buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
     buildRuntimeThemePanelModel: buildThemePanelModel,
     buildRuntimeAccountSectionModel: buildAccountSectionModel,
@@ -1051,6 +2542,16 @@
     buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
     buildRuntimeTaskFormPanelModel: buildTaskFormPanelModel,
     buildRuntimeDemoProjectSeedModel: buildDemoProjectSeedModel,
+    buildRuntimeSnapToHalfWeek: snapToHalfWeek,
+    buildRuntimePhaseToDateStr: phaseToDateStr,
+    buildRuntimeDateStrToPhase: dateStrToPhase,
+    buildRuntimeProjectMinDate: getProjectMinDate,
+    buildRuntimeProjectMaxDate: getProjectMaxDate,
+    buildRuntimeWeightedProgress: getWeightedProgress,
+    buildRuntimeActivePhaseIndex: getActivePhaseIndex,
+    buildRuntimeRemWeeks: remWeeks,
+    buildRuntimeTaskCalcModel: buildTaskCalcModel,
+    buildRuntimeDependencyListState: buildDependencyListState,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

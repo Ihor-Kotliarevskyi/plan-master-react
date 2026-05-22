@@ -14,7 +14,12 @@ import {
 import { buildAccountSyncPanelModel } from "../domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../domain/profile-ui";
-import { buildBaselinePanelModel } from "../domain/baseline-ui";
+import {
+  buildBaselineClearDialogModel,
+  buildBaselineMissingModel,
+  buildBaselinePanelModel,
+  buildBaselineSavedToastModel,
+} from "../domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/settings-ui";
 import { buildAccountSectionModel } from "../domain/account-section-ui";
 import {
@@ -22,13 +27,76 @@ import {
   buildProjectSelectLabels,
   buildTableLabels,
 } from "../domain/render-ui";
+import {
+  buildHeaderDateText,
+  buildLegendItems,
+  buildTaskWindowModel,
+  buildVisibleYearGroups,
+} from "../domain/render";
 import { buildAppUiModel } from "../domain/app-ui";
+import { buildApiUiModel } from "../domain/api-ui";
+import { buildChartsUiModel } from "../domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../domain/charts";
+import { buildFinanceUiModel } from "../domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../domain/finance";
+import { buildPrintUiModel } from "../domain/print-ui";
+import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../domain/print";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
   buildContractorSummaryLabels,
   buildContractorTableLabels,
 } from "../domain/contractors-ui";
+import {
+  buildContractorRows,
+  contractorItemTotal,
+  contractorKey,
+  contractorName,
+  contractorStatus,
+  paymentRegisterFiltersLabel,
+  paymentRegisterRowsFromContractorRows,
+  paymentRegisterTotal,
+  selectedContractorKeys,
+  summarizeContractorBulkDelete,
+} from "../domain/contractors";
+import { buildCostUiModel } from "../domain/costs-ui";
+import {
+  addPaymentToCostItem,
+  calculateCostItemTotal,
+  calculateCostSpent,
+  calculateCostTotals,
+  createCostItem,
+  createCostPayment,
+  removeCostItem,
+  removePaymentFromCostItem,
+  toggleExpandedCostId,
+  updateCostItemContract,
+  updateCostItemField,
+  updateCostPaymentField,
+} from "../domain/costs";
+import { buildGuardedActionLabels, buildGuardToastModel } from "../domain/guard-ui";
 import {
   buildDependencyEditorModel,
   buildCategoryEditorModel,
@@ -46,6 +114,18 @@ import {
   buildTaskSavedToastModel,
   buildDemoProjectSeedModel,
 } from "../domain/modal-ui";
+import {
+  buildDependencyListState,
+  buildTaskCalcModel,
+  dateStrToPhase,
+  getActivePhaseIndex,
+  getProjectMaxDate,
+  getProjectMinDate,
+  getWeightedProgress,
+  phaseToDateStr,
+  remWeeks,
+  snapToHalfWeek,
+} from "../domain/modal";
 import {
   buildAuditEntryViewModel,
   buildAuditLogModalModel,
@@ -68,6 +148,21 @@ import {
   buildStorageBufferPayload,
   normalizeBufferedProjectRoles,
 } from "../domain/storage";
+import { buildStorageUiModel } from "../domain/storage-ui";
+import {
+  applyProjectSettingsUpdate,
+  canDeleteProjectCount,
+  createDemoProjectSnapshot,
+  createEmptyProjectSnapshot,
+  resolveNextProjectAfterDeletion,
+} from "../domain/project-lifecycle";
+import {
+  buildImportedProjectSnapshot,
+  createCopiedTask,
+  normalizeImportedBaseline,
+  projectNameExists,
+  resolveUniqueProjectName,
+} from "../domain/project-import";
 import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
@@ -222,22 +317,88 @@ const runtimeHelpers = {
   buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
   buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
+  buildRuntimeStorageUiModel: buildStorageUiModel,
+  buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+  buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
+  buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
+  canRuntimeDeleteProjectCount: canDeleteProjectCount,
+  resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
+  buildRuntimeCopiedTask: createCopiedTask,
+  checkRuntimeProjectNameExists: projectNameExists,
+  buildRuntimeUniqueProjectName: resolveUniqueProjectName,
+  buildRuntimeNormalizeImportedBaseline: normalizeImportedBaseline,
+  buildRuntimeImportedProjectSnapshot: buildImportedProjectSnapshot,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
   buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
   buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
   buildRuntimeTableLabels: buildTableLabels,
+  buildRuntimeHeaderDateText: buildHeaderDateText,
+  buildRuntimeLegendItems: buildLegendItems,
+  buildRuntimeVisibleYearGroups: buildVisibleYearGroups,
+  buildRuntimeTaskWindowModel: buildTaskWindowModel,
   buildRuntimeAppUiModel: buildAppUiModel,
+  buildRuntimeApiUiModel: buildApiUiModel,
+  buildRuntimeChartsUiModel: buildChartsUiModel,
+  buildRuntimeChartData: buildChartData,
+  buildRuntimeChartColors: buildChartColors,
+  buildRuntimeChartOptions: buildChartOptions,
+  buildRuntimeChartDefinition: buildChartDefinition,
+  buildRuntimeChartAutoDefaults: getChartAutoDefaults,
+  buildRuntimeNormalizeChartRenderType: normalizeChartRenderType,
+  buildRuntimeFinanceUiModel: buildFinanceUiModel,
+  buildRuntimeHasFinanceFilters: hasFinanceFilters,
+  buildRuntimeFinanceItemTotal: financeItemTotal,
+  buildRuntimeFinanceScopedCostItems: financeScopedCostItems,
+  buildRuntimeFinanceTaskScope: financeTaskScope,
+  buildRuntimeFinanceSearchText: buildFinanceSearchText,
+  buildRuntimeSummarizeFinanceDeletion: summarizeFinanceDeletion,
+  buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
+  buildRuntimeBuildFinanceRows: buildFinanceRows,
+  buildRuntimePrintUiModel: buildPrintUiModel,
+  buildRuntimeResolvePrintSections: resolvePrintSections,
+  buildRuntimeResolvePrintSettings: resolvePrintSettings,
+  buildRuntimeGetPrintMetrics: getPrintMetrics,
+  buildRuntimeGetPrintPreviewState: getPrintPreviewState,
+  buildRuntimeResolvePrintGanttLayout: resolvePrintGanttLayout,
   buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
   buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
   buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
   buildRuntimeContractorTableLabels: buildContractorTableLabels,
+  buildRuntimeContractorName: contractorName,
+  buildRuntimeContractorKey: contractorKey,
+  buildRuntimeContractorItemTotal: contractorItemTotal,
+  buildRuntimeContractorStatus: contractorStatus,
+  buildRuntimeSelectedContractorKeys: selectedContractorKeys,
+  buildRuntimeSummarizeContractorBulkDelete: summarizeContractorBulkDelete,
+  buildRuntimeContractorRows: buildContractorRows,
+  buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
+  buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
+  buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
+  buildRuntimeCostUiModel: buildCostUiModel,
+  buildRuntimeCreateCostItem: createCostItem,
+  buildRuntimeCreateCostPayment: createCostPayment,
+  buildRuntimeRemoveCostItem: removeCostItem,
+  buildRuntimeUpdateCostItemField: updateCostItemField,
+  buildRuntimeUpdateCostItemContract: updateCostItemContract,
+  buildRuntimeToggleExpandedCostId: toggleExpandedCostId,
+  buildRuntimeAddPaymentToCostItem: addPaymentToCostItem,
+  buildRuntimeRemovePaymentFromCostItem: removePaymentFromCostItem,
+  buildRuntimeUpdateCostPaymentField: updateCostPaymentField,
+  buildRuntimeCalculateCostItemTotal: calculateCostItemTotal,
+  buildRuntimeCalculateCostSpent: calculateCostSpent,
+  buildRuntimeCalculateCostTotals: calculateCostTotals,
+  buildRuntimeGuardToastModel: buildGuardToastModel,
+  buildRuntimeGuardedActionLabels: buildGuardedActionLabels,
   buildRuntimeAuthFormModel: buildAuthFormModel,
   getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeThemeToggleModel: buildThemeToggleModel,
   buildRuntimeUserIdentityModel: buildUserIdentityModel,
   buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+  buildRuntimeBaselineSavedToastModel: buildBaselineSavedToastModel,
+  buildRuntimeBaselineClearDialogModel: buildBaselineClearDialogModel,
+  buildRuntimeBaselineMissingModel: buildBaselineMissingModel,
   buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
   buildRuntimeThemePanelModel: buildThemePanelModel,
   buildRuntimeAccountSectionModel: buildAccountSectionModel,
@@ -256,6 +417,16 @@ const runtimeHelpers = {
   buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
   buildRuntimeTaskFormPanelModel: buildTaskFormPanelModel,
   buildRuntimeDemoProjectSeedModel: buildDemoProjectSeedModel,
+  buildRuntimeSnapToHalfWeek: snapToHalfWeek,
+  buildRuntimePhaseToDateStr: phaseToDateStr,
+  buildRuntimeDateStrToPhase: dateStrToPhase,
+  buildRuntimeProjectMinDate: getProjectMinDate,
+  buildRuntimeProjectMaxDate: getProjectMaxDate,
+  buildRuntimeWeightedProgress: getWeightedProgress,
+  buildRuntimeActivePhaseIndex: getActivePhaseIndex,
+  buildRuntimeRemWeeks: remWeeks,
+  buildRuntimeTaskCalcModel: buildTaskCalcModel,
+  buildRuntimeDependencyListState: buildDependencyListState,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

@@ -4,6 +4,56 @@ let weeklyCostChart = null;
 let _finResize = null;
 let showWeeklyCostBars = false;
 let financeChartHeight = 260;
+const FINANCE_UI = typeof buildRuntimeFinanceUiModel === "function"
+  ? buildRuntimeFinanceUiModel()
+  : {
+      statusOptions: [
+        { value: "done", label: "Завершено (100%)" },
+        { value: "active", label: "В роботі" },
+        { value: "pending", label: "Не розпочато" },
+        { value: "warn", label: "З порушеннями" },
+      ],
+      filters: {
+        overviewTabLabel: "Графік",
+        tableTabLabel: "Таблиця",
+        searchPlaceholder: "Пошук у фінансах...",
+        clearSearchTitle: "Очистити пошук",
+        categoryLabel: "Категорія",
+        categoryAllLabel: "Усі категорії",
+        statusLabel: "Статус",
+        statusAllLabel: "Усі",
+        contractorLabel: "Підрядник",
+        contractorAllLabel: "Усі",
+        budgetMinLabel: "Бюджет від",
+        budgetMaxLabel: "Бюджет до",
+        budgetMinPlaceholder: "0",
+        budgetMaxPlaceholder: "∞",
+        onlyBudgetLabel: "Тільки з бюджетом",
+        resetFiltersTitle: "Скинути фільтри фінансів",
+        evmToggleLabel: "EVM",
+        evmToggleTitle: "Показати/сховати EVM метрики",
+        deleteTasksLabel: "Видалити роботи",
+        deleteTasksTitle: "Видалити всі роботи за поточними фільтрами",
+      },
+      deleteDialogs: {
+        noTasksTitle: "Немає робіт для видалення",
+        confirmTitle: "Підтвердьте видалення",
+        continueLabel: "Продовжити",
+        finalTitle: "Фінальне підтвердження",
+        finalInputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+        finalConfirmLabel: "Видалити",
+        cancelLabel: "Скасувати",
+        validationMessage: 'Введіть слово "ВИДАЛИТИ"',
+        filteredScopeLabel: "роботи за поточними фільтрами",
+        fullScopeLabel: "усі роботи проєкту",
+      },
+      chart: {
+        plannedLabel: "План, грн",
+        actualLabel: "Факт, грн",
+        projectedLabel: "Прогноз, грн",
+        tooltipCurrencyUnit: "грн",
+      },
+    };
 
 const FIN_COL_SK = "gantt_fin_col_widths";
 const FIN_COL_DEFAULTS = {
@@ -123,66 +173,64 @@ function switchFinTab(tab) {
 function renderFinFilters() {
   const contrs = uniqContractors();
   const catOptions = cats.map((c, i) => ({ value: i, label: c.name }));
-  const statusOptions = [
-    { value: "done", label: "Завершено (100%)" },
-    { value: "active", label: "В роботі" },
-    { value: "pending", label: "Не розпочато" },
-    { value: "warn", label: "З порушеннями" },
-  ];
+  const statusOptions = FINANCE_UI.statusOptions;
   const contractorOptions = contrs.map((c) => ({ value: c, label: c }));
   const hasFinFilters = _hasFinanceFilters();
   document.getElementById("fin-filters").innerHTML = `
     <div class="fin-filter-tabs">
       <button class="fin-tab" id="fin-tab-overview" onclick="switchFinTab('overview')" type="button">
-        <i data-lucide="trending-up"></i> Графік
+        <i data-lucide="trending-up"></i> ${FINANCE_UI.filters.overviewTabLabel}
       </button>
       <button class="fin-tab" id="fin-tab-table" onclick="switchFinTab('table')" type="button">
-        <i data-lucide="table-2"></i> Таблиця
+        <i data-lucide="table-2"></i> ${FINANCE_UI.filters.tableTabLabel}
       </button>
     </div>
     <div class="fin-search-wrap">
       <i data-lucide="search" class="fin-search-icon"></i>
       <input type="text" id="fin-search-inp" class="fin-search-inp"
-             placeholder="Пошук у фінансах..."
+             placeholder="${FINANCE_UI.filters.searchPlaceholder}"
              value="${htmlEsc(finFilters.q || "")}"
              oninput="onFinSearch(this.value)"
              onkeydown="if(event.key==='Escape'){clearFinSearch()}">
       <button type="button" id="fin-search-clear" class="fin-search-clear${finFilters.q ? " show" : ""}"
-              onclick="clearFinSearch()" title="Очистити пошук">
+              onclick="clearFinSearch()" title="${FINANCE_UI.filters.clearSearchTitle}">
         <i data-lucide="x"></i>
       </button>
     </div>
-    ${renderMultiFilter("finFilters.cat", "Категорія", "Усі категорії", catOptions, "renderFinance", "ff-multi")}
-    ${renderMultiFilter("finFilters.stat", "Статус", "Усі", statusOptions, "renderFinance", "ff-multi")}
-    ${renderMultiFilter("finFilters.contr", "Підрядник", "Усі", contractorOptions, "renderFinance", "ff-multi mf-wide")}
+    ${renderMultiFilter("finFilters.cat", FINANCE_UI.filters.categoryLabel, FINANCE_UI.filters.categoryAllLabel, catOptions, "renderFinance", "ff-multi")}
+    ${renderMultiFilter("finFilters.stat", FINANCE_UI.filters.statusLabel, FINANCE_UI.filters.statusAllLabel, statusOptions, "renderFinance", "ff-multi")}
+    ${renderMultiFilter("finFilters.contr", FINANCE_UI.filters.contractorLabel, FINANCE_UI.filters.contractorAllLabel, contractorOptions, "renderFinance", "ff-multi mf-wide")}
     <div class="ff-group">
-      <label>Бюджет від</label>
+      <label>${FINANCE_UI.filters.budgetMinLabel}</label>
       <input type="number" min="0" step="10000" value="${finFilters.budgetMin}" class="ff-input-narrow"
-             placeholder="0" onchange="finFilters.budgetMin=this.value;renderFinFilters();renderFinance()">
+             placeholder="${FINANCE_UI.filters.budgetMinPlaceholder}" onchange="finFilters.budgetMin=this.value;renderFinFilters();renderFinance()">
     </div>
     <div class="ff-group">
-      <label>Бюджет до</label>
+      <label>${FINANCE_UI.filters.budgetMaxLabel}</label>
       <input type="number" min="0" step="10000" value="${finFilters.budgetMax}" class="ff-input-narrow"
-             placeholder="∞" onchange="finFilters.budgetMax=this.value;renderFinFilters();renderFinance()">
+             placeholder="${FINANCE_UI.filters.budgetMaxPlaceholder}" onchange="finFilters.budgetMax=this.value;renderFinFilters();renderFinance()">
     </div>
     <div class="ff-group ff-group-actions">
       <label class="ff-checkbox">
         <input type="checkbox" ${finFilters.onlyBudget ? "checked" : ""}
-               onchange="finFilters.onlyBudget=this.checked;renderFinFilters();renderFinance()"> Тільки з бюджетом
+               onchange="finFilters.onlyBudget=this.checked;renderFinFilters();renderFinance()"> ${FINANCE_UI.filters.onlyBudgetLabel}
       </label>
-      ${hasFinFilters ? `<button class="btn btn-sm" onclick="resetFinanceFilters()" title="Скинути фільтри фінансів"><i data-lucide="rotate-ccw"></i></button>` : ""}
+      ${hasFinFilters ? `<button class="btn btn-sm" onclick="resetFinanceFilters()" title="${FINANCE_UI.filters.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
       <button class="btn btn-sm btn-tog${showEVM ? " on" : ""}"
-              onclick="showEVM=!showEVM;renderFinance()" title="Показати/сховати EVM метрики">
-        <i data-lucide="bar-chart-2"></i> EVM
+              onclick="showEVM=!showEVM;renderFinance()" title="${FINANCE_UI.filters.evmToggleTitle}">
+        <i data-lucide="bar-chart-2"></i> ${FINANCE_UI.filters.evmToggleLabel}
       </button>
-      <button class="btn btn-sm danger" onclick="deleteVisibleFinanceTasks()" title="Видалити всі роботи за поточними фільтрами">
-        <i data-lucide="trash"></i> Видалити роботи
+      <button class="btn btn-sm danger" onclick="deleteVisibleFinanceTasks()" title="${FINANCE_UI.filters.deleteTasksTitle}">
+        <i data-lucide="trash"></i> ${FINANCE_UI.filters.deleteTasksLabel}
       </button>
     </div>`;
   lucide.createIcons({ nodes: [document.getElementById("fin-filters")] });
 }
 
 function _hasFinanceFilters() {
+  if (typeof buildRuntimeHasFinanceFilters === "function") {
+    return buildRuntimeHasFinanceFilters(finFilters, multiFilterValues);
+  }
   return !!(
     multiFilterValues(finFilters.cat).length ||
     multiFilterValues(finFilters.stat).length ||
@@ -222,28 +270,32 @@ async function deleteVisibleFinanceTasks() {
     .sort((a, b) => b - a);
 
   if (!indexes.length) {
-    Swal.fire({ icon: "info", title: "Немає робіт для видалення" });
+    Swal.fire({ icon: "info", title: FINANCE_UI.deleteDialogs.noTasksTitle });
     return;
   }
 
-  const summary = indexes.reduce((acc, ti) => {
-    const task = tasks[ti];
-    const items = taskCostItems(task);
-    acc.tasks += 1;
-    acc.budget += +task.budget || 0;
-    acc.spent += +task.spent || 0;
-    acc.items += items.length;
-    items.forEach((item) => {
-      acc.acts += (item.acts || []).length;
-      acc.payments += (item.payments || []).length;
-    });
-    return acc;
-  }, { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 });
+  const summary = typeof buildRuntimeSummarizeFinanceDeletion === "function"
+    ? buildRuntimeSummarizeFinanceDeletion(indexes, tasks, taskCostItems)
+    : indexes.reduce((acc, ti) => {
+        const task = tasks[ti];
+        const items = taskCostItems(task);
+        acc.tasks += 1;
+        acc.budget += +task.budget || 0;
+        acc.spent += +task.spent || 0;
+        acc.items += items.length;
+        items.forEach((item) => {
+          acc.acts += (item.acts || []).length;
+          acc.payments += (item.payments || []).length;
+        });
+        return acc;
+      }, { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 });
 
-  const scope = _hasFinanceFilters() || finFilters.q ? "роботи за поточними фільтрами" : "усі роботи проєкту";
+  const scope = _hasFinanceFilters() || finFilters.q
+    ? FINANCE_UI.deleteDialogs.filteredScopeLabel
+    : FINANCE_UI.deleteDialogs.fullScopeLabel;
   const confirmOne = await Swal.fire({
     icon: "warning",
-    title: "Підтвердьте видалення",
+    title: FINANCE_UI.deleteDialogs.confirmTitle,
     html: `
       <div style="text-align:left">
         Буде видалено: <b>${summary.tasks}</b> робіт.<br>
@@ -255,24 +307,24 @@ async function deleteVisibleFinanceTasks() {
         Сценарій: <b>${htmlEsc(scope)}</b>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Продовжити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: FINANCE_UI.deleteDialogs.continueLabel,
+    cancelButtonText: FINANCE_UI.deleteDialogs.cancelLabel,
     confirmButtonColor: "#dc2626",
   });
   if (!confirmOne.isConfirmed) return;
 
   const confirmTwo = await Swal.fire({
     icon: "warning",
-    title: "Фінальне підтвердження",
+    title: FINANCE_UI.deleteDialogs.finalTitle,
     input: "text",
-    inputLabel: 'Введіть "ВИДАЛИТИ", щоб остаточно підтвердити',
+    inputLabel: FINANCE_UI.deleteDialogs.finalInputLabel,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: FINANCE_UI.deleteDialogs.finalConfirmLabel,
+    cancelButtonText: FINANCE_UI.deleteDialogs.cancelLabel,
     confirmButtonColor: "#dc2626",
     preConfirm: (value) => {
       if (String(value || "").trim().toUpperCase() !== "ВИДАЛИТИ") {
-        Swal.showValidationMessage('Введіть слово "ВИДАЛИТИ"');
+        Swal.showValidationMessage(FINANCE_UI.deleteDialogs.validationMessage);
         return false;
       }
       return true;
@@ -311,6 +363,16 @@ function applyFinFilters(t) {
 }
 
 function _financeSearchText(t) {
+  if (typeof buildRuntimeFinanceSearchText === "function") {
+    return buildRuntimeFinanceSearchText(
+      t,
+      taskContractors(t),
+      taskCostItems(t),
+      CN(t.cat),
+      COST_TYPES,
+      PAYMENT_TYPES,
+    );
+  }
   const parts = [
     t.n, t.name, CN(t.cat), t.prog, t.budget, t.spent,
     (+t.budget || 0) - (+t.spent || 0),
@@ -347,21 +409,39 @@ function _financeContractorKey(name) {
 }
 
 function _financeItemTotal(item) {
+  if (typeof buildRuntimeFinanceItemTotal === "function") return buildRuntimeFinanceItemTotal(item);
   const qty = item?.qty == null ? 1 : (+item.qty || 0);
   return qty * (+item?.unitPrice || 0);
 }
 
 function _financeScopedCostItems(t) {
-  const items = typeof taskCostItems === "function" ? taskCostItems(t) : (t.costItems || t.cost_items || []);
   const selected = multiFilterValues(finFilters.contr).map(_financeContractorKey);
+  if (typeof buildRuntimeFinanceScopedCostItems === "function") {
+    return buildRuntimeFinanceScopedCostItems(
+      t,
+      selected,
+      _financeContractorKey,
+      (task) => typeof taskCostItems === "function" ? taskCostItems(task) : (task.costItems || task.cost_items || []),
+    );
+  }
+  const items = typeof taskCostItems === "function" ? taskCostItems(t) : (t.costItems || t.cost_items || []);
   if (!selected.length) return items;
   return items.filter((item) => selected.includes(_financeContractorKey(item.supplier)));
 }
 
 function _financeTaskScope(t) {
+  const selected = multiFilterValues(finFilters.contr).map(_financeContractorKey);
+  if (typeof buildRuntimeFinanceTaskScope === "function") {
+    return buildRuntimeFinanceTaskScope(
+      t,
+      selected,
+      _financeContractorKey,
+      (task) => typeof taskCostItems === "function" ? taskCostItems(task) : (task.costItems || task.cost_items || []),
+    );
+  }
   const items = _financeScopedCostItems(t);
   const payments = items.flatMap((it) => it.payments || []);
-  if (multiFilterValues(finFilters.contr).length) {
+  if (selected.length) {
     const budget = items.reduce((sum, it) => sum + _financeItemTotal(it), 0);
     const spent = payments.reduce((sum, p) => sum + (+p.amount || 0), 0);
     return { budget, spent, payments };
@@ -383,18 +463,33 @@ function _renderFinanceOverview() {
   const summary = document.getElementById("fin-summary");
   if (!summary) return;
 
-  const tb = tasks.reduce((s, t) => s + (+t.budget || 0), 0);
-  const ts = tasks.reduce((s, t) => s + (+t.spent || 0), 0);
-  const tr = tb - ts;
-  const op = tb > 0 ? Math.round((ts / tb) * 100) : 0;
-
-  const bcwp = tasks.reduce((s, t) => s + (+t.budget || 0) * (t.prog / 100), 0);
-  const acwp = ts;
-  const bac = tb;
-  const cpi = acwp > 0 ? bcwp / acwp : null;
-  const eac = cpi && cpi > 0 ? bac / cpi : null;
-  const etc = eac !== null ? eac - acwp : null;
-  const vac = eac !== null ? bac - eac : null;
+  const overview = typeof buildRuntimeCalculateFinanceOverview === "function"
+    ? buildRuntimeCalculateFinanceOverview(tasks)
+    : (() => {
+        const tb = tasks.reduce((s, t) => s + (+t.budget || 0), 0);
+        const ts = tasks.reduce((s, t) => s + (+t.spent || 0), 0);
+        const tr = tb - ts;
+        const op = tb > 0 ? Math.round((ts / tb) * 100) : 0;
+        const bcwp = tasks.reduce((s, t) => s + (+t.budget || 0) * (t.prog / 100), 0);
+        const acwp = ts;
+        const bac = tb;
+        const cpi = acwp > 0 ? bcwp / acwp : null;
+        const eac = cpi && cpi > 0 ? bac / cpi : null;
+        const etc = eac !== null ? eac - acwp : null;
+        const vac = eac !== null ? bac - eac : null;
+        return { budget: tb, spent: ts, rest: tr, spentPct: op, bcwp, acwp, bac, cpi, eac, etc, vac };
+      })();
+  const tb = overview.budget;
+  const ts = overview.spent;
+  const tr = overview.rest;
+  const op = overview.spentPct;
+  const bcwp = overview.bcwp;
+  const acwp = overview.acwp;
+  const bac = overview.bac;
+  const cpi = overview.cpi;
+  const eac = overview.eac;
+  const etc = overview.etc;
+  const vac = overview.vac;
   const cpiColor = cpi === null ? "inherit" : cpi >= 1 ? "var(--ok)" : cpi >= 0.9 ? "var(--warn)" : "var(--err)";
 
   summary.innerHTML = `
@@ -415,9 +510,15 @@ function _renderFinanceOverview() {
 }
 
 function _getFinanceRows() {
-  const rows = tasks.filter(applyFinFilters).map((t) => ({
+  const filteredTasks = tasks
+    .map((t, ti) => ({ ...t, __ti: ti }))
+    .filter(applyFinFilters);
+  if (typeof buildRuntimeBuildFinanceRows === "function") {
+    return buildRuntimeBuildFinanceRows(filteredTasks, finSort, dur, remWk);
+  }
+  const rows = filteredTasks.map((t) => ({
     ...t,
-    ti: tasks.indexOf(t),
+    ti: t.__ti,
     dur: dur(t),
     rest: (+t.budget || 0) - (+t.spent || 0),
     pct: t.budget > 0 ? Math.round((t.spent / t.budget) * 100) : 0,
@@ -427,7 +528,6 @@ function _getFinanceRows() {
       return rw > 0 ? Math.round(r / rw) : 0;
     })(),
   }));
-
   rows.sort((a, b) => {
     const av = a[finSort.col];
     const bv = b[finSort.col];
@@ -721,7 +821,7 @@ function renderSCurve() {
       labels,
       datasets: [
         {
-          label: "План, грн",
+          label: FINANCE_UI.chart.plannedLabel,
           data: cumPlanned,
           yAxisID: "y",
           borderColor: "rgba(30,80,200,0.85)",
@@ -733,7 +833,7 @@ function renderSCurve() {
           order: 1,
         },
         {
-          label: "Факт, грн",
+          label: FINANCE_UI.chart.actualLabel,
           data: cumActual,
           yAxisID: "y",
           borderColor: "rgba(22,128,60,0.9)",
@@ -747,7 +847,7 @@ function renderSCurve() {
         },
         ...(hasProjected
           ? [{
-              label: "Прогноз, грн",
+              label: FINANCE_UI.chart.projectedLabel,
               data: cumProjected,
               yAxisID: "y",
               borderColor: "rgba(234,117,0,0.85)",
@@ -774,7 +874,7 @@ function renderSCurve() {
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} грн`,
+            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} ${FINANCE_UI.chart.tooltipCurrencyUnit}`,
           },
         },
       },
@@ -936,7 +1036,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
       labels,
       datasets: [
         {
-          label: "План, грн",
+          label: FINANCE_UI.chart.plannedLabel,
           data: plannedValues,
           backgroundColor: "rgba(30,80,200,0.22)",
           borderColor: "rgba(30,80,200,0.72)",
@@ -947,7 +1047,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
           barPercentage: 0.82,
         },
         {
-          label: "Факт, грн",
+          label: FINANCE_UI.chart.actualLabel,
           data: actualValues,
           backgroundColor: "rgba(22,128,60,0.28)",
           borderColor: "rgba(22,128,60,0.78)",
@@ -959,7 +1059,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
         },
         ...(hasProjected
           ? [{
-              label: "Прогноз, грн",
+              label: FINANCE_UI.chart.projectedLabel,
               data: projectedValues,
               backgroundColor: "rgba(234,117,0,0.16)",
               borderColor: "rgba(234,117,0,0.76)",
@@ -985,7 +1085,7 @@ function renderWeeklyCostChart(weeklyPlanned, weeklyActual, weeklyProjected, cur
         },
         tooltip: {
           callbacks: {
-            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} грн`,
+            label: (ctx) => ` ${ctx.dataset.label}: ${new Intl.NumberFormat("uk-UA").format(ctx.parsed.y)} ${FINANCE_UI.chart.tooltipCurrencyUnit}`,
           },
         },
       },

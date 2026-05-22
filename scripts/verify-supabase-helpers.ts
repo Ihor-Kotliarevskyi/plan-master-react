@@ -13,7 +13,12 @@ import {
 import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
-import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
+import {
+  buildBaselineClearDialogModel,
+  buildBaselineMissingModel,
+  buildBaselinePanelModel,
+  buildBaselineSavedToastModel,
+} from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
@@ -21,13 +26,77 @@ import {
   buildProjectSelectLabels,
   buildTableLabels,
 } from "../src/domain/render-ui";
+import {
+  buildHeaderDateText,
+  buildLegendItems,
+  buildTaskWindowModel,
+  buildVisibleYearGroups,
+} from "../src/domain/render";
 import { buildAppUiModel } from "../src/domain/app-ui";
+import { buildApiUiModel } from "../src/domain/api-ui";
+import { buildChartsUiModel } from "../src/domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../src/domain/charts";
+import { buildFinanceUiModel } from "../src/domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../src/domain/finance";
+import { buildPrintUiModel } from "../src/domain/print-ui";
+import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../src/domain/print";
+import { buildStorageUiModel } from "../src/domain/storage-ui";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
   buildContractorSummaryLabels,
   buildContractorTableLabels,
 } from "../src/domain/contractors-ui";
+import {
+  buildContractorRows,
+  contractorItemTotal,
+  contractorKey,
+  contractorName,
+  contractorStatus,
+  paymentRegisterFiltersLabel,
+  paymentRegisterRowsFromContractorRows,
+  paymentRegisterTotal,
+  selectedContractorKeys,
+  summarizeContractorBulkDelete,
+} from "../src/domain/contractors";
+import { buildCostUiModel } from "../src/domain/costs-ui";
+import {
+  addPaymentToCostItem,
+  calculateCostItemTotal,
+  calculateCostSpent,
+  calculateCostTotals,
+  createCostItem,
+  createCostPayment,
+  removeCostItem,
+  removePaymentFromCostItem,
+  toggleExpandedCostId,
+  updateCostItemContract,
+  updateCostItemField,
+  updateCostPaymentField,
+} from "../src/domain/costs";
+import { buildGuardedActionLabels, buildGuardToastModel } from "../src/domain/guard-ui";
 import {
   buildDependencyEditorModel,
   buildDemoProjectSeedModel,
@@ -45,6 +114,18 @@ import {
   buildTaskRangeWarningModel,
   buildTaskSavedToastModel,
 } from "../src/domain/modal-ui";
+import {
+  buildDependencyListState,
+  buildTaskCalcModel,
+  dateStrToPhase,
+  getActivePhaseIndex,
+  getProjectMaxDate,
+  getProjectMinDate,
+  getWeightedProgress,
+  phaseToDateStr,
+  remWeeks,
+  snapToHalfWeek,
+} from "../src/domain/modal";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -64,6 +145,20 @@ import {
   buildStorageBufferPayload,
   normalizeBufferedProjectRoles,
 } from "../src/domain/storage";
+import {
+  applyProjectSettingsUpdate,
+  canDeleteProjectCount,
+  createDemoProjectSnapshot,
+  createEmptyProjectSnapshot,
+  resolveNextProjectAfterDeletion,
+} from "../src/domain/project-lifecycle";
+import {
+  buildImportedProjectSnapshot,
+  createCopiedTask,
+  normalizeImportedBaseline,
+  projectNameExists,
+  resolveUniqueProjectName,
+} from "../src/domain/project-import";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -376,6 +471,16 @@ assert.equal(baselinePanel.sectionTitle, "Baseline");
 assert.equal(baselinePanel.savedLabel, "Saved: 2026-05-01");
 assert.equal(baselinePanel.toggleLabel, "Show");
 assert.equal(baselinePanel.saveActionLabel, "Overwrite");
+assert.equal(buildBaselineSavedToastModel("2026-05-01").title, "Базовий план збережено (2026-05-01)");
+assert.equal(buildBaselineClearDialogModel().confirmButtonText, "Очистити");
+assert.equal(buildBaselineMissingModel().title, "Базовий план не збережено");
+
+const guardToast = buildGuardToastModel("редагування");
+assert.equal(guardToast.title, "У вас немає прав на редагування");
+assert.equal(guardToast.text, "Зверніться до власника проєкту щоб отримати доступ.");
+const guardedActions = buildGuardedActionLabels();
+assert.equal(guardedActions.saveProjSettings?.capability, "canManageProject");
+assert.equal(guardedActions.deleteProject?.label, "видалення проєкту");
 
 const defaultsPanel = buildProjectDefaultsPanelModel();
 assert.equal(defaultsPanel.sectionTitle, "Project defaults");
@@ -465,11 +570,331 @@ assert.equal(tableLabels.addTaskLabel, "+ Робота");
 assert.equal(tableLabels.notesCountLabel(3), "3 нотаток");
 assert.equal(tableLabels.phaseCountTitle(2), "2 фаз");
 
+assert.equal(
+  buildHeaderDateText(
+    [{ name: "Травень", y: 2026 }, { name: "Червень", y: 2026 }],
+    2,
+  ),
+  "Травень 2026 – Червень 2026 · 2 міс.",
+);
+
+const legendModel = buildLegendItems(
+  [
+    { name: "General", color: "#111111" },
+    { name: "Finishing", color: "#222222" },
+  ],
+  1,
+  new Set([0]),
+);
+assert.equal(legendModel.hasFilter, true);
+assert.equal(legendModel.items[0]?.className, "cat-chip off");
+assert.equal(legendModel.items[1]?.className, "cat-chip active");
+
+const yearGroups = buildVisibleYearGroups([
+  { name: "Травень", y: 2026 },
+  { name: "Червень", y: 2026 },
+  { name: "Січень", y: 2027 },
+]);
+assert.deepEqual(yearGroups, [
+  { year: 2026, cols: 8 },
+  { year: 2027, cols: 4 },
+]);
+
+const renderTaskWindow = buildTaskWindowModel({
+  task: {
+    id: "task-1",
+    n: 1,
+    name: "Concrete works",
+    cat: 0,
+    ms: 0,
+    ws: 0,
+    me: 1,
+    we: 1,
+    prog: 40,
+    phases: [
+      { ms: 0, ws: 0, me: 0, we: 1, prog: 100 },
+      { ms: 0, ws: 2, me: 1, we: 1, prog: 20 },
+    ],
+    notes: [{}, { deleted: true }],
+  },
+  visStart: 0,
+  totalWeeks: 12,
+  zoomLevel: 25,
+  taskSearch: "concrete",
+  warnings: ["late"],
+  baselinePos: { ms: 0, ws: 0, me: 1, we: 1 },
+  isCritical: true,
+});
+assert.equal(renderTaskWindow?.notesCount, 1);
+assert.equal(renderTaskWindow?.searchClass, "task-search-match");
+assert.equal(renderTaskWindow?.isCritical, true);
+assert.equal(renderTaskWindow?.warningsTitleSuffix, " ⚠ late");
+assert.equal(renderTaskWindow?.baselineStart, 0);
+assert.equal(renderTaskWindow?.baselineWidth, 150);
+assert.equal(renderTaskWindow?.bar?.width, 150);
+assert.equal(renderTaskWindow?.phases.length, 2);
+
 const appUi = buildAppUiModel();
 assert.equal(appUi.importedProjectFallbackName, "Імпортований проєкт");
 assert.equal(appUi.copiedTaskSuffix, " (копія)");
 assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
 assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
+assert.equal(appUi.workbookSheets.schedule, "Графік");
+assert.equal(appUi.overdueShowMoreLabel(2), "▼ Показати ще 2");
+
+const apiUi = buildApiUiModel();
+assert.equal(apiUi.sessionExpiredTitle, "Сесія закінчилась — увійдіть знову");
+assert.equal(apiUi.share.confirmButtonText, "Надати доступ");
+assert.equal(apiUi.auth.loginTabLabel, "Увійти");
+assert.equal(apiUi.auth.loginSuccessTitle("Ігор"), "Вітаємо, Ігор! ☁ Синхронізацію увімкнено");
+
+const chartsUi = buildChartsUiModel();
+assert.equal(chartsUi.axisLabels.prog, "Виконання (%)");
+assert.equal(chartsUi.actionLabels.printTitle, "Друк");
+assert.equal(chartsUi.autoCharts[0]?.id, "a1");
+
+const chartData = buildChartData({
+  tasks: [
+    { n: 1, name: "Alpha task", cat: 0, ms: 0, prog: 100, budget: 100, spent: 100, contr: "Acme" },
+    { n: 2, name: "Beta task", cat: 0, ms: 0, prog: 50, budget: 200, spent: 80, contr: "" },
+    { n: 3, name: "Gamma task", cat: 1, ms: 1, prog: 0, budget: 300, spent: 0, contr: "Zen" },
+  ],
+  xKey: "status",
+  yKey: "count",
+  catFilter: "",
+  statFilter: "",
+  hiddenCats: new Set([1]),
+  noContractorLabel: "(none)",
+  statusLabels: { done: "Done", active: "Active", pending: "Pending" },
+  getCategoryName: (cat) => (cat === 0 ? "General" : "Other"),
+  getMonthLabel: (month) => (month === 0 ? "May 2026" : "Jun 2026"),
+  getTaskContractors: (task) => (task.contr ? [task.contr] : []),
+  getTaskDuration: () => 4,
+});
+assert.deepEqual(chartData.labels, ["Done", "Active"]);
+assert.deepEqual(chartData.values, [1, 1]);
+
+const chartColors = buildChartColors({
+  xKey: "status",
+  labels: ["Done", "Active", "Pending"],
+  categories: [{ name: "General", color: "#123456" }],
+  statusLabels: { done: "Done", active: "Active", pending: "Pending" },
+});
+assert.deepEqual(chartColors, ["#16803c", "#c07800", "#a09d97"]);
+
+const chartOptions = buildChartOptions("bar", true);
+assert.equal(chartOptions.indexAxis, "y");
+assert.equal(chartOptions.plugins.legend.display, false);
+assert.ok("scales" in chartOptions);
+
+const chartDefinition = buildChartDefinition({
+  id: "cc-1",
+  type: "bar",
+  xKey: "cat",
+  yKey: "budget",
+  catF: "",
+  statF: "",
+  labels: ["General"],
+  values: [300],
+  colors: ["#123456"],
+  axisLabels: chartsUi.axisLabels,
+});
+assert.equal(chartDefinition.title, "Бюджет (грн) за Категорія");
+
+const chartDefaults = getChartAutoDefaults("a4", chartsUi.autoCharts);
+assert.equal(chartDefaults.type, "bar");
+assert.equal(chartDefaults.x, "task");
+assert.equal(chartDefaults.y, "dur");
+
+const chartRenderType = normalizeChartRenderType("horizontalBar");
+assert.equal(chartRenderType.realType, "bar");
+assert.equal(chartRenderType.isHoriz, true);
+
+const financeUi = buildFinanceUiModel();
+assert.equal(financeUi.filters.searchPlaceholder, "Пошук у фінансах...");
+assert.equal(financeUi.deleteDialogs.finalConfirmLabel, "Видалити");
+assert.equal(financeUi.chart.projectedLabel, "Прогноз, грн");
+
+assert.equal(
+  hasFinanceFilters(
+    { cat: ["1"], stat: [], contr: [], budgetMin: "", budgetMax: "", onlyBudget: false },
+    (value) => Array.isArray(value) ? value.map(String) : [],
+  ),
+  true,
+);
+assert.equal(financeItemTotal({ qty: 2, unitPrice: 150 }), 300);
+
+const financeTask = {
+  n: 1,
+  name: "Finance Task",
+  cat: 0,
+  budget: 1000,
+  spent: 400,
+  prog: 40,
+  costItems: [
+    {
+      supplier: "Acme",
+      qty: 2,
+      unitPrice: 150,
+      payments: [{ amount: 100, type: "act", date: "2026-05-01" }],
+      acts: [{}],
+      type: "service",
+      name: "Install",
+    },
+    {
+      supplier: "Other",
+      qty: 1,
+      unitPrice: 200,
+      payments: [{ amount: 50, type: "invoice", date: "2026-05-03" }],
+      acts: [],
+      type: "material",
+      name: "Steel",
+    },
+  ],
+};
+const contractorKey = (name: string) => String(name || "").trim().toLowerCase();
+const getTaskItems = (task: any) => task.costItems || [];
+const scopedItems = financeScopedCostItems(financeTask, ["acme"], contractorKey, getTaskItems);
+assert.equal(scopedItems.length, 1);
+const scopedScope = financeTaskScope(financeTask, ["acme"], contractorKey, getTaskItems);
+assert.equal(scopedScope.budget, 300);
+assert.equal(scopedScope.spent, 100);
+assert.equal(scopedScope.payments.length, 1);
+const fullScope = financeTaskScope(financeTask, [], contractorKey, getTaskItems);
+assert.equal(fullScope.budget, 1000);
+assert.equal(fullScope.spent, 400);
+
+const financeSearch = buildFinanceSearchText(
+  financeTask,
+  ["Acme"],
+  financeTask.costItems,
+  "General",
+  { service: { label: "Service" }, material: { label: "Material" } },
+  { act: "Act", invoice: "Invoice" },
+);
+assert.equal(financeSearch.includes("finance task"), true);
+assert.equal(financeSearch.includes("acme"), true);
+
+const financeSummary = summarizeFinanceDeletion([0], [financeTask], getTaskItems);
+assert.equal(financeSummary.tasks, 1);
+assert.equal(financeSummary.items, 2);
+assert.equal(financeSummary.payments, 2);
+
+const overview = calculateFinanceOverview([financeTask]);
+assert.equal(overview.budget, 1000);
+assert.equal(overview.spent, 400);
+assert.equal(overview.rest, 600);
+assert.equal(overview.spentPct, 40);
+
+const financeRows = buildFinanceRows(
+  [{ ...financeTask, __ti: 0 }, { ...financeTask, __ti: 1, name: "Another", budget: 200, spent: 50 }],
+  { col: "budget", dir: -1 },
+  () => 6,
+  () => 3,
+);
+assert.equal(financeRows[0]?.budget, 1000);
+assert.equal(financeRows[0]?.ti, 0);
+assert.equal(financeRows[0]?.rate, 200);
+
+const printUi = buildPrintUiModel();
+assert.equal(printUi.noChartsText, "Немає побудованих графіків");
+assert.equal(printUi.financeTitle, "Фінансовий звіт");
+assert.equal(printUi.exportPdfSuccessTitle, "PDF збережено");
+assert.equal(printUi.previewPagesLabel(3), "3 стор.");
+assert.equal(printUi.pdfPageProgressText(2, 5), "Сторінка 2 з 5...");
+
+const printSections = resolvePrintSections({
+  charts: true,
+  chartIds: ["chart-1", "", "chart-2"],
+});
+assert.equal(printSections.gantt, true);
+assert.equal(printSections.charts, true);
+assert.deepEqual(printSections.chartIds, ["chart-1", "chart-2"]);
+assert.equal(printSections.range, "all");
+
+const printSettings = resolvePrintSettings(
+  {
+    paper: "letter",
+    orientation: "portrait",
+    contentScale: 2,
+    renderScale: 0.5,
+    margin: -3,
+    fitMode: "height",
+  },
+  {
+    paper: "a3",
+    orientation: "landscape",
+    contentScale: 1,
+    renderScale: 1,
+    margin: 5,
+    fitMode: "paginate",
+  },
+);
+assert.equal(printSettings.paper, "letter");
+assert.equal(printSettings.orientation, "portrait");
+assert.equal(printSettings.contentScale, 1);
+assert.equal(printSettings.renderScale, 1);
+assert.equal(printSettings.margin, 0);
+assert.equal(printSettings.fitMode, "height");
+
+const printMetrics = getPrintMetrics(printSettings, {
+  a3: { w: 297, h: 420 },
+  a4: { w: 210, h: 297 },
+  letter: { w: 215.9, h: 279.4 },
+});
+assert.equal(printMetrics.pageW, 215.9);
+assert.equal(printMetrics.pageH, 279.4);
+assert.equal(printMetrics.contentWmm, 215.9);
+assert.equal(printMetrics.contentHmm, 279.4);
+assert.equal(printMetrics.contentWpx > 0, true);
+assert.equal(printMetrics.contentHpx > 0, true);
+
+const printPreviewState = getPrintPreviewState({
+  currentPage: 5,
+  pagesCount: 3,
+  availableWidth: 300,
+  availableHeight: 200,
+  pageWidth: 600,
+  pageHeight: 400,
+});
+assert.equal(printPreviewState?.pageIndex, 2);
+assert.equal(printPreviewState?.pageLabel, "3 / 3");
+assert.equal(printPreviewState?.prevDisabled, false);
+assert.equal(printPreviewState?.nextDisabled, true);
+assert.equal(printPreviewState?.targetWidth, 300);
+assert.equal(printPreviewState?.targetHeight, 200);
+assert.equal(printPreviewState?.targetLeft, 0);
+assert.equal(printPreviewState?.targetTop, 0);
+assert.equal(printPreviewState?.scale, 0.5);
+
+const printGanttLayout = resolvePrintGanttLayout({
+  settings: {
+    paper: "a3",
+    orientation: "landscape",
+    contentScale: 1,
+    renderScale: 1,
+    margin: 5,
+    fitMode: "page",
+  },
+  metrics: {
+    pageW: 420,
+    pageH: 297,
+    contentWmm: 410,
+    contentHmm: 287,
+    contentWpx: 1550,
+    contentHpx: 1085,
+  },
+  taskCount: 24,
+  allWeeks: 18,
+});
+assert.equal(printGanttLayout.weeksPerPage, 18);
+assert.equal(printGanttLayout.rowsPerPage, 24);
+assert.equal(printGanttLayout.fixedW > 0, true);
+assert.equal(printGanttLayout.weekW >= 2, true);
+assert.equal(printGanttLayout.rowH >= 12, true);
+
+const storageUi = buildStorageUiModel();
+assert.equal(storageUi.offlineIndicatorText, "⚠ офлайн — зміни збережено локально");
 
 const contractorSummaryLabels = buildContractorSummaryLabels();
 assert.equal(contractorSummaryLabels.contractors, "Контрагентів");
@@ -492,6 +917,119 @@ assert.equal(contractorTableLabels.addPaymentTitle, "Додати платіж")
 assert.equal(contractorTableLabels.bulkDeleteConfirmTitle, "Підтвердьте видалення");
 assert.equal(contractorTableLabels.registerNameTitle, "Назва реєстру");
 assert.equal(contractorTableLabels.importReviewTitle, "Перевірка імпорту");
+assert.equal(contractorTableLabels.editPaymentTitle("Acme"), "Редагувати платіж: Acme");
+assert.equal(contractorTableLabels.paymentAmountValidation, "Вкажіть суму платежу");
+assert.equal(contractorTableLabels.contractPlaceholder, "Договір №");
+
+assert.equal(contractorName("", "Без контрагента"), "Без контрагента");
+assert.equal(contractorKey("Acme", "Без контрагента"), "acme");
+assert.equal(contractorItemTotal({ qty: 3, unitPrice: 200 }), 600);
+assert.equal(contractorStatus({ budget: 100, paid: 0, rest: 100 }).key, "debt");
+assert.deepEqual(selectedContractorKeys(["a", "b", "__forecast__"], (key) => key.startsWith("__")), ["a", "b"]);
+assert.deepEqual(summarizeContractorBulkDelete([{ itemsCount: 2, paymentsCount: 3, acts: [1] }]), {
+  contractors: 1,
+  items: 2,
+  payments: 3,
+  acts: 1,
+});
+
+const contractorRows = buildContractorRows(
+  [
+    {
+      id: "task-1",
+      n: 1,
+      name: "Foundation",
+      cat: 0,
+      budget: 1000,
+      spent: 300,
+      costItems: [{
+        id: "item-1",
+        supplier: "Acme",
+        type: "work",
+        contractNo: "C-1",
+        qty: 2,
+        unitPrice: 150,
+        payments: [{ amount: 100, date: "2026-05-01", type: "act" }],
+        acts: [{ amount: 120, date: "2026-04-20", type: "act", name: "A-1" }],
+      }],
+    },
+  ],
+  {
+    filters: { q: "", status: [], type: [], cat: [] },
+    emptyName: "Без контрагента",
+    multiFilterHas: (selected, value) => !Array.isArray(selected) || !selected.length || selected.includes(value),
+    multiFilterValues: (selected) => Array.isArray(selected) ? selected.map(String) : [],
+    getTaskCostItems: (task) => task.costItems || [],
+    sort: { col: "paid", dir: -1 },
+  },
+);
+assert.equal(contractorRows.length, 1);
+assert.equal(contractorRows[0]?.supplier, "Acme");
+assert.equal(contractorRows[0]?.budget, 300);
+assert.equal(contractorRows[0]?.paid, 100);
+assert.equal(contractorRows[0]?.status, "debt");
+
+const registerRows = paymentRegisterRowsFromContractorRows([{
+  supplier: "Acme",
+  isForecast: false,
+  payments: [{ date: "2026-05-01", amount: 100, typeLabel: "Act", taskNo: 1, taskName: "Foundation", itemName: "Work", note: "" }],
+}]);
+assert.equal(registerRows.length, 1);
+assert.equal(registerRows[0]?.type, "Act");
+assert.equal(paymentRegisterTotal(registerRows), 100);
+assert.equal(
+  paymentRegisterFiltersLabel(
+    { q: "acme", status: ["debt"], type: ["work"], cat: ["0"] },
+    (selected) => Array.isArray(selected) ? selected.map(String) : [],
+    (type) => ({ work: "Роботи" }[type] || type),
+    (cat) => ({ "0": "General" }[cat] || cat),
+  ),
+  "пошук: acme; статус: debt; тип: Роботи; категорія: General",
+);
+
+const costUi = buildCostUiModel();
+assert.equal(costUi.labels.addPaymentLabel, "+ Платіж");
+assert.equal(costUi.labels.contractNamePrefix, "Договір");
+assert.equal(costUi.costTypes.material?.label, "Матеріали");
+
+const createdCostItem = createCostItem({ id: 101, type: "work", defaultUnit: "contract" });
+assert.equal(createdCostItem.id, 101);
+assert.equal(createdCostItem.type, "work");
+assert.equal(createdCostItem.unit, "contract");
+
+const createdPayment = createCostPayment({ id: 201, date: "2026-05-22" });
+assert.equal(createdPayment.type, "act");
+assert.equal(createdPayment.date, "2026-05-22");
+
+const costItemsWithPayment = addPaymentToCostItem(
+  [createdCostItem],
+  101,
+  { ...createdPayment, amount: 500 },
+);
+assert.equal(costItemsWithPayment[0]?.payments?.length, 1);
+
+const updatedCostItems = updateCostItemField(costItemsWithPayment, 101, "unitPrice", 1200);
+assert.equal(updatedCostItems[0]?.unitPrice, 1200);
+
+const renamedCostItems = updateCostItemContract(updatedCostItems, 101, "A-12", "Contract");
+assert.equal(renamedCostItems[0]?.contractNo, "A-12");
+assert.equal(renamedCostItems[0]?.name, "Contract A-12");
+
+const updatedPaymentItems = updateCostPaymentField(renamedCostItems, 101, 0, "amount", 650);
+assert.equal(updatedPaymentItems[0]?.payments?.[0]?.amount, 650);
+
+assert.equal(calculateCostItemTotal({ ...updatedPaymentItems[0], qty: 2 }), 2400);
+assert.equal(calculateCostSpent(updatedPaymentItems[0]), 650);
+
+const totals = calculateCostTotals([{ ...updatedPaymentItems[0], qty: 2 }]);
+assert.equal(totals.budget, 2400);
+assert.equal(totals.spent, 650);
+assert.equal(totals.rest, 1750);
+
+assert.deepEqual(toggleExpandedCostId([1, 2], 2), [1]);
+assert.deepEqual(toggleExpandedCostId([1], 3), [1, 3]);
+assert.equal(removePaymentFromCostItem(updatedPaymentItems, 101, 0)[0]?.payments?.length, 0);
+assert.equal(removeCostItem(updatedPaymentItems, 101).length, 0);
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");
@@ -499,6 +1037,47 @@ assert.equal(taskFormPanel.weeklyRateUnit, "грн/тижд.");
 
 const demoProjectSeed = buildDemoProjectSeedModel();
 assert.equal(demoProjectSeed.projectName, "Ремонт офісу (демо)");
+
+assert.equal(snapToHalfWeek("2026-05-09"), "2026-05-08");
+assert.equal(phaseToDateStr({ sy: 2026, sm: 0, nm: 12 }, 1, 2), "2026-02-15");
+assert.deepEqual(dateStrToPhase({ sy: 2026, sm: 0, nm: 12 }, "2026-02-18"), { mi: 1, wi: 2 });
+assert.equal(getProjectMinDate({ sy: 2026, sm: 4, nm: 12 }), "2026-05-01");
+assert.equal(getProjectMaxDate({ sy: 2026, sm: 4, nm: 12 }), "2027-04-28");
+assert.equal(
+  getWeightedProgress([
+    { ms: 0, ws: 0, me: 0, we: 1, prog: 100 },
+    { ms: 0, ws: 2, me: 1, we: 1, prog: 20 },
+  ]),
+  47,
+);
+assert.equal(getActivePhaseIndex([{ prog: 0 }, { prog: 25 }, { prog: 10 }]), 2);
+assert.equal(remWeeks({ ms: 0, ws: 0, me: 1, we: 1 }), 6);
+const modalCalc = buildTaskCalcModel({
+  budget: 1000,
+  spent: 250,
+  phase: { ms: 0, ws: 0, me: 1, we: 1 },
+});
+assert.equal(modalCalc.remainder, 750);
+assert.equal(modalCalc.weeks, 6);
+assert.equal(modalCalc.weeklyRate, 125);
+const depListState = buildDependencyListState({
+  tasks: [
+    { id: "a", n: 1, name: "Prep", cat: 0, deps: [] },
+    { id: "b", n: 2, name: "Build", cat: 1, deps: [{ id: "a", type: "FS" }] },
+    { id: "c", n: 3, name: "Finish", cat: 0, deps: [{ id: "b", type: "SS", threshold: 25 }] },
+  ],
+  filter: "all",
+  criticalSet: new Set([0, 1]),
+  categories: [{ color: "#111111" }, { color: "#222222" }],
+  normDep: (dep) => dep,
+});
+assert.equal(depListState.allCount, 2);
+assert.equal(depListState.filteredCount, 2);
+assert.equal(depListState.counts.FS, 1);
+assert.equal(depListState.counts.SS, 1);
+assert.equal(depListState.rows[0]?.typeLabel, "FS");
+assert.equal(depListState.rows[1]?.typeLabel, "SS+25%");
+assert.equal(depListState.rows[0]?.isCritical, true);
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
@@ -527,5 +1106,128 @@ assert.equal(normalizedProjects.b?._role, "viewer");
 const storagePayload = buildStorageBufferPayload({ shell }, "shell", "user-1");
 assert.equal(storagePayload.currentId, "shell");
 assert.equal(storagePayload._userId, "user-1");
+
+const emptyProject = createEmptyProjectSnapshot({
+  name: "  Alpha  ",
+  defaults: { sm: 2, sy: 2026, nm: 10 },
+  categories: [{ name: "General", color: "#000000" }],
+  meta: { _localVersion: 1, _serverVersion: 0 },
+});
+assert.equal(emptyProject.proj.name, "Alpha");
+assert.equal(emptyProject.proj.sm, 2);
+assert.equal(emptyProject.tasks.length, 0);
+
+const demoProject = createDemoProjectSnapshot({
+  projectName: "Demo",
+  startYear: 2027,
+  categories: [{ name: "Demo Cat", color: "#ffffff" }],
+  tasks: [{ n: 1, name: "Task", cat: 0, ms: 1, ws: 0, me: 2, we: 0, prog: 0 }],
+  nextN: 2,
+  meta: { _localVersion: 1 },
+});
+assert.equal(demoProject.proj.name, "Demo");
+assert.equal(demoProject.proj.sy, 2027);
+assert.equal(demoProject.nextN, 2);
+
+const projectSettingsUpdate = applyProjectSettingsUpdate({
+  snapshot: {
+    proj: { name: "Project", sm: 5, sy: 2026, nm: 12 },
+    cats: [],
+    tasks: [{ n: 1, name: "Task", cat: 0, ms: 2, ws: 0, me: 3, we: 0, prog: 0 }],
+    nextN: 2,
+  },
+  name: "Updated Project",
+  sm: 3,
+  sy: 2026,
+  nm: 14,
+});
+assert.equal(projectSettingsUpdate.after.name, "Updated Project");
+assert.equal(projectSettingsUpdate.after.nm, 14);
+assert.equal(projectSettingsUpdate.shiftedTasks, true);
+assert.equal(projectSettingsUpdate.snapshot.tasks[0]?.ms, 4);
+assert.equal(projectSettingsUpdate.snapshot.tasks[0]?.me, 5);
+
+assert.equal(canDeleteProjectCount(1), false);
+assert.equal(canDeleteProjectCount(2), true);
+assert.equal(resolveNextProjectAfterDeletion(["a", "b", "c"], "b", "b"), "a");
+assert.equal(resolveNextProjectAfterDeletion(["a"], "a", "a"), null);
+
+const copiedTask = createCopiedTask({
+  task: {
+    id: "task-1",
+    n: 1,
+    name: "Original",
+    cat: 0,
+    ms: 1,
+    ws: 0,
+    me: 2,
+    we: 0,
+    prog: 10,
+    notes: [{ text: "keep source clean" }],
+    costItems: [{ name: "Material" }],
+    deps: [{ id: "other" }],
+  },
+  nextN: 8,
+  newId: "task-copy",
+  copiedTaskSuffix: " (copy)",
+});
+assert.equal(copiedTask.id, "task-copy");
+assert.equal(copiedTask.n, 8);
+assert.equal(copiedTask.name, "Original (copy)");
+assert.equal(copiedTask.notes?.length, 0);
+assert.equal(copiedTask.deps?.length, 0);
+
+assert.equal(projectNameExists({ a: { proj: { name: "Alpha" } } }, " alpha "), true);
+assert.equal(projectNameExists({ a: { proj: { name: "Alpha" } } }, "Beta"), false);
+
+const uniqueProjectName = resolveUniqueProjectName({
+  projects: {
+    a: { proj: { name: "Alpha" } },
+    b: { proj: { name: "Alpha (copy)" } },
+  },
+  baseName: "Alpha",
+  fallbackName: "Imported project",
+  copiedTaskSuffix: " (copy)",
+  numberedCopySuffix: (count) => ` (copy ${count})`,
+});
+assert.equal(uniqueProjectName, "Alpha (copy 2)");
+
+const normalizedBaseline = normalizeImportedBaseline(
+  [{ id: "legacy-1", n: 1, prog: 10 }],
+  new Map([["legacy-1", "mapped-1"]]),
+);
+assert.equal(normalizedBaseline?.[0]?.id, "mapped-1");
+
+const importedSnapshot = buildImportedProjectSnapshot({
+  data: {
+    proj: { name: "Legacy Import", sm: 1, sy: 2026, nm: 12, baseline: [{ id: "legacy-1" }] },
+    cats: [{ name: "Imported", color: "#123456" }],
+    tasks: [
+      {
+        id: "legacy-1",
+        n: 4,
+        name: "Imported Task",
+        cat: 0,
+        ms: 1,
+        ws: 0,
+        me: 2,
+        we: 0,
+        prog: 25,
+        deps: [],
+        cost_items: [{ name: "Service" }],
+      },
+    ],
+  },
+  fallbackProjectName: "Fallback",
+  resolvedName: "Resolved Import",
+  fallbackCategories: [{ name: "Fallback Cat", color: "#abcdef" }],
+  generatedTaskIds: ["task-import-1"],
+  meta: { _role: "owner", _localVersion: 1 },
+});
+assert.equal(importedSnapshot.proj.name, "Resolved Import");
+assert.equal(importedSnapshot.tasks[0]?.id, "task-import-1");
+assert.equal(importedSnapshot.tasks[0]?.costItems?.[0]?.name, "Service");
+assert.equal(importedSnapshot.proj.baseline?.[0]?.id, "task-import-1");
+assert.equal(importedSnapshot.nextN, 5);
 
 console.log("Supabase helper verification passed.");

@@ -10,6 +10,11 @@ const SK_BUF = "gantt_buf";
 const UI_SK  = "gantt_pro_ui";
 
 let _syncDebounceTimer = null;
+const STORAGE_UI = typeof buildRuntimeStorageUiModel === "function"
+  ? buildRuntimeStorageUiModel()
+  : {
+      offlineIndicatorText: "⚠ офлайн — зміни збережено локально",
+    };
 
 function saveAll() {
   if (!currentId) return;
@@ -186,7 +191,7 @@ function _updateOnlineStatus() {
   const el = document.getElementById("sync-indicator");
   if (!el) return;
   if (!navigator.onLine) {
-    el.textContent = "⚠ офлайн — зміни збережено локально";
+    el.textContent = STORAGE_UI.offlineIndicatorText;
     el.style.opacity = "1";
     el.style.color = "var(--warn, #e67e00)";
     if (typeof refreshUserSyncStatus === "function" &&
