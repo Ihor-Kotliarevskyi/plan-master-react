@@ -83,6 +83,13 @@ import {
   createEmptyProjectSnapshot,
   resolveNextProjectAfterDeletion,
 } from "../src/domain/project-lifecycle";
+import {
+  buildImportedProjectSnapshot,
+  createCopiedTask,
+  normalizeImportedBaseline,
+  projectNameExists,
+  resolveUniqueProjectName,
+} from "../src/domain/project-import";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -637,5 +644,83 @@ assert.equal(canDeleteProjectCount(1), false);
 assert.equal(canDeleteProjectCount(2), true);
 assert.equal(resolveNextProjectAfterDeletion(["a", "b", "c"], "b", "b"), "a");
 assert.equal(resolveNextProjectAfterDeletion(["a"], "a", "a"), null);
+
+const copiedTask = createCopiedTask({
+  task: {
+    id: "task-1",
+    n: 1,
+    name: "Original",
+    cat: 0,
+    ms: 1,
+    ws: 0,
+    me: 2,
+    we: 0,
+    prog: 10,
+    notes: [{ text: "keep source clean" }],
+    costItems: [{ name: "Material" }],
+    deps: [{ id: "other" }],
+  },
+  nextN: 8,
+  newId: "task-copy",
+  copiedTaskSuffix: " (copy)",
+});
+assert.equal(copiedTask.id, "task-copy");
+assert.equal(copiedTask.n, 8);
+assert.equal(copiedTask.name, "Original (copy)");
+assert.equal(copiedTask.notes?.length, 0);
+assert.equal(copiedTask.deps?.length, 0);
+
+assert.equal(projectNameExists({ a: { proj: { name: "Alpha" } } }, " alpha "), true);
+assert.equal(projectNameExists({ a: { proj: { name: "Alpha" } } }, "Beta"), false);
+
+const uniqueProjectName = resolveUniqueProjectName({
+  projects: {
+    a: { proj: { name: "Alpha" } },
+    b: { proj: { name: "Alpha (copy)" } },
+  },
+  baseName: "Alpha",
+  fallbackName: "Imported project",
+  copiedTaskSuffix: " (copy)",
+  numberedCopySuffix: (count) => ` (copy ${count})`,
+});
+assert.equal(uniqueProjectName, "Alpha (copy 2)");
+
+const normalizedBaseline = normalizeImportedBaseline(
+  [{ id: "legacy-1", n: 1, prog: 10 }],
+  new Map([["legacy-1", "mapped-1"]]),
+);
+assert.equal(normalizedBaseline?.[0]?.id, "mapped-1");
+
+const importedSnapshot = buildImportedProjectSnapshot({
+  data: {
+    proj: { name: "Legacy Import", sm: 1, sy: 2026, nm: 12, baseline: [{ id: "legacy-1" }] },
+    cats: [{ name: "Imported", color: "#123456" }],
+    tasks: [
+      {
+        id: "legacy-1",
+        n: 4,
+        name: "Imported Task",
+        cat: 0,
+        ms: 1,
+        ws: 0,
+        me: 2,
+        we: 0,
+        prog: 25,
+        deps: [],
+        cost_items: [{ name: "Service" }],
+      },
+    ],
+  },
+  fallbackProjectName: "Fallback",
+  resolvedName: "Resolved Import",
+  fallbackCategories: [{ name: "Fallback Cat", color: "#abcdef" }],
+  generatedTaskIds: ["task-import-1"],
+  meta: { _role: "owner", _localVersion: 1 },
+});
+assert.equal(importedSnapshot.proj.name, "Resolved Import");
+assert.equal(importedSnapshot.tasks[0]?.id, "task-import-1");
+assert.equal(importedSnapshot.tasks[0]?.costItems?.[0]?.name, "Service");
+assert.equal(importedSnapshot.proj.baseline?.[0]?.id, "task-import-1");
+assert.equal(importedSnapshot.nextN, 5);
 
 console.log("Supabase helper verification passed.");

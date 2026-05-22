@@ -39,6 +39,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/guard-ui.ts`
   - `src/domain/user-feedback-ui.ts`
   - `src/domain/project-lifecycle.ts`
+  - `src/domain/project-import.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -162,6 +163,11 @@ and Supabase adapters happen against stable interfaces.
   - initial local snapshot meta creation
   - persisted buffer payload shape
   - buffered role normalization
+- `js/app.js` now uses the generated helper layer for:
+  - task copy snapshot building
+  - project-name collision checks and unique-name suggestion
+  - imported baseline remapping
+  - imported project snapshot normalization from legacy JSON
 - `js/supabase-api.js`, `js/api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
   - role labels
   - shared-project presentation text

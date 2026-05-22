@@ -44,6 +44,154 @@ const APP_UI = typeof buildRuntimeAppUiModel === "function"
       overdueCollapseLabel: "Collapse",
       overdueCloseTitle: "Close",
     };
+
+function _buildCopiedTask(task, nextTaskNumber) {
+  if (typeof buildRuntimeCopiedTask === "function") {
+    return buildRuntimeCopiedTask({
+      task,
+      nextN: nextTaskNumber,
+      newId: genId(),
+      copiedTaskSuffix: APP_UI.copiedTaskSuffix,
+    });
+  }
+  return {
+    ...task,
+    id: genId(),
+    n: nextTaskNumber,
+    name: task.name + APP_UI.copiedTaskSuffix,
+    notes: [],
+    phases: task.phases ? task.phases.map((phase) => ({ ...phase })) : null,
+    costItems: taskCostItems(task).length ? taskCostItems(task).map((item) => ({ ...item })) : null,
+    deps: [],
+  };
+}
+
+function _projectNameExists(name) {
+  if (typeof checkRuntimeProjectNameExists === "function") {
+    return checkRuntimeProjectNameExists(allProjects || {}, name);
+  }
+  const needle = String(name || "").trim().toLowerCase();
+  if (!needle) return false;
+  return Object.values(allProjects || {}).some((p) =>
+    String(p?.proj?.name || "").trim().toLowerCase() === needle
+  );
+}
+
+function _uniqueProjectName(baseName) {
+  if (typeof buildRuntimeUniqueProjectName === "function") {
+    return buildRuntimeUniqueProjectName({
+      projects: allProjects || {},
+      baseName,
+      fallbackName: APP_UI.importedProjectFallbackName,
+      copiedTaskSuffix: APP_UI.copiedTaskSuffix,
+      numberedCopySuffix: APP_UI.numberedCopySuffix,
+    });
+  }
+  const cleanBase = String(baseName || APP_UI.importedProjectFallbackName).trim() || APP_UI.importedProjectFallbackName;
+  if (!_projectNameExists(cleanBase)) return cleanBase;
+  const firstCopy = `${cleanBase}${APP_UI.copiedTaskSuffix}`;
+  if (!_projectNameExists(firstCopy)) return firstCopy;
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${cleanBase}${APP_UI.numberedCopySuffix(i)}`;
+    if (!_projectNameExists(candidate)) return candidate;
+  }
+  return `${cleanBase}${APP_UI.numberedCopySuffix(Date.now())}`;
+}
+
+function _normalizeImportedBaseline(baseline, idMap) {
+  if (typeof buildRuntimeNormalizeImportedBaseline === "function") {
+    return buildRuntimeNormalizeImportedBaseline(baseline, idMap);
+  }
+  if (!Array.isArray(baseline)) return baseline || null;
+  return baseline
+    .map((b) => {
+      const mappedId = idMap.get(String(b?.id)) || idMap.get(String(b?.n));
+      if (!mappedId) return null;
+      return { ...b, id: mappedId };
+    })
+    .filter(Boolean);
+}
+
+function _buildImportedProjectSnapshot(data, fallbackProjectName, resolvedName) {
+  const meta = typeof buildRuntimeInitialProjectSnapshotMeta === "function"
+    ? buildRuntimeInitialProjectSnapshotMeta({ _role: "owner" })
+    : {
+        _localUpdatedAt: new Date().toISOString(),
+        _localVersion: 1,
+        _serverVersion: 0,
+        _role: "owner",
+      };
+
+  if (typeof buildRuntimeImportedProjectSnapshot === "function") {
+    return buildRuntimeImportedProjectSnapshot({
+      data,
+      fallbackProjectName,
+      resolvedName,
+      fallbackCategories: DEF_CATS,
+      generatedTaskIds: (Array.isArray(data?.tasks) ? data.tasks : []).map(() => genId()),
+      meta,
+    });
+  }
+
+  const idMap = new Map();
+  (Array.isArray(data?.tasks) ? data.tasks : []).forEach((task, idx) => {
+    const nextId = genId();
+    if (task?.id) idMap.set(String(task.id), nextId);
+    if (task?.n !== undefined) idMap.set(String(task.n), nextId);
+    idMap.set(String(idx + 1), nextId);
+  });
+
+  const normalizeDeps = (deps) =>
+    (deps || [])
+      .map((dep) => {
+        const rawId = dep && typeof dep === "object" ? dep.id || dep.n : dep;
+        const mappedId = idMap.get(String(rawId));
+        if (!mappedId) return null;
+        return {
+          id: mappedId,
+          type: dep?.type || "FS",
+          threshold: dep?.threshold || 0,
+        };
+      })
+      .filter(Boolean);
+
+  const importedTasks = (Array.isArray(data?.tasks) ? data.tasks : []).map((task, idx) => {
+    const taskId = idMap.get(String(task?.id || task?.n || idx + 1)) || genId();
+    const normalized = {
+      ...task,
+      id: taskId,
+      n: Number.isFinite(+task?.n) ? +task.n : idx + 1,
+      cat: Number.isFinite(+task?.cat) ? +task.cat : 0,
+      ms: Number.isFinite(+task?.ms) ? +task.ms : 0,
+      ws: Number.isFinite(+task?.ws) ? +task.ws : 0,
+      me: Number.isFinite(+task?.me) ? +task.me : 0,
+      we: Number.isFinite(+task?.we) ? +task.we : 0,
+      prog: Number.isFinite(+task?.prog) ? +task.prog : 0,
+      budget: Number(task?.budget) || 0,
+      spent: Number(task?.spent) || 0,
+      deps: normalizeDeps(task?.deps),
+      phases: task?.phases || null,
+      costItems: Array.isArray(task?.costItems) ? task.costItems : Array.isArray(task?.cost_items) ? task.cost_items : null,
+      notes: task?.notes || [],
+    };
+    delete normalized.cost_items;
+    return normalized;
+  });
+
+  const maxN = importedTasks.reduce((m, task) => Math.max(m, +task.n || 0), 0);
+  const importedProj = data?.proj || { ...DEF_PROJ, name: fallbackProjectName };
+  return {
+    proj: {
+      ...importedProj,
+      name: resolvedName,
+      baseline: _normalizeImportedBaseline(importedProj.baseline, idMap),
+    },
+    cats: data?.cats || DEF_CATS.map((c) => ({ ...c })),
+    tasks: importedTasks,
+    nextN: maxN + 1,
+    ...meta,
+  };
+}
 function switchTab(id, el) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
   document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
@@ -212,17 +360,7 @@ function toggleCat(i, e) {
 
 function copyTask(ti) {
   const src = tasks[ti];
-  const appUi = APP_UI;
-  const copy = {
-    ...src,
-    id: genId(),
-    n: nextN++,
-    name: src.name + appUi.copiedTaskSuffix,
-    notes: [],
-    phases: src.phases ? src.phases.map((p) => ({ ...p })) : null,
-    costItems: taskCostItems(src).length ? taskCostItems(src).map((c) => ({ ...c })) : null,
-    deps: [],
-  };
+  const copy = _buildCopiedTask(src, nextN++);
   tasks.splice(ti + 1, 0, copy);
   saveAll();
   renderTable();
@@ -378,25 +516,6 @@ function exportJSON() {
   );
 }
 
-function _projectNameExists(name) {
-  const needle = String(name || "").trim().toLowerCase();
-  if (!needle) return false;
-  return Object.values(allProjects || {}).some((p) =>
-    String(p?.proj?.name || "").trim().toLowerCase() === needle
-  );
-}
-
-function _uniqueProjectName(baseName) {
-  const cleanBase = String(baseName || APP_UI.importedProjectFallbackName).trim() || APP_UI.importedProjectFallbackName;
-  if (!_projectNameExists(cleanBase)) return cleanBase;
-  const firstCopy = `${cleanBase}${APP_UI.copiedTaskSuffix}`;
-  if (!_projectNameExists(firstCopy)) return firstCopy;
-  for (let i = 2; i < 1000; i++) {
-    const candidate = `${cleanBase}${APP_UI.numberedCopySuffix(i)}`;
-    if (!_projectNameExists(candidate)) return candidate;
-  }
-  return `${cleanBase}${APP_UI.numberedCopySuffix(Date.now())}`;
-}
 async function _resolveImportProjectName(baseName) {
   const name = String(baseName || APP_UI.importedProjectFallbackName).trim() || APP_UI.importedProjectFallbackName;
   if (!_projectNameExists(name)) return name;
@@ -421,16 +540,6 @@ async function _resolveImportProjectName(baseName) {
 
   return result.isConfirmed ? String(result.value || suggested).trim() : null;
 }
-function _normalizeImportedBaseline(baseline, idMap) {
-  if (!Array.isArray(baseline)) return baseline || null;
-  return baseline
-    .map((b) => {
-      const mappedId = idMap.get(String(b?.id)) || idMap.get(String(b?.n));
-      if (!mappedId) return null;
-      return { ...b, id: mappedId };
-    })
-    .filter(Boolean);
-}
 
 function importJSON(e) {
   const f = e.target.files[0];
@@ -444,75 +553,15 @@ function importJSON(e) {
         if (currentId) saveAll();
 
         const id = "p_" + Date.now();
-        const idMap = new Map();
-        d.tasks.forEach((t, idx) => {
-          const nextId = genId();
-          if (t.id) idMap.set(String(t.id), nextId);
-          if (t.n !== undefined) idMap.set(String(t.n), nextId);
-          idMap.set(String(idx + 1), nextId);
-        });
-
-        const normalizeDeps = (deps) =>
-          (deps || [])
-            .map((dep) => {
-              const rawId = dep && typeof dep === "object"
-                ? dep.id || dep.n
-                : dep;
-              const mappedId = idMap.get(String(rawId));
-              if (!mappedId) return null;
-              return {
-                id: mappedId,
-                type: dep?.type || "FS",
-                threshold: dep?.threshold || 0,
-              };
-            })
-            .filter(Boolean);
-
-        const importedTasks = d.tasks.map((t, idx) => {
-          const taskId = idMap.get(String(t.id || t.n || idx + 1)) || genId();
-          const normalized = {
-            ...t,
-            id: taskId,
-            n: Number.isFinite(+t.n) ? +t.n : idx + 1,
-            cat: Number.isFinite(+t.cat) ? +t.cat : 0,
-            ms: Number.isFinite(+t.ms) ? +t.ms : 0,
-            ws: Number.isFinite(+t.ws) ? +t.ws : 0,
-            me: Number.isFinite(+t.me) ? +t.me : 0,
-            we: Number.isFinite(+t.we) ? +t.we : 0,
-            prog: Number.isFinite(+t.prog) ? +t.prog : 0,
-            budget: Number(t.budget) || 0,
-            spent: Number(t.spent) || 0,
-            deps: normalizeDeps(t.deps),
-            phases: t.phases || null,
-            costItems: Array.isArray(t.costItems) ? t.costItems : Array.isArray(t.cost_items) ? t.cost_items : null,
-            notes: t.notes || [],
-          };
-          delete normalized.cost_items;
-          return normalized;
-        });
-        const maxN = importedTasks.reduce((m, t) => Math.max(m, +t.n || 0), 0);
         const importedProj = d.proj || { ...DEF_PROJ, name: f.name.replace(".json", "") };
         const resolvedName = await _resolveImportProjectName(importedProj.name || f.name.replace(".json", ""));
         if (!resolvedName) return;
 
-        allProjects[id] = {
-          proj: {
-            ...importedProj,
-            name: resolvedName,
-            baseline: _normalizeImportedBaseline(importedProj.baseline, idMap),
-          },
-          cats: d.cats || DEF_CATS.map((c) => ({ ...c })),
-          tasks: importedTasks,
-          nextN: maxN + 1,
-          ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
-            ? buildRuntimeInitialProjectSnapshotMeta({ _role: "owner" })
-            : {
-                _localUpdatedAt: new Date().toISOString(),
-                _localVersion: 1,
-                _serverVersion: 0,
-                _role: "owner",
-              }),
-        };
+        allProjects[id] = _buildImportedProjectSnapshot(
+          d,
+          f.name.replace(".json", ""),
+          resolvedName,
+        );
         currentId = id;
         if (typeof _projectRole !== "undefined") _projectRole = "owner";
         loadCurrent();

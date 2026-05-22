@@ -88,6 +88,13 @@ import {
   resolveNextProjectAfterDeletion,
 } from "../domain/project-lifecycle";
 import {
+  buildImportedProjectSnapshot,
+  createCopiedTask,
+  normalizeImportedBaseline,
+  projectNameExists,
+  resolveUniqueProjectName,
+} from "../domain/project-import";
+import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
@@ -247,6 +254,11 @@ const runtimeHelpers = {
   buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
   canRuntimeDeleteProjectCount: canDeleteProjectCount,
   resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
+  buildRuntimeCopiedTask: createCopiedTask,
+  checkRuntimeProjectNameExists: projectNameExists,
+  buildRuntimeUniqueProjectName: resolveUniqueProjectName,
+  buildRuntimeNormalizeImportedBaseline: normalizeImportedBaseline,
+  buildRuntimeImportedProjectSnapshot: buildImportedProjectSnapshot,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
