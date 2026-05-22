@@ -91,6 +91,11 @@ and Supabase adapters happen against stable interfaces.
 - `js/baseline.js` and `js/guard.js` now use the generated helper layer for:
   - baseline save/clear/missing dialogs
   - capability-guard action labels and denial toasts
+- `js/costs.js` now uses the generated helper layer for:
+  - cost table empty state
+  - totals/footer labels
+  - contract/payment placeholders
+  - payment count/action labels
 - `js/user.js` now uses the generated helper layer for:
   - project sync-state calculation
   - sync-badge resolution

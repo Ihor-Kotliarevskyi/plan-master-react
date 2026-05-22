@@ -2,6 +2,28 @@ let _costTi = null;
 let _costItems = [];
 let _expandedIds = new Set();
 let _costIdSeq = 1;
+const COST_UI =
+  typeof buildRuntimeCostUiModel === "function"
+    ? buildRuntimeCostUiModel()
+    : {
+        labels: {
+          emptyStateText: "Рядків немає — натисніть кнопку \"Тип\" вище щоб додати",
+          budgetLabel: "Кошторис:",
+          spentLabel: "Сплачено:",
+          restLabel: "Залишок:",
+          contractPlaceholder: "Договір №",
+          supplierPlaceholder: "Контрагент",
+          notePlaceholder: "Примітки",
+          paymentAmountPlaceholder: "Сума (грн)",
+          paymentNotePlaceholder: "Примітка (акт №, аванс тощо)",
+          addPaymentLabel: "+ Платіж",
+          paymentCountLabel: (count, isOpen) => `${isOpen ? "▾" : "▸"} ${count} плат.`,
+          deleteItemTitle: "Видалити",
+          contractNamePrefix: "Договір",
+          defaultUnit: "договір",
+          currencyUnit: "грн",
+        },
+      };
 
 const COST_TYPES = {
   material: { label: "Матеріали", icon: "🧱" },
@@ -200,7 +222,7 @@ function addCostItem(type = "material") {
     type,
     name: "",
     supplier: "",
-    unit: "договір",
+    unit: COST_UI.labels.defaultUnit,
     qty: 1,
     unitPrice: null,
     contractNo: "",
@@ -235,7 +257,7 @@ function setCostContractNo(id, value) {
   const it = _costItems.find((it) => it.id === id);
   if (!it) return;
   it.contractNo = value;
-  it.name = value ? `Договір ${value}` : "";
+  it.name = value ? `${COST_UI.labels.contractNamePrefix} ${value}` : "";
 }
 
 function toggleCostPayments(id) {
@@ -293,11 +315,11 @@ function _flushCostEdits() {
     const noteEl = document.getElementById(`cnote${id}`);
     if (nameEl) {
       it.contractNo = nameEl.value;
-      it.name = nameEl.value ? `Договір ${nameEl.value}` : "";
+      it.name = nameEl.value ? `${COST_UI.labels.contractNamePrefix} ${nameEl.value}` : "";
     }
     if (supEl) it.supplier = supEl.value;
     it.qty = 1;
-    it.unit = "договір";
+    it.unit = COST_UI.labels.defaultUnit;
     if (priceEl) it.unitPrice = parseFloat(priceEl.value) || 0;
     if (noteEl) {
       it.contractNote = noteEl.value;
