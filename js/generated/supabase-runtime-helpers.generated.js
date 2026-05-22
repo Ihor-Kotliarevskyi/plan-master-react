@@ -393,7 +393,26 @@
       exportPdfTitle: "Генерую PDF...",
       exportPdfProgressText: "Підготовка...",
       exportPdfSuccessTitle: "PDF збережено",
-      exportPdfErrorTitle: "Помилка PDF"
+      exportPdfErrorTitle: "Помилка PDF",
+      ganttPageTitlePrefix: "Діаграма Ганта: тижні",
+      tasksMetaLabel: "робіт",
+      workTypeHeader: "Вид робіт",
+      financeBudgetLabel: "Бюджет",
+      financeSpentLabel: "Витрачено",
+      financeRestLabel: "Залишок",
+      financeTasksLabel: "Робіт",
+      financeDoneSuffix: "завершено",
+      financeTableHeaders: {
+        task: "Робота",
+        category: "Категорія",
+        weeks: "Тиж.",
+        budget: "Бюджет",
+        spent: "Витрачено",
+        rest: "Залишок",
+        progress: "%"
+      },
+      noTasksShortText: "Немає робіт.",
+      chartPageFallbackTitle: "Графік"
     };
   }
 

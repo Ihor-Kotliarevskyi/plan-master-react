@@ -18,6 +18,25 @@ export interface PrintUiModel {
   exportPdfProgressText: string;
   exportPdfSuccessTitle: string;
   exportPdfErrorTitle: string;
+  ganttPageTitlePrefix: string;
+  tasksMetaLabel: string;
+  workTypeHeader: string;
+  financeBudgetLabel: string;
+  financeSpentLabel: string;
+  financeRestLabel: string;
+  financeTasksLabel: string;
+  financeDoneSuffix: string;
+  financeTableHeaders: {
+    task: string;
+    category: string;
+    weeks: string;
+    budget: string;
+    spent: string;
+    rest: string;
+    progress: string;
+  };
+  noTasksShortText: string;
+  chartPageFallbackTitle: string;
 }
 
 export function buildPrintUiModel(): PrintUiModel {
@@ -41,5 +60,24 @@ export function buildPrintUiModel(): PrintUiModel {
     exportPdfProgressText: "Підготовка...",
     exportPdfSuccessTitle: "PDF збережено",
     exportPdfErrorTitle: "Помилка PDF",
+    ganttPageTitlePrefix: "Діаграма Ганта: тижні",
+    tasksMetaLabel: "робіт",
+    workTypeHeader: "Вид робіт",
+    financeBudgetLabel: "Бюджет",
+    financeSpentLabel: "Витрачено",
+    financeRestLabel: "Залишок",
+    financeTasksLabel: "Робіт",
+    financeDoneSuffix: "завершено",
+    financeTableHeaders: {
+      task: "Робота",
+      category: "Категорія",
+      weeks: "Тиж.",
+      budget: "Бюджет",
+      spent: "Витрачено",
+      rest: "Залишок",
+      progress: "%",
+    },
+    noTasksShortText: "Немає робіт.",
+    chartPageFallbackTitle: "Графік",
   };
 }

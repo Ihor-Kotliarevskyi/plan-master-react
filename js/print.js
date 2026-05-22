@@ -608,7 +608,7 @@ function _buildPrintRoot(sections, settings) {
     if (sections.charts && sections.chartIds.length) _appendPrintCharts(root, sections.chartIds, metrics);
 
   if (!root.children.length) {
-    root.appendChild(_createPrintPage("Р—РІС–С‚", `<div class="print-empty">РќС–С‡РѕРіРѕ РЅРµ РІРёР±СЂР°РЅРѕ РґР»СЏ РґСЂСѓРєСѓ.</div>`));
+    root.appendChild(_createPrintPage(PRINT_UI.reportTitle, `<div class="print-empty">${PRINT_UI.nothingSelectedText}</div>`));
   }
 
   } finally {
@@ -625,7 +625,7 @@ function _createPrintPage(title, bodyHtml, meta = "") {
   page.innerHTML = `
     <div class="print-page-head">
       <div>
-        <div class="print-project">${_printEsc(proj.name || "РџСЂРѕС”РєС‚")}</div>
+        <div class="print-project">${_printEsc(proj.name || PRINT_UI.projectFallbackTitle)}</div>
         <div class="print-title">${_printEsc(title)}</div>
       </div>
       <div class="print-meta">${_printEsc(meta || new Date().toLocaleDateString("uk-UA"))}</div>
@@ -640,7 +640,7 @@ function _appendPrintGantt(root, settings, metrics) {
   const firstWeek = Math.min(Math.max(0, visStart()), Math.max(0, allWeeks - 1));
   const visibleWeeks = Math.max(0, allWeeks - firstWeek);
   if (!visibleTasks.length || !allWeeks) {
-    root.appendChild(_createPrintPage("Р”С–Р°РіСЂР°РјР° Р“Р°РЅС‚Р°", `<div class="print-empty">РќРµРјР°С” СЂРѕР±С–С‚ РґР»СЏ РґСЂСѓРєСѓ.</div>`));
+    root.appendChild(_createPrintPage(PRINT_UI.ganttTitle, `<div class="print-empty">${PRINT_UI.ganttEmptyText}</div>`));
     return;
   }
 
@@ -650,8 +650,8 @@ function _appendPrintGantt(root, settings, metrics) {
     const weekEnd = Math.min(allWeeks - 1, weekStart + layout.weeksPerPage - 1);
     for (let rowStart = 0; rowStart < visibleTasks.length; rowStart += layout.rowsPerPage) {
       const rowTasks = visibleTasks.slice(rowStart, rowStart + layout.rowsPerPage);
-      const pageTitle = `Р”С–Р°РіСЂР°РјР° Р“Р°РЅС‚Р°: С‚РёР¶РЅС– ${weekStart + 1}-${weekEnd + 1}`;
-      const meta = `${rowStart + 1}-${rowStart + rowTasks.length} Р· ${visibleTasks.length} СЂРѕР±С–С‚`;
+      const pageTitle = `${PRINT_UI.ganttPageTitlePrefix} ${weekStart + 1}-${weekEnd + 1}`;
+      const meta = `${rowStart + 1}-${rowStart + rowTasks.length} з ${visibleTasks.length} ${PRINT_UI.tasksMetaLabel}`;
       root.appendChild(
         _createPrintPage(
           pageTitle,
@@ -717,7 +717,7 @@ function _renderPrintGanttPage(rowTasks, weekStart, weekEnd, layout) {
     <div class="print-gantt" style="${colStyle}">
       <div class="pg-row pg-head pg-month-row">
         <div class="pg-fixed pg-num" style="grid-row:span 2">#</div>
-        <div class="pg-fixed pg-name" style="grid-row:span 2">Р’РёРґ СЂРѕР±С–С‚</div>
+        <div class="pg-fixed pg-name" style="grid-row:span 2">${PRINT_UI.workTypeHeader}</div>
         <div class="pg-fixed pg-prog" style="grid-row:span 2">%</div>
         ${monthCells}
       </div>
@@ -783,10 +783,10 @@ function _appendPrintFinance(root, metrics, settings) {
   const totalRest = totalBudget - totalSpent;
   const done = tasks.filter((t) => +t.prog >= 100).length;
   const cards = [
-    ["Бюджет", fmtM(totalBudget), "грн"],
-    ["Витрачено", fmtM(totalSpent), "грн"],
-    ["Залишок", fmtM(totalRest), "грн"],
-    ["Робіт", String(tasks.length), `${done} завершено`],
+    [PRINT_UI.financeBudgetLabel, fmtM(totalBudget), "грн"],
+    [PRINT_UI.financeSpentLabel, fmtM(totalSpent), "грн"],
+    [PRINT_UI.financeRestLabel, fmtM(totalRest), "грн"],
+    [PRINT_UI.financeTasksLabel, String(tasks.length), `${done} ${PRINT_UI.financeDoneSuffix}`],
   ]
     .map(([label, value, sub]) => `<div class="print-fin-card"><span>${_printEsc(label)}</span><b>${_printEsc(value)}</b><small>${_printEsc(sub)}</small></div>`)
     .join("");
@@ -853,10 +853,10 @@ function _appendPrintFinance(root, metrics, settings) {
             <col style="width:10%">
             <col style="width:6%">
           </colgroup>
-          <thead><tr><th>#</th><th>Робота</th><th>Категорія</th><th>Тиж.</th><th>Бюджет</th><th>Витрачено</th><th>Залишок</th><th>%</th></tr></thead>
-          <tbody>${chunk || `<tr><td colspan="8">Немає робіт.</td></tr>`}</tbody>
+          <thead><tr><th>#</th><th>${PRINT_UI.financeTableHeaders.task}</th><th>${PRINT_UI.financeTableHeaders.category}</th><th>${PRINT_UI.financeTableHeaders.weeks}</th><th>${PRINT_UI.financeTableHeaders.budget}</th><th>${PRINT_UI.financeTableHeaders.spent}</th><th>${PRINT_UI.financeTableHeaders.rest}</th><th>${PRINT_UI.financeTableHeaders.progress}</th></tr></thead>
+          <tbody>${chunk || `<tr><td colspan="8">${PRINT_UI.noTasksShortText}</td></tr>`}</tbody>
          </table>`,
-        financeRows.length ? `${i + 1}-${Math.min(i + rowsPerPage, financeRows.length)} з ${financeRows.length} робіт` : "",
+        financeRows.length ? `${i + 1}-${Math.min(i + rowsPerPage, financeRows.length)} ? ${financeRows.length} ${PRINT_UI.tasksMetaLabel}` : "",
       ),
     );
   }
@@ -865,7 +865,7 @@ function _appendPrintCharts(root, chartIds) {
   chartIds.forEach((cid) => {
     const card = document.getElementById(cid);
     if (!card) return;
-    const title = card.querySelector("h4 span")?.textContent || PRINT_UI.chartFallbackTitle;
+    const title = card.querySelector("h4 span")?.textContent || PRINT_UI.chartPageFallbackTitle;
     const img = _getChartImage(cid);
     if (!img) return;
     root.appendChild(
