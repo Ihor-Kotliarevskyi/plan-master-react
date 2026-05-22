@@ -10,8 +10,8 @@ function render() {
 
 function updateHeader() {
   const ml = getML();
-  document.getElementById("head-dates").textContent = ml.length
-    ? `${ml[0].name} ${ml[0].y} – ${ml[ml.length - 1].name} ${ml[ml.length - 1].y} · ${proj.nm} міс.`
+  document.getElementById("head-dates").textContent = typeof buildRuntimeHeaderDateText === "function"
+    ? buildRuntimeHeaderDateText(ml, proj.nm)
     : "";
 }
 
@@ -32,35 +32,27 @@ function updateProjSel() {
     list
       .map(([id, p]) => {
         const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
-        const roleLabel =
-          isShared
-            ? `${selectLabels.sharedRoleSeparator}${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[role] || role : role)}`
-            : "";
+        const roleLabel = isShared
+          ? `${selectLabels.sharedRoleSeparator}${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : role}`
+          : "";
         return `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}${roleLabel}</option>`;
       })
       .join("");
 
   const ownMarkup = own.length ? `<optgroup label="${selectLabels.ownGroupLabel}">${renderOptions(own)}</optgroup>` : "";
   const sharedMarkup = shared.length ? `<optgroup label="${selectLabels.sharedGroupLabel}">${renderOptions(shared, true)}</optgroup>` : "";
-
   sel.innerHTML = ownMarkup + sharedMarkup;
 }
 
 function renderLegend() {
-  const hasFilter = filterCat !== null || hiddenCats.size > 0;
-  const chips = cats
-    .map((c, i) => {
-      const isExclusive = filterCat === i;
-      const isOff = hiddenCats.has(i);
-      let cls = "cat-chip";
-      if (isExclusive) cls += " active";
-      else if (isOff) cls += " off";
-      else if (hasFilter) cls += " dim";
-      return `<button class="${cls}" onclick="toggleCat(${i},event)" style="--chip-color:${c.color}" title="Клік - тільки одна | Shift+клік - декілька"><span class="chip-dot"></span>${c.name}</button>`;
-    })
+  const legend = typeof buildRuntimeLegendItems === "function"
+    ? buildRuntimeLegendItems(cats, filterCat, hiddenCats)
+    : { hasFilter: false, items: [] };
+  const chips = legend.items
+    .map((item) => `<button class="${item.className}" onclick="toggleCat(${item.index},event)" style="--chip-color:${item.color}" title="Клік - тільки одна | Shift+клік - декілька"><span class="chip-dot"></span>${item.name}</button>`)
     .join("");
-  const reset = hasFilter
-    ? `<button class="cat-chip-reset" onclick="resetCatFilter()">× Всі</button>`
+  const reset = legend.hasFilter
+    ? `<button class="cat-chip-reset" onclick="resetCatFilter()">Г— Всі</button>`
     : "";
   document.getElementById("legend").innerHTML = chips + reset;
 }
@@ -237,19 +229,13 @@ function renderTable() {
   const visMonthStart = Math.floor(vs / 4);
   const now = new Date();
   const curMonthIdx = (now.getFullYear() - proj.sy) * 12 + (now.getMonth() - proj.sm);
-
   const canAdd = typeof canEditTasks === "function" ? canEditTasks() : true;
 
-  // Build year groups from visible months
   const visibleMonths = ml.slice(visMonthStart);
-  const yearGroups = [];
-  visibleMonths.forEach((m) => {
-    const last = yearGroups[yearGroups.length - 1];
-    if (last && last.year === m.y) last.cols += 4;
-    else yearGroups.push({ year: m.y, cols: 4 });
-  });
+  const yearGroups = typeof buildRuntimeVisibleYearGroups === "function"
+    ? buildRuntimeVisibleYearGroups(visibleMonths)
+    : [];
 
-  // Row 1: fixed cols (rowspan=3) + year groups
   let h = `<table class="gt" id="gtbl"><thead><tr>
     <th class="th-n" rowspan="3" title="${tableLabels.reorderTitle}">#</th>
     <th class="th-nm" rowspan="3"><div class="th-nm-head"><span>${tableLabels.workTypeHeader}</span>${canAdd ? `<button class="btn-add-task" onclick="openAdd()" title="${tableLabels.addTaskTitle}">${tableLabels.addTaskLabel}</button>` : ""}</div></th>
@@ -259,19 +245,17 @@ function renderTable() {
   });
   h += `</tr>`;
 
-  // Row 2: month names only (no year)
   h += `<tr>`;
   visibleMonths.forEach((m, i) => {
     const mi = visMonthStart + i;
     const isCur = mi === curMonthIdx;
-      const pastBtn = isCur
+    const pastBtn = isCur
       ? `<button class="btn-hidepast${hidePast ? " on" : ""}" onclick="toggleHidePast()" title="${hidePast ? tableLabels.hidePastShowTitle : tableLabels.hidePastHideTitle}"><i data-lucide="chevron-left"></i></button>`
       : "";
     h += `<th colspan="4" class="th-mo${isCur ? " cur-mo" : ""}"><span class="mo-text">${m.name}</span>${pastBtn}</th>`;
   });
   h += `</tr>`;
 
-  // Row 3: weeks
   h += `<tr>`;
   for (let i = vs; i < TW(); i++) {
     const isCurWk = Math.floor(i / 4) === curMonthIdx;
@@ -290,7 +274,7 @@ function renderTable() {
       const isCollapsed = collapsedGrps.has(catIdx);
       const totalTasks = groupTasks.length;
       const doneTasks = groupTasks.filter((t) => t.prog === 100).length;
-      const totalBudget = groupTasks.reduce((s, t) => s + (+t.budget || 0), 0);
+      const totalBudget = groupTasks.reduce((sum, task) => sum + (+task.budget || 0), 0);
 
       h += `<tr class="group-header-row" onclick="toggleGroup(${catIdx})">
         <td class="td-h" style="background:${cat.color}20"></td>
@@ -300,7 +284,7 @@ function renderTable() {
             <span class="group-chevron">${isCollapsed ? '<i data-lucide="chevron-right"></i>' : '<i data-lucide="chevron-down"></i>'}</span>
             <span class="group-dot" style="background:${cat.color}"></span>
             <span class="group-title">${cat.name}</span>
-             <span class="group-stats">${tableLabels.groupDoneLabel(doneTasks, totalTasks, totalBudget ? fmtM(totalBudget) + " грн" : "")}</span>
+            <span class="group-stats">${tableLabels.groupDoneLabel(doneTasks, totalTasks, totalBudget ? fmtM(totalBudget) + " грн" : "")}</span>
           </div>
         </td>
         <td class="td-notes" style="background:${cat.color}10"></td>
@@ -308,17 +292,15 @@ function renderTable() {
       </tr>`;
 
       if (!isCollapsed) {
-        groupTasks.forEach((t) => {
-          h += _renderTaskRow(t, tw, vs, isCritFn);
+        groupTasks.forEach((task) => {
+          h += _renderTaskRow(task, tw, vs, isCritFn);
         });
       }
     });
   } else {
-    tasks
-      .filter(applyGanttFilters)
-      .forEach((t) => {
-        h += _renderTaskRow(t, tw, vs, isCritFn);
-      });
+    tasks.filter(applyGanttFilters).forEach((task) => {
+      h += _renderTaskRow(task, tw, vs, isCritFn);
+    });
   }
 
   h += `</tbody></table>`;
@@ -328,7 +310,6 @@ function renderTable() {
   if (showDepArrows) requestAnimationFrame(renderDepArrows);
 }
 
-/** Рендерить один рядок задачі. */
 function _renderTaskRow(t, tw, vs, isCritFn) {
   const tableLabels = typeof buildRuntimeTableLabels === "function"
     ? buildRuntimeTableLabels()
@@ -347,37 +328,35 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
         phaseCountTitle: (count) => `${count} фаз`,
         phaseBarTitle: (index, progress) => `Фаза ${index + 1}: ${progress}%`,
       };
-  const ti = tasks.indexOf(t);
-  const cs = t.ms * 4 + t.ws;
-  const ce = t.me * 4 + t.we;
-  if (ce < vs || cs >= TW()) return "";
 
+  const ti = tasks.indexOf(t);
   const cw = zoomLevel;
   const col = monoBarColor || CC(t.cat);
   const warns = checkDeps(t);
-  const isCrit = isCritFn(ti);
   const blPos = getBaselinePos(t.id);
+  const taskWindow = typeof buildRuntimeTaskWindowModel === "function"
+    ? buildRuntimeTaskWindowModel({
+        task: t,
+        visStart: vs,
+        totalWeeks: TW(),
+        zoomLevel: cw,
+        taskSearch,
+        warnings: warns,
+        baselinePos: blPos,
+        isCritical: isCritFn(ti),
+      })
+    : null;
+  if (!taskWindow) return "";
 
-  const showFull = cs >= vs;
-  const showPartial = !showFull && t.prog < 100 && ce >= vs; // ongoing task, started before visible area
-  const showBar = showFull || showPartial;
-  const barStart = showFull ? cs : vs;
-  const bW = showBar ? (ce - barStart + 1) * cw : 0;
-  const progW = showBar ? Math.round((t.prog * Math.max(0, bW - Math.min(12, cw * 0.4))) / 100) : 0;
-  const isPartial = showPartial;
-
-  const notesCount = t.notes?.filter((n) => !n.deleted).length || 0;
-  const notesCellCls = notesCount > 0 ? "td-notes has-notes" : "td-notes";
-  const notesIcon = notesCount > 0
-    ? `<i data-lucide="message-square-text"></i><span class="notes-count">${notesCount}</span>`
+  const notesIcon = taskWindow.notesCount > 0
+    ? `<i data-lucide="message-square-text"></i><span class="notes-count">${taskWindow.notesCount}</span>`
     : `<i data-lucide="message-square"></i>`;
 
-  const searchMatch = taskSearch && t.name.toLowerCase().includes(taskSearch);
-  let h = `<tr id="tr${ti}"${searchMatch ? ' class="task-search-match"' : (taskSearch ? ' class="task-search-dim"' : '')}>
+  let h = `<tr id="tr${ti}"${taskWindow.searchClass ? ` class="${taskWindow.searchClass}"` : ""}>
     <td class="td-n td-drag" data-ti="${ti}" title="${tableLabels.reorderTitle}">${t.n}</td>
-    <td class="td-nm" onclick="openEdit(${ti})" title="${t.name}${warns.length ? " ⚠ " + warns.join("; ") : ""}">
+    <td class="td-nm" onclick="openEdit(${ti})" title="${t.name}${taskWindow.warningsTitleSuffix}">
       <div class="nm-inner">
-        ${isCrit ? `<span class="crit-ic"></span>` : ""}
+        ${taskWindow.isCritical ? `<span class="crit-ic"></span>` : ""}
         ${warns.length ? `<span class="dep-ic" title="${warns.join("\n")}"><i data-lucide="triangle-alert"></i></span>` : ""}
         ${t.phases && t.phases.length > 1 ? `<span class="phase-badge" title="${tableLabels.phaseCountTitle(t.phases.length)}">${t.prog}%</span>` : ""}
         <span class="nm-text">${t.name}</span>
@@ -385,18 +364,15 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
         <span class="del-btn" onclick="event.stopPropagation();delTask(${ti})"><i data-lucide="x"></i></span>
       </div>
     </td>
-    <td class="${notesCellCls}" onclick="event.stopPropagation();openNotesModal(${ti})"
-        title="${notesCount > 0 ? tableLabels.notesCountLabel(notesCount) : tableLabels.notesDefaultLabel}">${notesIcon}</td>`;
+    <td class="${taskWindow.notesCellClass}" onclick="event.stopPropagation();openNotesModal(${ti})"
+        title="${taskWindow.notesCount > 0 ? tableLabels.notesCountLabel(taskWindow.notesCount) : tableLabels.notesDefaultLabel}">${notesIcon}</td>`;
 
   for (let ci = vs; ci < TW(); ci++) {
     h += `<td class="td-c${ci % 4 === 0 ? " ms" : ""}${ci === tw ? " today-col" : ""}" data-ti="${ti}" data-ci="${ci}">`;
     if (ci === tw) h += `<div class="today-line"></div>`;
 
-    if (blPos) {
-      const becs2 = Math.max(blPos.ms * 4 + blPos.ws, vs);
-      const bce2 = blPos.me * 4 + blPos.we;
-      if (ci === becs2 && bce2 >= vs)
-        h += `<div class="bar-baseline" style="left:0;width:${(bce2 - becs2 + 1) * cw}px"></div>`;
+    if (blPos && taskWindow.baselineStart !== null && ci === taskWindow.baselineStart && taskWindow.baselineWidth > 0) {
+      h += `<div class="bar-baseline" style="left:0;width:${taskWindow.baselineWidth}px"></div>`;
     }
 
     const hndl = `<svg width="4" height="8" viewBox="0 0 4 8">
@@ -404,35 +380,25 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
       <line x1="3" y1="1" x2="3" y2="7" stroke="rgba(255,255,255,.5)" stroke-width="1"/>
     </svg>`;
 
-    const phases = t.phases && t.phases.length > 1 ? t.phases : null;
+    const phases = taskWindow.phases.length ? taskWindow.phases : null;
     if (phases) {
       phases.forEach((ph, phi) => {
-        const pcs = ph.ms * 4 + ph.ws;
-        const pce = ph.me * 4 + ph.we;
-        if (pce < vs || pcs >= TW()) return;
-        const pp = ph.prog || 0;
-        const phShowFull = pcs >= vs;
-        const phShowPartial = !phShowFull && pp < 100 && pce >= vs;
-        if (!phShowFull && !phShowPartial) return;
-        const phStart = phShowFull ? pcs : vs;
-        if (ci !== phStart) return;
-        const pbW = (pce - phStart + 1) * cw;
-        const ppW = Math.round((pp * Math.max(0, pbW - Math.min(12, cw * 0.4))) / 100);
+        if (ci !== ph.start) return;
         const phCol = monoBarColor || CC(t.cat);
-        h += `<div class="bar${isCrit ? " critical" : ""}${phShowPartial ? " bar-partial" : ""}" id="bar${ti}-${phi}" data-ti="${ti}"
-               style="left:0;width:${pbW}px;background:${phCol}" title="${tableLabels.phaseBarTitle(phi, pp)}">
-          ${phShowFull ? `<div class="bh" data-ti="${ti}" data-side="L">${hndl}</div>` : ''}
-          ${pp > 0 ? `<div class="prog-fill" style="width:${ppW}px"></div>` : ""}
-          <span class="bl">${pp > 0 ? pp + "%" : "ф" + (phi + 1)}</span>
+        h += `<div class="bar${taskWindow.isCritical ? " critical" : ""}${ph.isPartial ? " bar-partial" : ""}" id="bar${ti}-${phi}" data-ti="${ti}"
+               style="left:0;width:${ph.width}px;background:${phCol}" title="${tableLabels.phaseBarTitle(phi, ph.progress)}">
+          ${ph.showFull ? `<div class="bh" data-ti="${ti}" data-side="L">${hndl}</div>` : ""}
+          ${ph.progress > 0 ? `<div class="prog-fill" style="width:${ph.progressWidth}px"></div>` : ""}
+          <span class="bl">${ph.progress > 0 ? ph.progress + "%" : "ф" + (phi + 1)}</span>
           <div class="bh" data-ti="${ti}" data-side="R">${hndl}</div>
         </div>`;
       });
-    } else if (showBar && ci === barStart) {
-      h += `<div class="bar${isCrit ? " critical" : ""}${isPartial ? " bar-partial" : ""}" id="bar${ti}" data-ti="${ti}"
+    } else if (taskWindow.bar && ci === taskWindow.bar.start) {
+      h += `<div class="bar${taskWindow.isCritical ? " critical" : ""}${taskWindow.bar.isPartial ? " bar-partial" : ""}" id="bar${ti}" data-ti="${ti}"
              onclick="handleBarClick(event,${ti})"
-             style="left:0;width:${bW}px;background:${col};cursor:pointer">
-        ${!isPartial ? `<div class="bh" data-ti="${ti}" data-side="L">${hndl}</div>` : ''}
-        ${t.prog > 0 ? `<div class="prog-fill" style="width:${progW}px"></div>` : ""}
+             style="left:0;width:${taskWindow.bar.width}px;background:${col};cursor:pointer">
+        ${taskWindow.bar.showFull ? `<div class="bh" data-ti="${ti}" data-side="L">${hndl}</div>` : ""}
+        ${t.prog > 0 ? `<div class="prog-fill" style="width:${taskWindow.bar.progressWidth}px"></div>` : ""}
         <span class="bl">${t.prog > 0 ? t.prog + "%" : ""}</span>
         <div class="bh" data-ti="${ti}" data-side="R">${hndl}</div>
       </div>`;

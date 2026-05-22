@@ -26,6 +26,12 @@ import {
   buildProjectSelectLabels,
   buildTableLabels,
 } from "../src/domain/render-ui";
+import {
+  buildHeaderDateText,
+  buildLegendItems,
+  buildTaskWindowModel,
+  buildVisibleYearGroups,
+} from "../src/domain/render";
 import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildApiUiModel } from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
@@ -551,6 +557,70 @@ const tableLabels = buildTableLabels();
 assert.equal(tableLabels.addTaskLabel, "+ Робота");
 assert.equal(tableLabels.notesCountLabel(3), "3 нотаток");
 assert.equal(tableLabels.phaseCountTitle(2), "2 фаз");
+
+assert.equal(
+  buildHeaderDateText(
+    [{ name: "Травень", y: 2026 }, { name: "Червень", y: 2026 }],
+    2,
+  ),
+  "Травень 2026 – Червень 2026 · 2 міс.",
+);
+
+const legendModel = buildLegendItems(
+  [
+    { name: "General", color: "#111111" },
+    { name: "Finishing", color: "#222222" },
+  ],
+  1,
+  new Set([0]),
+);
+assert.equal(legendModel.hasFilter, true);
+assert.equal(legendModel.items[0]?.className, "cat-chip off");
+assert.equal(legendModel.items[1]?.className, "cat-chip active");
+
+const yearGroups = buildVisibleYearGroups([
+  { name: "Травень", y: 2026 },
+  { name: "Червень", y: 2026 },
+  { name: "Січень", y: 2027 },
+]);
+assert.deepEqual(yearGroups, [
+  { year: 2026, cols: 8 },
+  { year: 2027, cols: 4 },
+]);
+
+const renderTaskWindow = buildTaskWindowModel({
+  task: {
+    id: "task-1",
+    n: 1,
+    name: "Concrete works",
+    cat: 0,
+    ms: 0,
+    ws: 0,
+    me: 1,
+    we: 1,
+    prog: 40,
+    phases: [
+      { ms: 0, ws: 0, me: 0, we: 1, prog: 100 },
+      { ms: 0, ws: 2, me: 1, we: 1, prog: 20 },
+    ],
+    notes: [{}, { deleted: true }],
+  },
+  visStart: 0,
+  totalWeeks: 12,
+  zoomLevel: 25,
+  taskSearch: "concrete",
+  warnings: ["late"],
+  baselinePos: { ms: 0, ws: 0, me: 1, we: 1 },
+  isCritical: true,
+});
+assert.equal(renderTaskWindow?.notesCount, 1);
+assert.equal(renderTaskWindow?.searchClass, "task-search-match");
+assert.equal(renderTaskWindow?.isCritical, true);
+assert.equal(renderTaskWindow?.warningsTitleSuffix, " ⚠ late");
+assert.equal(renderTaskWindow?.baselineStart, 0);
+assert.equal(renderTaskWindow?.baselineWidth, 150);
+assert.equal(renderTaskWindow?.bar?.width, 150);
+assert.equal(renderTaskWindow?.phases.length, 2);
 
 const appUi = buildAppUiModel();
 assert.equal(appUi.importedProjectFallbackName, "Імпортований проєкт");

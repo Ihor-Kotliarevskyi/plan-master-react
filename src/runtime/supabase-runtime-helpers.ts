@@ -27,6 +27,12 @@ import {
   buildProjectSelectLabels,
   buildTableLabels,
 } from "../domain/render-ui";
+import {
+  buildHeaderDateText,
+  buildLegendItems,
+  buildTaskWindowModel,
+  buildVisibleYearGroups,
+} from "../domain/render";
 import { buildAppUiModel } from "../domain/app-ui";
 import { buildApiUiModel } from "../domain/api-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
@@ -316,6 +322,10 @@ const runtimeHelpers = {
   buildRuntimeProjectSelectLabels: buildProjectSelectLabels,
   buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
   buildRuntimeTableLabels: buildTableLabels,
+  buildRuntimeHeaderDateText: buildHeaderDateText,
+  buildRuntimeLegendItems: buildLegendItems,
+  buildRuntimeVisibleYearGroups: buildVisibleYearGroups,
+  buildRuntimeTaskWindowModel: buildTaskWindowModel,
   buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeApiUiModel: buildApiUiModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,

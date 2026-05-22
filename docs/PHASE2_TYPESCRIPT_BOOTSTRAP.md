@@ -27,6 +27,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
   - `src/domain/modal-ui.ts`
+  - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
   - `src/domain/api-ui.ts`
@@ -100,6 +101,11 @@ and Supabase adapters happen against stable interfaces.
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels
+- `js/render.js` now uses the generated helper layer for:
+  - header date-range projection
+  - legend chip state projection
+  - visible year-group projection
+  - task row / bar / phase window projection
 - `js/modal.js` now uses the generated helper layer for:
   - project settings update and timeline-shift orchestration
   - empty-project and demo-project snapshot creation
