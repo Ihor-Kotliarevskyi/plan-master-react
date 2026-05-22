@@ -13,7 +13,12 @@ import {
 import { buildAccountSyncPanelModel } from "../src/domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../src/domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../src/domain/profile-ui";
-import { buildBaselinePanelModel } from "../src/domain/baseline-ui";
+import {
+  buildBaselineClearDialogModel,
+  buildBaselineMissingModel,
+  buildBaselinePanelModel,
+  buildBaselineSavedToastModel,
+} from "../src/domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../src/domain/settings-ui";
 import { buildAccountSectionModel } from "../src/domain/account-section-ui";
 import {
@@ -28,6 +33,8 @@ import {
   buildContractorSummaryLabels,
   buildContractorTableLabels,
 } from "../src/domain/contractors-ui";
+import { buildCostUiModel } from "../src/domain/costs-ui";
+import { buildGuardedActionLabels, buildGuardToastModel } from "../src/domain/guard-ui";
 import {
   buildDependencyEditorModel,
   buildDemoProjectSeedModel,
@@ -376,6 +383,16 @@ assert.equal(baselinePanel.sectionTitle, "Baseline");
 assert.equal(baselinePanel.savedLabel, "Saved: 2026-05-01");
 assert.equal(baselinePanel.toggleLabel, "Show");
 assert.equal(baselinePanel.saveActionLabel, "Overwrite");
+assert.equal(buildBaselineSavedToastModel("2026-05-01").title, "Базовий план збережено (2026-05-01)");
+assert.equal(buildBaselineClearDialogModel().confirmButtonText, "Очистити");
+assert.equal(buildBaselineMissingModel().title, "Базовий план не збережено");
+
+const guardToast = buildGuardToastModel("редагування");
+assert.equal(guardToast.title, "У вас немає прав на редагування");
+assert.equal(guardToast.text, "Зверніться до власника проєкту щоб отримати доступ.");
+const guardedActions = buildGuardedActionLabels();
+assert.equal(guardedActions.saveProjSettings?.capability, "canManageProject");
+assert.equal(guardedActions.deleteProject?.label, "видалення проєкту");
 
 const defaultsPanel = buildProjectDefaultsPanelModel();
 assert.equal(defaultsPanel.sectionTitle, "Project defaults");
@@ -495,6 +512,11 @@ assert.equal(contractorTableLabels.importReviewTitle, "Перевірка імп
 assert.equal(contractorTableLabels.editPaymentTitle("Acme"), "Редагувати платіж: Acme");
 assert.equal(contractorTableLabels.paymentAmountValidation, "Вкажіть суму платежу");
 assert.equal(contractorTableLabels.contractPlaceholder, "Договір №");
+
+const costUi = buildCostUiModel();
+assert.equal(costUi.labels.addPaymentLabel, "+ Платіж");
+assert.equal(costUi.labels.contractNamePrefix, "Договір");
+assert.equal(costUi.costTypes.material?.label, "Матеріали");
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");

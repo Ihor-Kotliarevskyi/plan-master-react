@@ -1,5 +1,34 @@
 let showBaseline = false;
 
+function _getBaselineSavedToastModel() {
+  if (typeof buildRuntimeBaselineSavedToastModel === "function") {
+    return buildRuntimeBaselineSavedToastModel(proj.baselineDate);
+  }
+  return { title: `Базовий план збережено (${proj.baselineDate})` };
+}
+
+function _getBaselineClearDialogModel() {
+  if (typeof buildRuntimeBaselineClearDialogModel === "function") {
+    return buildRuntimeBaselineClearDialogModel();
+  }
+  return {
+    title: "Очистити базовий план?",
+    text: "Ghost-бари зникнуть. Відновити буде неможливо.",
+    confirmButtonText: "Очистити",
+    cancelButtonText: "Скасувати",
+  };
+}
+
+function _getBaselineMissingModel() {
+  if (typeof buildRuntimeBaselineMissingModel === "function") {
+    return buildRuntimeBaselineMissingModel();
+  }
+  return {
+    title: "Базовий план не збережено",
+    text: "Натисніть «Зберегти базовий план» щоб зафіксувати поточний стан.",
+  };
+}
+
 /** Зберігає поточні позиції задач як базовий план. */
 async function saveBaseline() {
   proj.baseline = tasks.map((t) => ({ id: t.id, n: t.n, ms: t.ms, ws: t.ws, me: t.me, we: t.we }));
@@ -10,21 +39,28 @@ async function saveBaseline() {
     items: proj.baseline.length,
     baselineDate: proj.baselineDate,
   });
+  const toastModel = _getBaselineSavedToastModel();
   Swal.fire({
-    toast: true, position: "top-end", icon: "success",
-    title: `Базовий план збережено (${proj.baselineDate})`,
-    showConfirmButton: false, timer: 3000,
+    toast: true,
+    position: "top-end",
+    icon: "success",
+    title: toastModel.title,
+    showConfirmButton: false,
+    timer: 3000,
   });
 }
 
 /** Очищає базовий план. */
 async function clearBaseline() {
+  const dialogModel = _getBaselineClearDialogModel();
   const res = await Swal.fire({
-    icon: "warning", title: "Очистити базовий план?",
-    text: "Ghost-бари зникнуть. Відновити буде неможливо.",
+    icon: "warning",
+    title: dialogModel.title,
+    text: dialogModel.text,
     showCancelButton: true,
-    confirmButtonText: "Очистити", confirmButtonColor: "#c42b2b",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: dialogModel.confirmButtonText,
+    confirmButtonColor: "#c42b2b",
+    cancelButtonText: dialogModel.cancelButtonText,
   });
   if (!res.isConfirmed) return;
   proj.baseline = null;
@@ -39,9 +75,11 @@ async function clearBaseline() {
 /** Перемикає відображення базового плану. */
 function toggleBaseline() {
   if (!proj.baseline) {
+    const missingModel = _getBaselineMissingModel();
     Swal.fire({
-      icon: "info", title: "Базовий план не збережено",
-      text: "Натисніть «Зберегти базовий план» щоб зафіксувати поточний стан.",
+      icon: "info",
+      title: missingModel.title,
+      text: missingModel.text,
     });
     return;
   }

@@ -1,17 +1,23 @@
-function _getGuardToastModel(label) {
-  if (typeof buildRuntimeGuardToastModel === "function") {
-    return buildRuntimeGuardToastModel(label);
-  }
+export interface GuardToastModel {
+  title: string;
+  text: string;
+}
+
+export interface GuardedActionRule {
+  label: string;
+  capability: string;
+}
+
+export type GuardedActionMap = Record<string, GuardedActionRule>;
+
+export function buildGuardToastModel(label: string): GuardToastModel {
   return {
     title: `У вас немає прав на ${label}`,
     text: "Зверніться до власника проєкту щоб отримати доступ.",
   };
 }
 
-function _getGuardedActionMap() {
-  if (typeof buildRuntimeGuardedActionLabels === "function") {
-    return buildRuntimeGuardedActionLabels();
-  }
+export function buildGuardedActionLabels(): GuardedActionMap {
   return {
     openAdd: { label: "створення задачі", capability: "canEditTasks" },
     saveTask: { label: "збереження задачі", capability: "canEditTasks" },
@@ -38,36 +44,3 @@ function _getGuardedActionMap() {
     deletePaymentRegister: { label: "видалення реєстру платежів", capability: "canEditTasks" },
   };
 }
-
-/** Обгортка: блокує виклик функції, якщо поточна роль не має потрібної capability. */
-function _guardCapability(fn, label = "редагування", capability = "canEditTasks") {
-  return async function (...args) {
-    const allowed = typeof window[capability] === "function" ? window[capability]() : true;
-    if (!allowed) {
-      const toastModel = _getGuardToastModel(label);
-      Swal.fire({
-        toast: true,
-        position: "top-end",
-        icon: "warning",
-        title: toastModel.title,
-        text: toastModel.text,
-        showConfirmButton: false,
-        timer: 3500,
-      });
-      return;
-    }
-    return fn.apply(this, args);
-  };
-}
-
-window.addEventListener("load", () => {
-  if (typeof canEditTasks !== "function") return;
-
-  const guarded = _getGuardedActionMap();
-
-  Object.entries(guarded).forEach(([name, rule]) => {
-    if (typeof window[name] === "function") {
-      window[name] = _guardCapability(window[name], rule.label, rule.capability);
-    }
-  });
-});

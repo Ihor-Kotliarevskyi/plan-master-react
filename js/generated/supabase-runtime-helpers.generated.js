@@ -157,6 +157,25 @@
       showBaseline: options.showBaseline
     };
   }
+  function buildBaselineSavedToastModel(baselineDate) {
+    return {
+      title: `Базовий план збережено (${baselineDate})`
+    };
+  }
+  function buildBaselineClearDialogModel() {
+    return {
+      title: "Очистити базовий план?",
+      text: "Ghost-бари зникнуть. Відновити буде неможливо.",
+      confirmButtonText: "Очистити",
+      cancelButtonText: "Скасувати"
+    };
+  }
+  function buildBaselineMissingModel() {
+    return {
+      title: "Базовий план не збережено",
+      text: "Натисніть «Зберегти базовий план» щоб зафіксувати поточний стан."
+    };
+  }
 
   // src/domain/settings-ui.ts
   function buildProjectDefaultsPanelModel() {
@@ -394,6 +413,93 @@
       supplierRequiredTitle: "Вкажіть контрагента",
       addContractTitle: "Додайте договір",
       contractAmountValidation: "Вкажіть суму договору"
+    };
+  }
+
+  // src/domain/costs-ui.ts
+  function buildCostUiModel() {
+    return {
+      costTypes: {
+        material: { label: "Матеріали", icon: "🧱" },
+        work: { label: "Роботи", icon: "👷" },
+        equipment: { label: "Техніка", icon: "🔧" },
+        service: { label: "Послуги", icon: "🤝" },
+        other: { label: "Інше", icon: "📦" }
+      },
+      paymentTypes: {
+        advance: "Аванс",
+        act: "Акт",
+        invoice: "Рахунок",
+        other: "Інше"
+      },
+      units: [
+        "м²",
+        "м³",
+        "пог.м",
+        "т",
+        "кг",
+        "шт",
+        "год",
+        "люд*год",
+        "день",
+        "люд*день",
+        "компл",
+        "л",
+        "рулон",
+        "уп"
+      ],
+      labels: {
+        emptyStateText: 'Рядків немає — натисніть кнопку "Тип" вище щоб додати',
+        budgetLabel: "Кошторис:",
+        spentLabel: "Сплачено:",
+        restLabel: "Залишок:",
+        contractPlaceholder: "Договір №",
+        supplierPlaceholder: "Контрагент",
+        notePlaceholder: "Примітки",
+        paymentAmountPlaceholder: "Сума (грн)",
+        paymentNotePlaceholder: "Примітка (акт №, аванс тощо)",
+        addPaymentLabel: "+ Платіж",
+        paymentCountLabel: (count, isOpen) => `${isOpen ? "▾" : "▸"} ${count} плат.`,
+        deleteItemTitle: "Видалити",
+        contractNamePrefix: "Договір",
+        defaultUnit: "договір",
+        currencyUnit: "грн"
+      }
+    };
+  }
+
+  // src/domain/guard-ui.ts
+  function buildGuardToastModel(label) {
+    return {
+      title: `У вас немає прав на ${label}`,
+      text: "Зверніться до власника проєкту щоб отримати доступ."
+    };
+  }
+  function buildGuardedActionLabels() {
+    return {
+      openAdd: { label: "створення задачі", capability: "canEditTasks" },
+      saveTask: { label: "збереження задачі", capability: "canEditTasks" },
+      delTask: { label: "видалення задачі", capability: "canEditTasks" },
+      saveProjSettings: { label: "зміну налаштувань", capability: "canManageProject" },
+      saveCats: { label: "зміну категорій", capability: "canManageProject" },
+      saveBaseline: { label: "збереження базового плану", capability: "canEditTasks" },
+      clearBaseline: { label: "видалення базового плану", capability: "canEditTasks" },
+      savePhases: { label: "збереження фаз", capability: "canEditTasks" },
+      saveCostModal: { label: "збереження кошторису", capability: "canEditTasks" },
+      deleteProject: { label: "видалення проєкту", capability: "canManageProject" },
+      importJSON: { label: "імпорт", capability: "canEditTasks" },
+      importContractorTable: { label: "імпорт оплат", capability: "canEditTasks" },
+      saveContractorEntry: { label: "додавання контрагентів та оплат", capability: "canEditTasks" },
+      editContractor: { label: "редагування контрагентів", capability: "canEditTasks" },
+      deleteContractor: { label: "видалення контрагентів", capability: "canEditTasks" },
+      openContractorActModal: { label: "додавання актів", capability: "canEditTasks" },
+      editContractorAct: { label: "редагування актів", capability: "canEditTasks" },
+      deleteContractorAct: { label: "видалення актів", capability: "canEditTasks" },
+      openContractorPaymentModal: { label: "додавання платежів", capability: "canEditTasks" },
+      editContractorPayment: { label: "редагування платежів", capability: "canEditTasks" },
+      deleteContractorPayment: { label: "видалення платежів", capability: "canEditTasks" },
+      createPaymentRegisterFromFilters: { label: "створення реєстру платежів", capability: "canEditTasks" },
+      deletePaymentRegister: { label: "видалення реєстру платежів", capability: "canEditTasks" }
     };
   }
 
@@ -1050,11 +1156,17 @@
     buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
     buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
     buildRuntimeContractorTableLabels: buildContractorTableLabels,
+    buildRuntimeCostUiModel: buildCostUiModel,
+    buildRuntimeGuardToastModel: buildGuardToastModel,
+    buildRuntimeGuardedActionLabels: buildGuardedActionLabels,
     buildRuntimeAuthFormModel: buildAuthFormModel,
     getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
     buildRuntimeThemeToggleModel: buildThemeToggleModel,
     buildRuntimeUserIdentityModel: buildUserIdentityModel,
     buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+    buildRuntimeBaselineSavedToastModel: buildBaselineSavedToastModel,
+    buildRuntimeBaselineClearDialogModel: buildBaselineClearDialogModel,
+    buildRuntimeBaselineMissingModel: buildBaselineMissingModel,
     buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
     buildRuntimeThemePanelModel: buildThemePanelModel,
     buildRuntimeAccountSectionModel: buildAccountSectionModel,

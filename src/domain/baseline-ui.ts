@@ -9,6 +9,22 @@ export interface BaselinePanelModel {
   showBaseline: boolean;
 }
 
+export interface BaselineSavedToastModel {
+  title: string;
+}
+
+export interface BaselineClearDialogModel {
+  title: string;
+  text: string;
+  confirmButtonText: string;
+  cancelButtonText: string;
+}
+
+export interface BaselineMissingModel {
+  title: string;
+  text: string;
+}
+
 export function buildBaselinePanelModel(options: {
   hasBaseline: boolean;
   baselineDate?: string | null;
@@ -24,5 +40,27 @@ export function buildBaselinePanelModel(options: {
     deleteActionLabel: "Delete",
     emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
     showBaseline: options.showBaseline,
+  };
+}
+
+export function buildBaselineSavedToastModel(baselineDate: string): BaselineSavedToastModel {
+  return {
+    title: `Базовий план збережено (${baselineDate})`,
+  };
+}
+
+export function buildBaselineClearDialogModel(): BaselineClearDialogModel {
+  return {
+    title: "Очистити базовий план?",
+    text: "Ghost-бари зникнуть. Відновити буде неможливо.",
+    confirmButtonText: "Очистити",
+    cancelButtonText: "Скасувати",
+  };
+}
+
+export function buildBaselineMissingModel(): BaselineMissingModel {
+  return {
+    title: "Базовий план не збережено",
+    text: "Натисніть «Зберегти базовий план» щоб зафіксувати поточний стан.",
   };
 }

@@ -14,7 +14,12 @@ import {
 import { buildAccountSyncPanelModel } from "../domain/account-ui";
 import { buildAuthFormModel, getAuthTabButtonClass } from "../domain/auth-ui";
 import { buildThemeToggleModel, buildUserIdentityModel } from "../domain/profile-ui";
-import { buildBaselinePanelModel } from "../domain/baseline-ui";
+import {
+  buildBaselineClearDialogModel,
+  buildBaselineMissingModel,
+  buildBaselinePanelModel,
+  buildBaselineSavedToastModel,
+} from "../domain/baseline-ui";
 import { buildProjectDefaultsPanelModel, buildThemePanelModel } from "../domain/settings-ui";
 import { buildAccountSectionModel } from "../domain/account-section-ui";
 import {
@@ -29,6 +34,8 @@ import {
   buildContractorSummaryLabels,
   buildContractorTableLabels,
 } from "../domain/contractors-ui";
+import { buildCostUiModel } from "../domain/costs-ui";
+import { buildGuardedActionLabels, buildGuardToastModel } from "../domain/guard-ui";
 import {
   buildDependencyEditorModel,
   buildCategoryEditorModel,
@@ -233,11 +240,17 @@ const runtimeHelpers = {
   buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
   buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
   buildRuntimeContractorTableLabels: buildContractorTableLabels,
+  buildRuntimeCostUiModel: buildCostUiModel,
+  buildRuntimeGuardToastModel: buildGuardToastModel,
+  buildRuntimeGuardedActionLabels: buildGuardedActionLabels,
   buildRuntimeAuthFormModel: buildAuthFormModel,
   getRuntimeAuthTabButtonClass: getAuthTabButtonClass,
   buildRuntimeThemeToggleModel: buildThemeToggleModel,
   buildRuntimeUserIdentityModel: buildUserIdentityModel,
   buildRuntimeBaselinePanelModel: buildBaselinePanelModel,
+  buildRuntimeBaselineSavedToastModel: buildBaselineSavedToastModel,
+  buildRuntimeBaselineClearDialogModel: buildBaselineClearDialogModel,
+  buildRuntimeBaselineMissingModel: buildBaselineMissingModel,
   buildRuntimeProjectDefaultsPanelModel: buildProjectDefaultsPanelModel,
   buildRuntimeThemePanelModel: buildThemePanelModel,
   buildRuntimeAccountSectionModel: buildAccountSectionModel,

@@ -30,6 +30,8 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
   - `src/domain/contractors-ui.ts`
+  - `src/domain/costs-ui.ts`
+  - `src/domain/guard-ui.ts`
   - `src/domain/user-feedback-ui.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
@@ -86,6 +88,9 @@ and Supabase adapters happen against stable interfaces.
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels
+- `js/baseline.js` and `js/guard.js` now use the generated helper layer for:
+  - baseline save/clear/missing dialogs
+  - capability-guard action labels and denial toasts
 - `js/user.js` now uses the generated helper layer for:
   - project sync-state calculation
   - sync-badge resolution
@@ -112,6 +117,8 @@ and Supabase adapters happen against stable interfaces.
   - task row labels and notes/phase captions
   - app import-conflict dialogs and import/copy feedback labels
   - contractor summary, filters, table headers, and selection labels
+  - baseline dialogs/toasts
+  - access-guard capability labels and denial toast copy
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape
