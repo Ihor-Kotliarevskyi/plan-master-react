@@ -16,6 +16,29 @@ const PRINT_PAPER_MM = {
 let _printPreviewTimer = null;
 let _printPreviewBound = false;
 let _printPreviewPage = 0;
+const PRINT_UI = typeof buildRuntimePrintUiModel === "function"
+  ? buildRuntimePrintUiModel()
+  : {
+      noChartsText: "Немає побудованих графіків",
+      previewLoadingText: "Оновлення передперегляду...",
+      reportTitle: "Звіт",
+      nothingSelectedText: "Нічого не вибрано для друку.",
+      projectFallbackTitle: "Проєкт",
+      ganttTitle: "Діаграма Ганта",
+      ganttEmptyText: "Немає робіт для друку.",
+      financeTitle: "Фінансовий звіт",
+      sCurveTitle: "S-крива освоєння бюджету",
+      sCurveAlt: "S-крива",
+      sCurveUnavailableText: "S-крива недоступна для друку.",
+      weeklyCostTitle: "Тижневий графік витрат",
+      weeklyCostAlt: "Тижневий графік витрат",
+      weeklyCostUnavailableText: "Тижневий графік витрат недоступний для друку.",
+      chartFallbackTitle: "Графік",
+      exportPdfTitle: "Генерую PDF...",
+      exportPdfProgressText: "Підготовка...",
+      exportPdfSuccessTitle: "PDF збережено",
+      exportPdfErrorTitle: "Помилка PDF",
+    };
 
 function openPrintDialog() {
   const restore = _preparePrintSources({ charts: true });
@@ -34,7 +57,7 @@ function openPrintDialog() {
              </label>`,
         )
         .join("")
-    : `<div class="print-no-charts">Немає побудованих графіків</div>`;
+    : `<div class="print-no-charts">${PRINT_UI.noChartsText}</div>`;
 
   document.getElementById("print-modal").style.display = "flex";
   _bindPrintPreviewEvents();
@@ -786,25 +809,25 @@ function _appendPrintFinance(root, metrics, settings) {
   const weeklyCostImg = _getWeeklyCostImage();
   root.appendChild(
     _createPrintPage(
-      "Фінансовий звіт",
+      PRINT_UI.financeTitle,
       `<div class="print-fin-cards">${cards}</div>`,
     ),
   );
   root.appendChild(
     _createPrintPage(
-      "S-крива освоєння бюджету",
+      PRINT_UI.sCurveTitle,
       sCurveImg
-        ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${sCurveImg}" alt="S-крива"></div>`
-        : `<div class="print-empty">S-крива недоступна для друку.</div>`,
+        ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${sCurveImg}" alt="${PRINT_UI.sCurveAlt}"></div>`
+        : `<div class="print-empty">${PRINT_UI.sCurveUnavailableText}</div>`,
     ),
   );
   if (showWeeklyCostBars) {
     root.appendChild(
       _createPrintPage(
-        "Тижневий графік витрат",
+        PRINT_UI.weeklyCostTitle,
         weeklyCostImg
-          ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${weeklyCostImg}" alt="Тижневий графік витрат"></div>`
-          : `<div class="print-empty">Тижневий графік витрат недоступний для друку.</div>`,
+          ? `<div class="print-fin-chart print-fin-chart-lg"><img src="${weeklyCostImg}" alt="${PRINT_UI.weeklyCostAlt}"></div>`
+          : `<div class="print-empty">${PRINT_UI.weeklyCostUnavailableText}</div>`,
       ),
     );
   }
@@ -818,7 +841,7 @@ function _appendPrintFinance(root, metrics, settings) {
     const chunk = financeRows.slice(i, i + rowsPerPage).join("");
     root.appendChild(
       _createPrintPage(
-        "Фінансовий звіт",
+        PRINT_UI.financeTitle,
         `<table class="print-fin-table${fitFinanceTable ? " fit" : ""}" style="--fin-font:${fitFont}px">
           <colgroup>
             <col style="width:5%">
@@ -842,7 +865,7 @@ function _appendPrintCharts(root, chartIds) {
   chartIds.forEach((cid) => {
     const card = document.getElementById(cid);
     if (!card) return;
-    const title = card.querySelector("h4 span")?.textContent || "Р“СЂР°С„С–Рє";
+    const title = card.querySelector("h4 span")?.textContent || PRINT_UI.chartFallbackTitle;
     const img = _getChartImage(cid);
     if (!img) return;
     root.appendChild(
@@ -860,10 +883,10 @@ async function doExportPDF() {
   const settings = _getPrintSettings();
 
   Swal.fire({
-    title: "Р“РµРЅРµСЂСѓСЋ PDF...",
+    title: PRINT_UI.exportPdfTitle,
     html: `<div class="pdf-progress-wrap">
       <div class="pdf-progress-icon">PDF</div>
-      <div id="pdf-progress" class="pdf-progress-text">РџС–РґРіРѕС‚РѕРІРєР°...</div>
+      <div id="pdf-progress" class="pdf-progress-text">${PRINT_UI.exportPdfProgressText}</div>
     </div>`,
     allowOutsideClick: false,
     showConfirmButton: false,
@@ -875,12 +898,12 @@ async function doExportPDF() {
           toast: true,
           position: "top-end",
           icon: "success",
-          title: "PDF Р·Р±РµСЂРµР¶РµРЅРѕ",
+          title: PRINT_UI.exportPdfSuccessTitle,
           showConfirmButton: false,
           timer: 2500,
         });
       } catch (e) {
-        Swal.fire({ icon: "error", title: "РџРѕРјРёР»РєР° PDF", text: e.message });
+        Swal.fire({ icon: "error", title: PRINT_UI.exportPdfErrorTitle, text: e.message });
       }
     },
   });
@@ -914,4 +937,3 @@ async function _generatePDF(sections, settings = PRINT_DEFAULTS) {
   _removePrintRoot();
   pdf.save(`${proj.name}_${new Date().toLocaleDateString("uk-UA").replace(/\./g, "-")}.pdf`);
 }
-

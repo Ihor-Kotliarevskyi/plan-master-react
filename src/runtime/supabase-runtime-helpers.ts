@@ -30,6 +30,7 @@ import {
 import { buildAppUiModel } from "../domain/app-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
 import { buildFinanceUiModel } from "../domain/finance-ui";
+import { buildPrintUiModel } from "../domain/print-ui";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
@@ -240,6 +241,7 @@ const runtimeHelpers = {
   buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,
   buildRuntimeFinanceUiModel: buildFinanceUiModel,
+  buildRuntimePrintUiModel: buildPrintUiModel,
   buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
   buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
   buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,

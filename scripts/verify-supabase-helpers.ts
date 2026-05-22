@@ -29,6 +29,7 @@ import {
 import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
+import { buildPrintUiModel } from "../src/domain/print-ui";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
@@ -499,6 +500,11 @@ const financeUi = buildFinanceUiModel();
 assert.equal(financeUi.filters.searchPlaceholder, "Пошук у фінансах...");
 assert.equal(financeUi.deleteDialogs.finalConfirmLabel, "Видалити");
 assert.equal(financeUi.chart.projectedLabel, "Прогноз, грн");
+
+const printUi = buildPrintUiModel();
+assert.equal(printUi.noChartsText, "Немає побудованих графіків");
+assert.equal(printUi.financeTitle, "Фінансовий звіт");
+assert.equal(printUi.exportPdfSuccessTitle, "PDF збережено");
 
 const contractorSummaryLabels = buildContractorSummaryLabels();
 assert.equal(contractorSummaryLabels.contractors, "Контрагентів");
