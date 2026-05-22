@@ -1619,6 +1619,117 @@
     };
   }
 
+  // src/domain/modal.ts
+  function snapToHalfWeek(dateStr) {
+    if (!dateStr) return dateStr;
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const halfWeeks = [1, 4, 8, 11, 15, 18, 22, 25];
+    let best = halfWeeks[0];
+    let bestDiff = Math.abs(d - halfWeeks[0]);
+    for (const day of halfWeeks) {
+      const diff = Math.abs(d - day);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = day;
+      }
+    }
+    return `${y}-${String(m).padStart(2, "0")}-${String(best).padStart(2, "0")}`;
+  }
+  function phaseToDateStr(project, mi, wi) {
+    const absMonth = project.sy * 12 + project.sm + mi;
+    const year = Math.floor(absMonth / 12);
+    const month = absMonth % 12;
+    const day = Math.min(1 + wi * 7, 28);
+    return `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  function dateStrToPhase(project, str) {
+    if (!str) return { mi: 0, wi: 0 };
+    const [y, m, d] = str.split("-").map(Number);
+    const absMonth = y * 12 + (m - 1);
+    const projectStart = project.sy * 12 + project.sm;
+    return {
+      mi: Math.max(0, Math.min(project.nm - 1, absMonth - projectStart)),
+      wi: Math.min(3, Math.max(0, Math.floor((d - 1) / 7)))
+    };
+  }
+  function getProjectMinDate(project) {
+    return `${project.sy}-${String(project.sm + 1).padStart(2, "0")}-01`;
+  }
+  function getProjectMaxDate(project) {
+    const absEnd = project.sy * 12 + project.sm + project.nm - 1;
+    const year = Math.floor(absEnd / 12);
+    const month = absEnd % 12 + 1;
+    return `${year}-${String(month).padStart(2, "0")}-28`;
+  }
+  function getWeightedProgress(phases) {
+    if (!phases?.length) return 0;
+    if (phases.length === 1) return phases[0]?.prog || 0;
+    const totalDuration = phases.reduce((sum, phase) => {
+      return sum + Math.max(1, phase.me * 4 + phase.we - (phase.ms * 4 + phase.ws) + 1);
+    }, 0);
+    const weighted = phases.reduce((sum, phase) => {
+      const duration = Math.max(1, phase.me * 4 + phase.we - (phase.ms * 4 + phase.ws) + 1);
+      return sum + (phase.prog || 0) * duration;
+    }, 0);
+    return Math.round(weighted / totalDuration);
+  }
+  function getActivePhaseIndex(phases) {
+    let last = 0;
+    phases.forEach((phase, index) => {
+      if ((phase.prog || 0) > 0) last = index;
+    });
+    return last;
+  }
+  function remWeeks(phase) {
+    return Math.max(1, phase.me * 4 + phase.we - (phase.ms * 4 + phase.ws) + 1);
+  }
+  function buildTaskCalcModel(input) {
+    const remainder = input.budget - input.spent;
+    const weeks = input.phase ? remWeeks(input.phase) : 0;
+    return {
+      remainder,
+      weeks,
+      weeklyRate: weeks > 0 ? Math.round(remainder / weeks) : 0
+    };
+  }
+  function buildDependencyListState(input) {
+    const all = [];
+    input.tasks.forEach((task, toTi) => {
+      (task.deps || []).forEach((raw) => {
+        const dep = input.normDep(raw);
+        const fromTask = input.tasks.find((candidate) => candidate.id === dep.id);
+        if (!fromTask) return;
+        const fromTi = input.tasks.indexOf(fromTask);
+        const type = dep.type || "FS";
+        const threshold = dep.threshold || 0;
+        all.push({
+          index: all.length + 1,
+          fromTi,
+          toTi,
+          fromTask,
+          toTask: task,
+          type,
+          threshold,
+          typeLabel: type === "SS" && threshold ? `SS+${threshold}%` : type,
+          isCritical: input.criticalSet.has(fromTi) && input.criticalSet.has(toTi),
+          fromColor: input.categories[fromTask.cat]?.color || "var(--txt3)",
+          toColor: input.categories[task.cat]?.color || "var(--txt3)"
+        });
+      });
+    });
+    const counts = { all: all.length, FS: 0, SS: 0, FF: 0 };
+    all.forEach((row) => {
+      counts[row.type] = (counts[row.type] || 0) + 1;
+    });
+    const rows = input.filter === "all" ? all : all.filter((row) => row.type === input.filter);
+    return {
+      allCount: all.length,
+      filteredCount: rows.length,
+      counts,
+      rows
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -2431,6 +2542,16 @@
     buildRuntimeDependencyListModalModel: buildDependencyListModalModel,
     buildRuntimeTaskFormPanelModel: buildTaskFormPanelModel,
     buildRuntimeDemoProjectSeedModel: buildDemoProjectSeedModel,
+    buildRuntimeSnapToHalfWeek: snapToHalfWeek,
+    buildRuntimePhaseToDateStr: phaseToDateStr,
+    buildRuntimeDateStrToPhase: dateStrToPhase,
+    buildRuntimeProjectMinDate: getProjectMinDate,
+    buildRuntimeProjectMaxDate: getProjectMaxDate,
+    buildRuntimeWeightedProgress: getWeightedProgress,
+    buildRuntimeActivePhaseIndex: getActivePhaseIndex,
+    buildRuntimeRemWeeks: remWeeks,
+    buildRuntimeTaskCalcModel: buildTaskCalcModel,
+    buildRuntimeDependencyListState: buildDependencyListState,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

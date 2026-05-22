@@ -114,6 +114,18 @@ import {
   buildTaskRangeWarningModel,
   buildTaskSavedToastModel,
 } from "../src/domain/modal-ui";
+import {
+  buildDependencyListState,
+  buildTaskCalcModel,
+  dateStrToPhase,
+  getActivePhaseIndex,
+  getProjectMaxDate,
+  getProjectMinDate,
+  getWeightedProgress,
+  phaseToDateStr,
+  remWeeks,
+  snapToHalfWeek,
+} from "../src/domain/modal";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -1025,6 +1037,47 @@ assert.equal(taskFormPanel.weeklyRateUnit, "грн/тижд.");
 
 const demoProjectSeed = buildDemoProjectSeedModel();
 assert.equal(demoProjectSeed.projectName, "Ремонт офісу (демо)");
+
+assert.equal(snapToHalfWeek("2026-05-09"), "2026-05-08");
+assert.equal(phaseToDateStr({ sy: 2026, sm: 0, nm: 12 }, 1, 2), "2026-02-15");
+assert.deepEqual(dateStrToPhase({ sy: 2026, sm: 0, nm: 12 }, "2026-02-18"), { mi: 1, wi: 2 });
+assert.equal(getProjectMinDate({ sy: 2026, sm: 4, nm: 12 }), "2026-05-01");
+assert.equal(getProjectMaxDate({ sy: 2026, sm: 4, nm: 12 }), "2027-04-28");
+assert.equal(
+  getWeightedProgress([
+    { ms: 0, ws: 0, me: 0, we: 1, prog: 100 },
+    { ms: 0, ws: 2, me: 1, we: 1, prog: 20 },
+  ]),
+  47,
+);
+assert.equal(getActivePhaseIndex([{ prog: 0 }, { prog: 25 }, { prog: 10 }]), 2);
+assert.equal(remWeeks({ ms: 0, ws: 0, me: 1, we: 1 }), 6);
+const modalCalc = buildTaskCalcModel({
+  budget: 1000,
+  spent: 250,
+  phase: { ms: 0, ws: 0, me: 1, we: 1 },
+});
+assert.equal(modalCalc.remainder, 750);
+assert.equal(modalCalc.weeks, 6);
+assert.equal(modalCalc.weeklyRate, 125);
+const depListState = buildDependencyListState({
+  tasks: [
+    { id: "a", n: 1, name: "Prep", cat: 0, deps: [] },
+    { id: "b", n: 2, name: "Build", cat: 1, deps: [{ id: "a", type: "FS" }] },
+    { id: "c", n: 3, name: "Finish", cat: 0, deps: [{ id: "b", type: "SS", threshold: 25 }] },
+  ],
+  filter: "all",
+  criticalSet: new Set([0, 1]),
+  categories: [{ color: "#111111" }, { color: "#222222" }],
+  normDep: (dep) => dep,
+});
+assert.equal(depListState.allCount, 2);
+assert.equal(depListState.filteredCount, 2);
+assert.equal(depListState.counts.FS, 1);
+assert.equal(depListState.counts.SS, 1);
+assert.equal(depListState.rows[0]?.typeLabel, "FS");
+assert.equal(depListState.rows[1]?.typeLabel, "SS+25%");
+assert.equal(depListState.rows[0]?.isCritical, true);
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

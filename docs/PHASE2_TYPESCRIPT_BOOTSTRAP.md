@@ -26,6 +26,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/baseline-ui.ts`
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
+  - `src/domain/modal.ts`
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
@@ -111,6 +112,10 @@ and Supabase adapters happen against stable interfaces.
   - empty-project and demo-project snapshot creation
   - delete-project guard evaluation
   - next-project resolution after deletion
+  - modal phase/date conversion helpers
+  - weighted progress and active-phase resolution
+  - task cost summary calculation for modal footer
+  - dependency-list aggregation and filtered row projection
 - `js/baseline.js` and `js/guard.js` now use the generated helper layer for:
   - baseline save/clear/missing dialogs
   - capability-guard action labels and denial toasts

@@ -290,41 +290,25 @@ function _resolveNextProjectAfterDeletion(projectIds, currentProjectId, deletedP
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
 function _snapToHalfWeek(dateStr) {
-  if (!dateStr) return dateStr;
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const HW = [1, 4, 8, 11, 15, 18, 22, 25];
-  let best = HW[0], bestDiff = Math.abs(d - HW[0]);
-  for (const h of HW) {
-    const diff = Math.abs(d - h);
-    if (diff < bestDiff) { bestDiff = diff; best = h; }
-  }
-  return `${y}-${String(m).padStart(2, '0')}-${String(best).padStart(2, '0')}`;
+  if (typeof buildRuntimeSnapToHalfWeek === "function") return buildRuntimeSnapToHalfWeek(dateStr);
+  return dateStr;
 }
 
 function _phaseToDateStr(mi, wi) {
-  const absMonth = proj.sy * 12 + proj.sm + mi;
-  const y = Math.floor(absMonth / 12);
-  const m = absMonth % 12;
-  const day = Math.min(1 + wi * 7, 28);
-  return `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  if (typeof buildRuntimePhaseToDateStr === "function") return buildRuntimePhaseToDateStr(proj, mi, wi);
+  return "";
 }
 function _dateStrToPhase(str) {
-  if (!str) return { mi: 0, wi: 0 };
-  const [y, m, d] = str.split('-').map(Number);
-  const absMonth = y * 12 + (m - 1);
-  const projStart = proj.sy * 12 + proj.sm;
-  const mi = Math.max(0, Math.min(proj.nm - 1, absMonth - projStart));
-  const wi = Math.min(3, Math.max(0, Math.floor((d - 1) / 7)));
-  return { mi, wi };
+  if (typeof buildRuntimeDateStrToPhase === "function") return buildRuntimeDateStrToPhase(proj, str);
+  return { mi: 0, wi: 0 };
 }
 function _projMinDate() {
-  return `${proj.sy}-${String(proj.sm + 1).padStart(2, '0')}-01`;
+  if (typeof buildRuntimeProjectMinDate === "function") return buildRuntimeProjectMinDate(proj);
+  return "";
 }
 function _projMaxDate() {
-  const absEnd = proj.sy * 12 + proj.sm + proj.nm - 1;
-  const y = Math.floor(absEnd / 12);
-  const m = absEnd % 12 + 1;
-  return `${y}-${String(m).padStart(2, '0')}-28`;
+  if (typeof buildRuntimeProjectMaxDate === "function") return buildRuntimeProjectMaxDate(proj);
+  return "";
 }
 
 function adjNum(id, delta) {
@@ -381,10 +365,8 @@ function _applyNotesModalPermissions() {
 
 /** Зважений загальний прогрес фаз з урахуванням тривалості кожної. */
 function _weightedProg(phases) {
-  if (!phases || phases.length === 0) return 0;
-  if (phases.length === 1) return phases[0].prog || 0;
-  const totalDur = phases.reduce((s, p) => s + Math.max(1, (p.me * 4 + p.we) - (p.ms * 4 + p.ws) + 1), 0);
-  return Math.round(phases.reduce((s, p) => s + (p.prog || 0) * Math.max(1, (p.me * 4 + p.we) - (p.ms * 4 + p.ws) + 1), 0) / totalDur);
+  if (typeof buildRuntimeWeightedProgress === "function") return buildRuntimeWeightedProgress(phases || []);
+  return 0;
 }
 
 /** Рендерить інлайн-список фаз у модалі задачі. */
@@ -437,11 +419,8 @@ function renderModalPhases() {
 
 /** Повертає індекс активної фази (остання з prog > 0, або перша). */
 function _activePhaseIdx() {
-  let last = 0;
-  _modalPhases.forEach((p, i) => {
-    if ((p.prog || 0) > 0) last = i;
-  });
-  return last;
+  if (typeof buildRuntimeActivePhaseIndex === "function") return buildRuntimeActivePhaseIndex(_modalPhases || []);
+  return 0;
 }
 
 /** Зчитує поточні значення полів фаз у _modalPhases. */
@@ -843,12 +822,15 @@ function updCalc() {
     document.getElementById("f-spent").value = s;
   }
   _updateAutoBadges(hasItems, hasItems && (overrideBudget || currentBudget <= 0));
-  const r = b - s;
-  const ph = _modalPhases[0];
-  const rw = ph ? remWk({ ms: ph.ms, ws: ph.ws, me: ph.me, we: ph.we }) : 0;
-  const rate = rw > 0 ? Math.round(r / rw) : 0;
+  const calc = typeof buildRuntimeTaskCalcModel === "function"
+    ? buildRuntimeTaskCalcModel({
+        budget: b,
+        spent: s,
+        phase: _modalPhases[0] || null,
+      })
+    : { remainder: b - s, weeks: 0, weeklyRate: 0 };
   document.getElementById("calc-info").innerHTML =
-    `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(r)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${rw}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${rw > 0 ? fmtM(rate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
+    `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(calc.remainder)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${calc.weeks}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${calc.weeks > 0 ? fmtM(calc.weeklyRate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
 }
 
 function openAdd() {
@@ -1405,67 +1387,53 @@ function setDepListFilter(f) {
 function _renderDepList() {
   const dependencyListModal = _getDependencyListModalModel();
   const TC = { FS: "var(--acc)", SS: "var(--warn)", FF: "var(--txt3)" };
-
-  // Збираємо всі залежності
-  const all = [];
-  tasks.forEach((t, toTi) => {
-    (t.deps || []).forEach(raw => {
-      const dep = normDep(raw);
-      const fromTask = tasks.find(ft => ft.id === dep.id);
-      if (!fromTask) return;
-      const fromTi = tasks.indexOf(fromTask);
-      all.push({ fromTask, fromTi, toTask: t, toTi, type: dep.type || "FS", threshold: dep.threshold || 0 });
-    });
-  });
-
-  const filtered = _dlFilter === "all" ? all : all.filter(d => d.type === _dlFilter);
-
-  // Лічильники для фільтрів
-  const cnt = { all: all.length, FS: 0, SS: 0, FF: 0 };
-  all.forEach(d => cnt[d.type] = (cnt[d.type] || 0) + 1);
+  const depState = typeof buildRuntimeDependencyListState === "function"
+    ? buildRuntimeDependencyListState({
+        tasks,
+        filter: _dlFilter,
+        criticalSet,
+        categories: cats,
+        normDep,
+      })
+    : { allCount: 0, filteredCount: 0, counts: { all: 0, FS: 0, SS: 0, FF: 0 }, rows: [] };
 
   document.getElementById("dl-count").textContent =
-    dependencyListModal.countLabel(filtered.length, all.length);
+    dependencyListModal.countLabel(depState.filteredCount, depState.allCount);
 
-  // Фільтр-кнопки
   document.querySelectorAll(".dl-filter-btn").forEach(b => {
     const f = b.dataset.f;
-    b.textContent = f === "all" ? dependencyListModal.allFilterLabel(cnt.all) :
-                    f === "FS"  ? dependencyListModal.fsFilterLabel(cnt.FS || 0) :
-                    f === "SS"  ? dependencyListModal.ssFilterLabel(cnt.SS || 0) :
-                                  dependencyListModal.ffFilterLabel(cnt.FF || 0);
+    b.textContent = f === "all" ? dependencyListModal.allFilterLabel(depState.counts.all) :
+                    f === "FS"  ? dependencyListModal.fsFilterLabel(depState.counts.FS || 0) :
+                    f === "SS"  ? dependencyListModal.ssFilterLabel(depState.counts.SS || 0) :
+                                  dependencyListModal.ffFilterLabel(depState.counts.FF || 0);
     b.classList.toggle("on", f === _dlFilter);
   });
 
   const body = document.getElementById("dl-body");
-  if (!filtered.length) {
+  if (!depState.rows.length) {
     body.innerHTML = `<div class="dl-empty">${
-      all.length ? dependencyListModal.emptyFilteredText : dependencyListModal.emptyProjectText
+      depState.allCount ? dependencyListModal.emptyFilteredText : dependencyListModal.emptyProjectText
     }</div>`;
     return;
   }
 
-  const rows = filtered.map((d, i) => {
-    const typeLbl = d.type === "SS" && d.threshold ? `SS+${d.threshold}%` : d.type;
-    const isCrit  = criticalSet.has(d.fromTi) && criticalSet.has(d.toTi);
-    const fCol    = cats[d.fromTask.cat]?.color || "var(--txt3)";
-    const tCol    = cats[d.toTask.cat]?.color   || "var(--txt3)";
+  const rows = depState.rows.map((d) => {
     return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="${dependencyListModal.rowTitle}">
-      <td class="dl-i">${i + 1}</td>
+      <td class="dl-i">${d.index}</td>
       <td class="dl-task">
-        <span class="dl-dot" style="background:${fCol}"></span>
-        <span class="dl-tn" style="color:${fCol}">#${d.fromTask.n}</span>
+        <span class="dl-dot" style="background:${d.fromColor}"></span>
+        <span class="dl-tn" style="color:${d.fromColor}">#${d.fromTask.n}</span>
         <span class="dl-nm">${d.fromTask.name}</span>
       </td>
       <td class="dl-arrow">
-        <span class="dep-tag-badge" style="background:${TC[d.type] || "var(--acc)"}">${typeLbl}</span>
+        <span class="dep-tag-badge" style="background:${TC[d.type] || "var(--acc)"}">${d.typeLabel}</span>
       </td>
       <td class="dl-task">
-        <span class="dl-dot" style="background:${tCol}"></span>
-        <span class="dl-tn" style="color:${tCol}">#${d.toTask.n}</span>
+        <span class="dl-dot" style="background:${d.toColor}"></span>
+        <span class="dl-tn" style="color:${d.toColor}">#${d.toTask.n}</span>
         <span class="dl-nm">${d.toTask.name}</span>
       </td>
-      <td class="dl-crit">${isCrit ? `<span class="dl-crit-ic" title="${dependencyListModal.criticalRowTitle}"></span>` : ""}</td>
+      <td class="dl-crit">${d.isCritical ? `<span class="dl-crit-ic" title="${dependencyListModal.criticalRowTitle}"></span>` : ""}</td>
     </tr>`;
   }).join("");
 
