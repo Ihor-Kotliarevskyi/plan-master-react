@@ -228,6 +228,9 @@ function renderFinFilters() {
 }
 
 function _hasFinanceFilters() {
+  if (typeof buildRuntimeHasFinanceFilters === "function") {
+    return buildRuntimeHasFinanceFilters(finFilters, multiFilterValues);
+  }
   return !!(
     multiFilterValues(finFilters.cat).length ||
     multiFilterValues(finFilters.stat).length ||
@@ -271,19 +274,21 @@ async function deleteVisibleFinanceTasks() {
     return;
   }
 
-  const summary = indexes.reduce((acc, ti) => {
-    const task = tasks[ti];
-    const items = taskCostItems(task);
-    acc.tasks += 1;
-    acc.budget += +task.budget || 0;
-    acc.spent += +task.spent || 0;
-    acc.items += items.length;
-    items.forEach((item) => {
-      acc.acts += (item.acts || []).length;
-      acc.payments += (item.payments || []).length;
-    });
-    return acc;
-  }, { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 });
+  const summary = typeof buildRuntimeSummarizeFinanceDeletion === "function"
+    ? buildRuntimeSummarizeFinanceDeletion(indexes, tasks, taskCostItems)
+    : indexes.reduce((acc, ti) => {
+        const task = tasks[ti];
+        const items = taskCostItems(task);
+        acc.tasks += 1;
+        acc.budget += +task.budget || 0;
+        acc.spent += +task.spent || 0;
+        acc.items += items.length;
+        items.forEach((item) => {
+          acc.acts += (item.acts || []).length;
+          acc.payments += (item.payments || []).length;
+        });
+        return acc;
+      }, { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 });
 
   const scope = _hasFinanceFilters() || finFilters.q
     ? FINANCE_UI.deleteDialogs.filteredScopeLabel
@@ -358,6 +363,16 @@ function applyFinFilters(t) {
 }
 
 function _financeSearchText(t) {
+  if (typeof buildRuntimeFinanceSearchText === "function") {
+    return buildRuntimeFinanceSearchText(
+      t,
+      taskContractors(t),
+      taskCostItems(t),
+      CN(t.cat),
+      COST_TYPES,
+      PAYMENT_TYPES,
+    );
+  }
   const parts = [
     t.n, t.name, CN(t.cat), t.prog, t.budget, t.spent,
     (+t.budget || 0) - (+t.spent || 0),
@@ -394,21 +409,39 @@ function _financeContractorKey(name) {
 }
 
 function _financeItemTotal(item) {
+  if (typeof buildRuntimeFinanceItemTotal === "function") return buildRuntimeFinanceItemTotal(item);
   const qty = item?.qty == null ? 1 : (+item.qty || 0);
   return qty * (+item?.unitPrice || 0);
 }
 
 function _financeScopedCostItems(t) {
-  const items = typeof taskCostItems === "function" ? taskCostItems(t) : (t.costItems || t.cost_items || []);
   const selected = multiFilterValues(finFilters.contr).map(_financeContractorKey);
+  if (typeof buildRuntimeFinanceScopedCostItems === "function") {
+    return buildRuntimeFinanceScopedCostItems(
+      t,
+      selected,
+      _financeContractorKey,
+      (task) => typeof taskCostItems === "function" ? taskCostItems(task) : (task.costItems || task.cost_items || []),
+    );
+  }
+  const items = typeof taskCostItems === "function" ? taskCostItems(t) : (t.costItems || t.cost_items || []);
   if (!selected.length) return items;
   return items.filter((item) => selected.includes(_financeContractorKey(item.supplier)));
 }
 
 function _financeTaskScope(t) {
+  const selected = multiFilterValues(finFilters.contr).map(_financeContractorKey);
+  if (typeof buildRuntimeFinanceTaskScope === "function") {
+    return buildRuntimeFinanceTaskScope(
+      t,
+      selected,
+      _financeContractorKey,
+      (task) => typeof taskCostItems === "function" ? taskCostItems(task) : (task.costItems || task.cost_items || []),
+    );
+  }
   const items = _financeScopedCostItems(t);
   const payments = items.flatMap((it) => it.payments || []);
-  if (multiFilterValues(finFilters.contr).length) {
+  if (selected.length) {
     const budget = items.reduce((sum, it) => sum + _financeItemTotal(it), 0);
     const spent = payments.reduce((sum, p) => sum + (+p.amount || 0), 0);
     return { budget, spent, payments };
@@ -430,18 +463,33 @@ function _renderFinanceOverview() {
   const summary = document.getElementById("fin-summary");
   if (!summary) return;
 
-  const tb = tasks.reduce((s, t) => s + (+t.budget || 0), 0);
-  const ts = tasks.reduce((s, t) => s + (+t.spent || 0), 0);
-  const tr = tb - ts;
-  const op = tb > 0 ? Math.round((ts / tb) * 100) : 0;
-
-  const bcwp = tasks.reduce((s, t) => s + (+t.budget || 0) * (t.prog / 100), 0);
-  const acwp = ts;
-  const bac = tb;
-  const cpi = acwp > 0 ? bcwp / acwp : null;
-  const eac = cpi && cpi > 0 ? bac / cpi : null;
-  const etc = eac !== null ? eac - acwp : null;
-  const vac = eac !== null ? bac - eac : null;
+  const overview = typeof buildRuntimeCalculateFinanceOverview === "function"
+    ? buildRuntimeCalculateFinanceOverview(tasks)
+    : (() => {
+        const tb = tasks.reduce((s, t) => s + (+t.budget || 0), 0);
+        const ts = tasks.reduce((s, t) => s + (+t.spent || 0), 0);
+        const tr = tb - ts;
+        const op = tb > 0 ? Math.round((ts / tb) * 100) : 0;
+        const bcwp = tasks.reduce((s, t) => s + (+t.budget || 0) * (t.prog / 100), 0);
+        const acwp = ts;
+        const bac = tb;
+        const cpi = acwp > 0 ? bcwp / acwp : null;
+        const eac = cpi && cpi > 0 ? bac / cpi : null;
+        const etc = eac !== null ? eac - acwp : null;
+        const vac = eac !== null ? bac - eac : null;
+        return { budget: tb, spent: ts, rest: tr, spentPct: op, bcwp, acwp, bac, cpi, eac, etc, vac };
+      })();
+  const tb = overview.budget;
+  const ts = overview.spent;
+  const tr = overview.rest;
+  const op = overview.spentPct;
+  const bcwp = overview.bcwp;
+  const acwp = overview.acwp;
+  const bac = overview.bac;
+  const cpi = overview.cpi;
+  const eac = overview.eac;
+  const etc = overview.etc;
+  const vac = overview.vac;
   const cpiColor = cpi === null ? "inherit" : cpi >= 1 ? "var(--ok)" : cpi >= 0.9 ? "var(--warn)" : "var(--err)";
 
   summary.innerHTML = `
@@ -462,9 +510,15 @@ function _renderFinanceOverview() {
 }
 
 function _getFinanceRows() {
-  const rows = tasks.filter(applyFinFilters).map((t) => ({
+  const filteredTasks = tasks
+    .map((t, ti) => ({ ...t, __ti: ti }))
+    .filter(applyFinFilters);
+  if (typeof buildRuntimeBuildFinanceRows === "function") {
+    return buildRuntimeBuildFinanceRows(filteredTasks, finSort, dur, remWk);
+  }
+  const rows = filteredTasks.map((t) => ({
     ...t,
-    ti: tasks.indexOf(t),
+    ti: t.__ti,
     dur: dur(t),
     rest: (+t.budget || 0) - (+t.spent || 0),
     pct: t.budget > 0 ? Math.round((t.spent / t.budget) * 100) : 0,
@@ -474,7 +528,6 @@ function _getFinanceRows() {
       return rw > 0 ? Math.round(r / rw) : 0;
     })(),
   }));
-
   rows.sort((a, b) => {
     const av = a[finSort.col];
     const bv = b[finSort.col];

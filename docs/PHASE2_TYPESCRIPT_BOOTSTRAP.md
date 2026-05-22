@@ -41,6 +41,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/project-lifecycle.ts`
   - `src/domain/project-import.ts`
   - `src/domain/costs.ts`
+  - `src/domain/finance.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -116,6 +117,12 @@ and Supabase adapters happen against stable interfaces.
   - filter/search labels
   - bulk delete confirmation copy
   - chart dataset and tooltip labels
+  - finance filter-state detection
+  - scoped cost-item and payment aggregation
+  - finance search text building
+  - deletion summary calculation
+  - overview KPI calculation
+  - finance row enrichment and sorting
 - `js/charts.js` now uses the generated helper layer for:
   - axis and title labels
   - chart action tooltips

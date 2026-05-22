@@ -30,6 +30,16 @@ import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildApiUiModel } from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../src/domain/finance";
 import { buildPrintUiModel } from "../src/domain/print-ui";
 import { buildStorageUiModel } from "../src/domain/storage-ui";
 import {
@@ -538,6 +548,87 @@ const financeUi = buildFinanceUiModel();
 assert.equal(financeUi.filters.searchPlaceholder, "Пошук у фінансах...");
 assert.equal(financeUi.deleteDialogs.finalConfirmLabel, "Видалити");
 assert.equal(financeUi.chart.projectedLabel, "Прогноз, грн");
+
+assert.equal(
+  hasFinanceFilters(
+    { cat: ["1"], stat: [], contr: [], budgetMin: "", budgetMax: "", onlyBudget: false },
+    (value) => Array.isArray(value) ? value.map(String) : [],
+  ),
+  true,
+);
+assert.equal(financeItemTotal({ qty: 2, unitPrice: 150 }), 300);
+
+const financeTask = {
+  n: 1,
+  name: "Finance Task",
+  cat: 0,
+  budget: 1000,
+  spent: 400,
+  prog: 40,
+  costItems: [
+    {
+      supplier: "Acme",
+      qty: 2,
+      unitPrice: 150,
+      payments: [{ amount: 100, type: "act", date: "2026-05-01" }],
+      acts: [{}],
+      type: "service",
+      name: "Install",
+    },
+    {
+      supplier: "Other",
+      qty: 1,
+      unitPrice: 200,
+      payments: [{ amount: 50, type: "invoice", date: "2026-05-03" }],
+      acts: [],
+      type: "material",
+      name: "Steel",
+    },
+  ],
+};
+const contractorKey = (name: string) => String(name || "").trim().toLowerCase();
+const getTaskItems = (task: any) => task.costItems || [];
+const scopedItems = financeScopedCostItems(financeTask, ["acme"], contractorKey, getTaskItems);
+assert.equal(scopedItems.length, 1);
+const scopedScope = financeTaskScope(financeTask, ["acme"], contractorKey, getTaskItems);
+assert.equal(scopedScope.budget, 300);
+assert.equal(scopedScope.spent, 100);
+assert.equal(scopedScope.payments.length, 1);
+const fullScope = financeTaskScope(financeTask, [], contractorKey, getTaskItems);
+assert.equal(fullScope.budget, 1000);
+assert.equal(fullScope.spent, 400);
+
+const financeSearch = buildFinanceSearchText(
+  financeTask,
+  ["Acme"],
+  financeTask.costItems,
+  "General",
+  { service: { label: "Service" }, material: { label: "Material" } },
+  { act: "Act", invoice: "Invoice" },
+);
+assert.equal(financeSearch.includes("finance task"), true);
+assert.equal(financeSearch.includes("acme"), true);
+
+const financeSummary = summarizeFinanceDeletion([0], [financeTask], getTaskItems);
+assert.equal(financeSummary.tasks, 1);
+assert.equal(financeSummary.items, 2);
+assert.equal(financeSummary.payments, 2);
+
+const overview = calculateFinanceOverview([financeTask]);
+assert.equal(overview.budget, 1000);
+assert.equal(overview.spent, 400);
+assert.equal(overview.rest, 600);
+assert.equal(overview.spentPct, 40);
+
+const financeRows = buildFinanceRows(
+  [{ ...financeTask, __ti: 0 }, { ...financeTask, __ti: 1, name: "Another", budget: 200, spent: 50 }],
+  { col: "budget", dir: -1 },
+  () => 6,
+  () => 3,
+);
+assert.equal(financeRows[0]?.budget, 1000);
+assert.equal(financeRows[0]?.ti, 0);
+assert.equal(financeRows[0]?.rate, 200);
 
 const printUi = buildPrintUiModel();
 assert.equal(printUi.noChartsText, "Немає побудованих графіків");

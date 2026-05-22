@@ -31,6 +31,16 @@ import { buildAppUiModel } from "../domain/app-ui";
 import { buildApiUiModel } from "../domain/api-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
 import { buildFinanceUiModel } from "../domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../domain/finance";
 import { buildPrintUiModel } from "../domain/print-ui";
 import {
   buildContractorFilterLabels,
@@ -283,6 +293,14 @@ const runtimeHelpers = {
   buildRuntimeApiUiModel: buildApiUiModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,
   buildRuntimeFinanceUiModel: buildFinanceUiModel,
+  buildRuntimeHasFinanceFilters: hasFinanceFilters,
+  buildRuntimeFinanceItemTotal: financeItemTotal,
+  buildRuntimeFinanceScopedCostItems: financeScopedCostItems,
+  buildRuntimeFinanceTaskScope: financeTaskScope,
+  buildRuntimeFinanceSearchText: buildFinanceSearchText,
+  buildRuntimeSummarizeFinanceDeletion: summarizeFinanceDeletion,
+  buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
+  buildRuntimeBuildFinanceRows: buildFinanceRows,
   buildRuntimePrintUiModel: buildPrintUiModel,
   buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
   buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
