@@ -39,6 +39,20 @@ import {
   buildContractorTableLabels,
 } from "../src/domain/contractors-ui";
 import { buildCostUiModel } from "../src/domain/costs-ui";
+import {
+  addPaymentToCostItem,
+  calculateCostItemTotal,
+  calculateCostSpent,
+  calculateCostTotals,
+  createCostItem,
+  createCostPayment,
+  removeCostItem,
+  removePaymentFromCostItem,
+  toggleExpandedCostId,
+  updateCostItemContract,
+  updateCostItemField,
+  updateCostPaymentField,
+} from "../src/domain/costs";
 import { buildGuardedActionLabels, buildGuardToastModel } from "../src/domain/guard-ui";
 import {
   buildDependencyEditorModel,
@@ -564,6 +578,45 @@ const costUi = buildCostUiModel();
 assert.equal(costUi.labels.addPaymentLabel, "+ Платіж");
 assert.equal(costUi.labels.contractNamePrefix, "Договір");
 assert.equal(costUi.costTypes.material?.label, "Матеріали");
+
+const createdCostItem = createCostItem({ id: 101, type: "work", defaultUnit: "contract" });
+assert.equal(createdCostItem.id, 101);
+assert.equal(createdCostItem.type, "work");
+assert.equal(createdCostItem.unit, "contract");
+
+const createdPayment = createCostPayment({ id: 201, date: "2026-05-22" });
+assert.equal(createdPayment.type, "act");
+assert.equal(createdPayment.date, "2026-05-22");
+
+const costItemsWithPayment = addPaymentToCostItem(
+  [createdCostItem],
+  101,
+  { ...createdPayment, amount: 500 },
+);
+assert.equal(costItemsWithPayment[0]?.payments?.length, 1);
+
+const updatedCostItems = updateCostItemField(costItemsWithPayment, 101, "unitPrice", 1200);
+assert.equal(updatedCostItems[0]?.unitPrice, 1200);
+
+const renamedCostItems = updateCostItemContract(updatedCostItems, 101, "A-12", "Contract");
+assert.equal(renamedCostItems[0]?.contractNo, "A-12");
+assert.equal(renamedCostItems[0]?.name, "Contract A-12");
+
+const updatedPaymentItems = updateCostPaymentField(renamedCostItems, 101, 0, "amount", 650);
+assert.equal(updatedPaymentItems[0]?.payments?.[0]?.amount, 650);
+
+assert.equal(calculateCostItemTotal({ ...updatedPaymentItems[0], qty: 2 }), 2400);
+assert.equal(calculateCostSpent(updatedPaymentItems[0]), 650);
+
+const totals = calculateCostTotals([{ ...updatedPaymentItems[0], qty: 2 }]);
+assert.equal(totals.budget, 2400);
+assert.equal(totals.spent, 650);
+assert.equal(totals.rest, 1750);
+
+assert.deepEqual(toggleExpandedCostId([1, 2], 2), [1]);
+assert.deepEqual(toggleExpandedCostId([1], 3), [1, 3]);
+assert.equal(removePaymentFromCostItem(updatedPaymentItems, 101, 0)[0]?.payments?.length, 0);
+assert.equal(removeCostItem(updatedPaymentItems, 101).length, 0);
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");

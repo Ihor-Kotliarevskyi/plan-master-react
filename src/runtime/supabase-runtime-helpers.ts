@@ -39,6 +39,20 @@ import {
   buildContractorTableLabels,
 } from "../domain/contractors-ui";
 import { buildCostUiModel } from "../domain/costs-ui";
+import {
+  addPaymentToCostItem,
+  calculateCostItemTotal,
+  calculateCostSpent,
+  calculateCostTotals,
+  createCostItem,
+  createCostPayment,
+  removeCostItem,
+  removePaymentFromCostItem,
+  toggleExpandedCostId,
+  updateCostItemContract,
+  updateCostItemField,
+  updateCostPaymentField,
+} from "../domain/costs";
 import { buildGuardedActionLabels, buildGuardToastModel } from "../domain/guard-ui";
 import {
   buildDependencyEditorModel,
@@ -275,6 +289,18 @@ const runtimeHelpers = {
   buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
   buildRuntimeContractorTableLabels: buildContractorTableLabels,
   buildRuntimeCostUiModel: buildCostUiModel,
+  buildRuntimeCreateCostItem: createCostItem,
+  buildRuntimeCreateCostPayment: createCostPayment,
+  buildRuntimeRemoveCostItem: removeCostItem,
+  buildRuntimeUpdateCostItemField: updateCostItemField,
+  buildRuntimeUpdateCostItemContract: updateCostItemContract,
+  buildRuntimeToggleExpandedCostId: toggleExpandedCostId,
+  buildRuntimeAddPaymentToCostItem: addPaymentToCostItem,
+  buildRuntimeRemovePaymentFromCostItem: removePaymentFromCostItem,
+  buildRuntimeUpdateCostPaymentField: updateCostPaymentField,
+  buildRuntimeCalculateCostItemTotal: calculateCostItemTotal,
+  buildRuntimeCalculateCostSpent: calculateCostSpent,
+  buildRuntimeCalculateCostTotals: calculateCostTotals,
   buildRuntimeGuardToastModel: buildGuardToastModel,
   buildRuntimeGuardedActionLabels: buildGuardedActionLabels,
   buildRuntimeAuthFormModel: buildAuthFormModel,

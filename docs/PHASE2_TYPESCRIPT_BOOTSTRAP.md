@@ -40,6 +40,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/user-feedback-ui.ts`
   - `src/domain/project-lifecycle.ts`
   - `src/domain/project-import.ts`
+  - `src/domain/costs.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -108,6 +109,9 @@ and Supabase adapters happen against stable interfaces.
   - totals/footer labels
   - contract/payment placeholders
   - payment count/action labels
+  - cost item and payment mutation helpers
+  - cost total aggregation
+  - expanded-payment-row toggle logic
 - `js/finance.js` now uses the generated helper layer for:
   - filter/search labels
   - bulk delete confirmation copy

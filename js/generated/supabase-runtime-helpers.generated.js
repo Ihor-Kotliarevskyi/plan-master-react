@@ -703,6 +703,104 @@
     };
   }
 
+  // src/domain/costs.ts
+  function createCostItem(input) {
+    const { id, type = "material", defaultUnit } = input;
+    return {
+      id,
+      type,
+      name: "",
+      supplier: "",
+      unit: defaultUnit,
+      qty: 1,
+      unitPrice: null,
+      contractNo: "",
+      contractNote: "",
+      payments: []
+    };
+  }
+  function createCostPayment(input) {
+    const { id, date, type = "act" } = input;
+    return {
+      id,
+      date,
+      type,
+      amount: null,
+      note: ""
+    };
+  }
+  function removeCostItem(items, id) {
+    return items.filter((item) => item.id !== id);
+  }
+  function updateCostItemField(items, id, field, value) {
+    return items.map((item) => {
+      if (item.id !== id) return item;
+      const nextValue = value === "__custom" ? "" : value;
+      return {
+        ...item,
+        [field]: nextValue,
+        ...field === "contractNote" ? { note: nextValue } : {}
+      };
+    });
+  }
+  function updateCostItemContract(items, id, value, contractNamePrefix) {
+    return items.map(
+      (item) => item.id !== id ? item : {
+        ...item,
+        contractNo: value,
+        name: value ? `${contractNamePrefix} ${value}` : ""
+      }
+    );
+  }
+  function toggleExpandedCostId(expandedIds, id) {
+    return expandedIds.includes(id) ? expandedIds.filter((entry) => entry !== id) : [...expandedIds, id];
+  }
+  function addPaymentToCostItem(items, itemId, payment) {
+    return items.map(
+      (item) => item.id !== itemId ? item : {
+        ...item,
+        payments: [...Array.isArray(item.payments) ? item.payments : [], payment]
+      }
+    );
+  }
+  function removePaymentFromCostItem(items, itemId, paymentIndex) {
+    return items.map((item) => {
+      if (item.id !== itemId || !Array.isArray(item.payments)) return item;
+      return {
+        ...item,
+        payments: item.payments.filter((_, index) => index !== paymentIndex)
+      };
+    });
+  }
+  function updateCostPaymentField(items, itemId, paymentIndex, field, value) {
+    return items.map((item) => {
+      if (item.id !== itemId || !Array.isArray(item.payments)) return item;
+      return {
+        ...item,
+        payments: item.payments.map(
+          (payment, index) => index !== paymentIndex ? payment : { ...payment, [field]: value }
+        )
+      };
+    });
+  }
+  function calculateCostItemTotal(item) {
+    const qty = item.qty == null ? 1 : +item.qty || 0;
+    return qty * (+item.unitPrice || 0);
+  }
+  function calculateCostSpent(item) {
+    return (Array.isArray(item.payments) ? item.payments : []).reduce(
+      (sum, payment) => sum + (+payment.amount || 0),
+      0
+    );
+  }
+  function calculateCostTotals(items) {
+    const budget = Math.round(items.reduce((sum, item) => sum + calculateCostItemTotal(item), 0));
+    const spent = Math.round(items.reduce((sum, item) => sum + calculateCostSpent(item), 0));
+    const rest = budget - spent;
+    const pct = budget > 0 ? Math.round(spent / budget * 100) : 0;
+    return { budget, spent, rest, pct };
+  }
+
   // src/domain/guard-ui.ts
   function buildGuardToastModel(label) {
     return {
@@ -1631,6 +1729,18 @@
     buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
     buildRuntimeContractorTableLabels: buildContractorTableLabels,
     buildRuntimeCostUiModel: buildCostUiModel,
+    buildRuntimeCreateCostItem: createCostItem,
+    buildRuntimeCreateCostPayment: createCostPayment,
+    buildRuntimeRemoveCostItem: removeCostItem,
+    buildRuntimeUpdateCostItemField: updateCostItemField,
+    buildRuntimeUpdateCostItemContract: updateCostItemContract,
+    buildRuntimeToggleExpandedCostId: toggleExpandedCostId,
+    buildRuntimeAddPaymentToCostItem: addPaymentToCostItem,
+    buildRuntimeRemovePaymentFromCostItem: removePaymentFromCostItem,
+    buildRuntimeUpdateCostPaymentField: updateCostPaymentField,
+    buildRuntimeCalculateCostItemTotal: calculateCostItemTotal,
+    buildRuntimeCalculateCostSpent: calculateCostSpent,
+    buildRuntimeCalculateCostTotals: calculateCostTotals,
     buildRuntimeGuardToastModel: buildGuardToastModel,
     buildRuntimeGuardedActionLabels: buildGuardedActionLabels,
     buildRuntimeAuthFormModel: buildAuthFormModel,
