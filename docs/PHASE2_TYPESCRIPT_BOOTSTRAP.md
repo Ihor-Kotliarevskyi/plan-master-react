@@ -40,6 +40,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/user-feedback-ui.ts`
   - `src/domain/project-lifecycle.ts`
   - `src/domain/project-import.ts`
+  - `src/domain/charts.ts`
   - `src/domain/costs.ts`
   - `src/domain/finance.ts`
   - `src/domain/contractors.ts`
@@ -129,6 +130,12 @@ and Supabase adapters happen against stable interfaces.
   - axis and title labels
   - chart action tooltips
   - auto-chart preset titles
+  - chart data aggregation
+  - group color resolution
+  - chart render-type normalization
+  - chart options model building
+  - auto-preset default lookup
+  - chart definition building for custom and auto charts
 - `js/print.js` now uses the generated helper layer for:
   - print dialog empty states
   - print-section normalization

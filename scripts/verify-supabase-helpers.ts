@@ -29,6 +29,14 @@ import {
 import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildApiUiModel } from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../src/domain/charts";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
 import {
   buildFinanceRows,
@@ -562,6 +570,63 @@ const chartsUi = buildChartsUiModel();
 assert.equal(chartsUi.axisLabels.prog, "Виконання (%)");
 assert.equal(chartsUi.actionLabels.printTitle, "Друк");
 assert.equal(chartsUi.autoCharts[0]?.id, "a1");
+
+const chartData = buildChartData({
+  tasks: [
+    { n: 1, name: "Alpha task", cat: 0, ms: 0, prog: 100, budget: 100, spent: 100, contr: "Acme" },
+    { n: 2, name: "Beta task", cat: 0, ms: 0, prog: 50, budget: 200, spent: 80, contr: "" },
+    { n: 3, name: "Gamma task", cat: 1, ms: 1, prog: 0, budget: 300, spent: 0, contr: "Zen" },
+  ],
+  xKey: "status",
+  yKey: "count",
+  catFilter: "",
+  statFilter: "",
+  hiddenCats: new Set([1]),
+  noContractorLabel: "(none)",
+  statusLabels: { done: "Done", active: "Active", pending: "Pending" },
+  getCategoryName: (cat) => (cat === 0 ? "General" : "Other"),
+  getMonthLabel: (month) => (month === 0 ? "May 2026" : "Jun 2026"),
+  getTaskContractors: (task) => (task.contr ? [task.contr] : []),
+  getTaskDuration: () => 4,
+});
+assert.deepEqual(chartData.labels, ["Done", "Active"]);
+assert.deepEqual(chartData.values, [1, 1]);
+
+const chartColors = buildChartColors({
+  xKey: "status",
+  labels: ["Done", "Active", "Pending"],
+  categories: [{ name: "General", color: "#123456" }],
+  statusLabels: { done: "Done", active: "Active", pending: "Pending" },
+});
+assert.deepEqual(chartColors, ["#16803c", "#c07800", "#a09d97"]);
+
+const chartOptions = buildChartOptions("bar", true);
+assert.equal(chartOptions.indexAxis, "y");
+assert.equal(chartOptions.plugins.legend.display, false);
+assert.ok("scales" in chartOptions);
+
+const chartDefinition = buildChartDefinition({
+  id: "cc-1",
+  type: "bar",
+  xKey: "cat",
+  yKey: "budget",
+  catF: "",
+  statF: "",
+  labels: ["General"],
+  values: [300],
+  colors: ["#123456"],
+  axisLabels: chartsUi.axisLabels,
+});
+assert.equal(chartDefinition.title, "Бюджет (грн) за Категорія");
+
+const chartDefaults = getChartAutoDefaults("a4", chartsUi.autoCharts);
+assert.equal(chartDefaults.type, "bar");
+assert.equal(chartDefaults.x, "task");
+assert.equal(chartDefaults.y, "dur");
+
+const chartRenderType = normalizeChartRenderType("horizontalBar");
+assert.equal(chartRenderType.realType, "bar");
+assert.equal(chartRenderType.isHoriz, true);
 
 const financeUi = buildFinanceUiModel();
 assert.equal(financeUi.filters.searchPlaceholder, "Пошук у фінансах...");

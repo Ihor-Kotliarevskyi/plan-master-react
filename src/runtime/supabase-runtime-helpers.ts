@@ -30,6 +30,14 @@ import {
 import { buildAppUiModel } from "../domain/app-ui";
 import { buildApiUiModel } from "../domain/api-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../domain/charts";
 import { buildFinanceUiModel } from "../domain/finance-ui";
 import {
   buildFinanceRows,
@@ -311,6 +319,12 @@ const runtimeHelpers = {
   buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeApiUiModel: buildApiUiModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,
+  buildRuntimeChartData: buildChartData,
+  buildRuntimeChartColors: buildChartColors,
+  buildRuntimeChartOptions: buildChartOptions,
+  buildRuntimeChartDefinition: buildChartDefinition,
+  buildRuntimeChartAutoDefaults: getChartAutoDefaults,
+  buildRuntimeNormalizeChartRenderType: normalizeChartRenderType,
   buildRuntimeFinanceUiModel: buildFinanceUiModel,
   buildRuntimeHasFinanceFilters: hasFinanceFilters,
   buildRuntimeFinanceItemTotal: financeItemTotal,
