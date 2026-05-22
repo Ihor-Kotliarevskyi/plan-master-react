@@ -76,6 +76,13 @@ import {
   buildStorageBufferPayload,
   normalizeBufferedProjectRoles,
 } from "../src/domain/storage";
+import {
+  applyProjectSettingsUpdate,
+  canDeleteProjectCount,
+  createDemoProjectSnapshot,
+  createEmptyProjectSnapshot,
+  resolveNextProjectAfterDeletion,
+} from "../src/domain/project-lifecycle";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -585,5 +592,50 @@ assert.equal(normalizedProjects.b?._role, "viewer");
 const storagePayload = buildStorageBufferPayload({ shell }, "shell", "user-1");
 assert.equal(storagePayload.currentId, "shell");
 assert.equal(storagePayload._userId, "user-1");
+
+const emptyProject = createEmptyProjectSnapshot({
+  name: "  Alpha  ",
+  defaults: { sm: 2, sy: 2026, nm: 10 },
+  categories: [{ name: "General", color: "#000000" }],
+  meta: { _localVersion: 1, _serverVersion: 0 },
+});
+assert.equal(emptyProject.proj.name, "Alpha");
+assert.equal(emptyProject.proj.sm, 2);
+assert.equal(emptyProject.tasks.length, 0);
+
+const demoProject = createDemoProjectSnapshot({
+  projectName: "Demo",
+  startYear: 2027,
+  categories: [{ name: "Demo Cat", color: "#ffffff" }],
+  tasks: [{ n: 1, name: "Task", cat: 0, ms: 1, ws: 0, me: 2, we: 0, prog: 0 }],
+  nextN: 2,
+  meta: { _localVersion: 1 },
+});
+assert.equal(demoProject.proj.name, "Demo");
+assert.equal(demoProject.proj.sy, 2027);
+assert.equal(demoProject.nextN, 2);
+
+const projectSettingsUpdate = applyProjectSettingsUpdate({
+  snapshot: {
+    proj: { name: "Project", sm: 5, sy: 2026, nm: 12 },
+    cats: [],
+    tasks: [{ n: 1, name: "Task", cat: 0, ms: 2, ws: 0, me: 3, we: 0, prog: 0 }],
+    nextN: 2,
+  },
+  name: "Updated Project",
+  sm: 3,
+  sy: 2026,
+  nm: 14,
+});
+assert.equal(projectSettingsUpdate.after.name, "Updated Project");
+assert.equal(projectSettingsUpdate.after.nm, 14);
+assert.equal(projectSettingsUpdate.shiftedTasks, true);
+assert.equal(projectSettingsUpdate.snapshot.tasks[0]?.ms, 4);
+assert.equal(projectSettingsUpdate.snapshot.tasks[0]?.me, 5);
+
+assert.equal(canDeleteProjectCount(1), false);
+assert.equal(canDeleteProjectCount(2), true);
+assert.equal(resolveNextProjectAfterDeletion(["a", "b", "c"], "b", "b"), "a");
+assert.equal(resolveNextProjectAfterDeletion(["a"], "a", "a"), null);
 
 console.log("Supabase helper verification passed.");

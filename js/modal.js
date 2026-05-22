@@ -168,6 +168,124 @@ function _getDemoProjectSeedModel() {
   };
 }
 
+function _buildProjectLifecycleMeta() {
+  if (typeof buildRuntimeInitialProjectSnapshotMeta === "function") {
+    return buildRuntimeInitialProjectSnapshotMeta();
+  }
+  return {
+    _localUpdatedAt: new Date().toISOString(),
+    _localVersion: 1,
+    _serverVersion: 0,
+  };
+}
+
+function _buildProjectSettingsUpdate(snapshot, updates) {
+  if (typeof buildRuntimeProjectSettingsUpdate === "function") {
+    return buildRuntimeProjectSettingsUpdate({
+      snapshot,
+      name: updates.name,
+      sm: updates.sm,
+      sy: updates.sy,
+      nm: updates.nm,
+    });
+  }
+
+  const before = { name: snapshot.proj.name, sm: snapshot.proj.sm, sy: snapshot.proj.sy, nm: snapshot.proj.nm };
+  const name = updates.name.trim() || snapshot.proj.name;
+  const sm = +updates.sm;
+  const sy = +updates.sy;
+  const nm = Math.min(120, Math.max(3, +updates.nm));
+  const oldAbsStart = snapshot.proj.sy * 12 + snapshot.proj.sm;
+  const newAbsStart = sy * 12 + sm;
+  const shift = oldAbsStart - newAbsStart;
+  const shiftedTasks = shift !== 0;
+
+  return {
+    snapshot: {
+      ...snapshot,
+      proj: { ...snapshot.proj, name, sm, sy, nm },
+      tasks: shiftedTasks
+        ? snapshot.tasks.map((task) => ({
+            ...task,
+            ms: Math.max(0, task.ms + shift),
+            me: Math.max(0, task.me + shift),
+            phases: task.phases
+              ? task.phases.map((phase) => ({
+                  ...phase,
+                  ms: Math.max(0, phase.ms + shift),
+                  me: Math.max(0, phase.me + shift),
+                }))
+              : task.phases || null,
+          }))
+        : snapshot.tasks,
+    },
+    before,
+    after: { name, sm, sy, nm },
+    shift,
+    shiftedTasks,
+  };
+}
+
+function _buildEmptyProjectSnapshot(name, defaults) {
+  const meta = _buildProjectLifecycleMeta();
+  if (typeof buildRuntimeCreateEmptyProjectSnapshot === "function") {
+    return buildRuntimeCreateEmptyProjectSnapshot({
+      name,
+      defaults,
+      categories: DEF_CATS,
+      meta,
+    });
+  }
+
+  return {
+    proj: {
+      name: name.trim(),
+      sm: defaults.sm,
+      sy: defaults.sy,
+      nm: defaults.nm,
+    },
+    cats: DEF_CATS.map((c) => ({ ...c })),
+    tasks: [],
+    nextN: 1,
+    ...meta,
+  };
+}
+
+function _buildDemoProjectSnapshot(projectName, startYear) {
+  const meta = _buildProjectLifecycleMeta();
+  if (typeof buildRuntimeCreateDemoProjectSnapshot === "function") {
+    return buildRuntimeCreateDemoProjectSnapshot({
+      projectName,
+      startYear,
+      categories: DEF_CATS,
+      tasks: DEF_TASKS,
+      nextN: DEF_TASKS.length + 1,
+      meta,
+    });
+  }
+
+  return {
+    proj: { name: projectName, sm: 0, sy: startYear, nm: 12 },
+    cats: DEF_CATS.map((c) => ({ ...c })),
+    tasks: DEF_TASKS.map((t) => ({ ...t })),
+    nextN: DEF_TASKS.length + 1,
+    ...meta,
+  };
+}
+
+function _canDeleteProjectCount(projectCount) {
+  if (typeof canRuntimeDeleteProjectCount === "function") return canRuntimeDeleteProjectCount(projectCount);
+  return projectCount > 1;
+}
+
+function _resolveNextProjectAfterDeletion(projectIds, currentProjectId, deletedProjectId) {
+  if (typeof resolveRuntimeNextProjectAfterDeletion === "function") {
+    return resolveRuntimeNextProjectAfterDeletion(projectIds, currentProjectId, deletedProjectId);
+  }
+  if (currentProjectId !== deletedProjectId) return currentProjectId;
+  return projectIds.find((projectId) => projectId !== deletedProjectId) || null;
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -1418,35 +1536,30 @@ function closeProjModal() {
 async function saveProjSettings() {
   if (typeof canManageProject === "function" && !canManageProject()) return;
 
-  const oldAbsStart = proj.sy * 12 + proj.sm;
-  const before = { name: proj.name, sm: proj.sm, sy: proj.sy, nm: proj.nm };
-  proj.name = document.getElementById("p-name").value.trim() || proj.name;
-  const newSm = +document.getElementById("p-sm").value;
-  const newSy = +document.getElementById("p-sy").value;
-  proj.nm = Math.min(120, Math.max(3, +document.getElementById("p-nm").value));
-  const newAbsStart = newSy * 12 + newSm;
-  const shift = oldAbsStart - newAbsStart;
-  if (shift !== 0) {
-    tasks.forEach((t) => {
-      t.ms = Math.max(0, t.ms + shift);
-      t.me = Math.max(0, t.me + shift);
-      if (t.phases)
-        t.phases = t.phases.map((p) => ({
-          ...p,
-          ms: Math.max(0, p.ms + shift),
-          me: Math.max(0, p.me + shift),
-        }));
-    });
-  }
-  proj.sm = newSm;
-  proj.sy = newSy;
+  const updated = _buildProjectSettingsUpdate(
+    {
+      proj: { ...proj },
+      cats: cats.map((c) => ({ ...c })),
+      tasks: tasks.map((t) => ({ ...t })),
+      nextN,
+    },
+    {
+      name: document.getElementById("p-name").value,
+      sm: +document.getElementById("p-sm").value,
+      sy: +document.getElementById("p-sy").value,
+      nm: +document.getElementById("p-nm").value,
+    },
+  );
+
+  proj = { ...updated.snapshot.proj };
+  tasks = updated.snapshot.tasks.map((t) => ({ ...t }));
   closeProjModal();
   saveAll();
   render();
   await logProjectMutation(AUDIT_EVENT_TYPES.PROJECT_SETTINGS_UPDATED, {
-    before,
-    after: { name: proj.name, sm: proj.sm, sy: proj.sy, nm: proj.nm },
-    shiftedTasks: shift !== 0,
+    before: updated.before,
+    after: updated.after,
+    shiftedTasks: updated.shiftedTasks,
   });
 }
 
@@ -1536,19 +1649,7 @@ async function loadDemoProject() {
   if (!isConfirmed) return;
 
   const id = "p_" + Date.now();
-  allProjects[id] = {
-    proj: { name: demoProjectSeed.projectName, sm: 0, sy: new Date().getFullYear(), nm: 12 },
-    cats: DEF_CATS.map((c) => ({ ...c })),
-    tasks: DEF_TASKS.map((t) => ({ ...t })),
-    nextN: DEF_TASKS.length + 1,
-    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
-      ? buildRuntimeInitialProjectSnapshotMeta()
-      : {
-          _localUpdatedAt: new Date().toISOString(),
-          _localVersion: 1,
-          _serverVersion: 0,
-        }),
-  };
+  allProjects[id] = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
   try {
     const payload = typeof buildRuntimeStorageBufferPayload === "function"
       ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
@@ -1579,21 +1680,11 @@ async function createProject() {
   });
   if (!name) return;
   const id = "p_" + Date.now();
-  allProjects[id] = {
-    proj: {
-      ...DEF_PROJ,
-      name: name.trim(),
-      sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
-      sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
-      nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
-    },
-    cats: DEF_CATS.map((c) => ({ ...c })),
-    tasks: [],
-    nextN: 1,
-    ...(typeof buildRuntimeInitialProjectSnapshotMeta === "function"
-      ? buildRuntimeInitialProjectSnapshotMeta()
-      : { _localUpdatedAt: new Date().toISOString(), _localVersion: 1, _serverVersion: 0 }),
-  };
+  allProjects[id] = _buildEmptyProjectSnapshot(name, {
+    sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
+    sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
+    nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
+  });
   saveAll();
   switchProject(id);
   openProjManager();
@@ -1605,7 +1696,7 @@ async function deleteProject(id) {
     : allProjects?.[id]?._role || (id === currentId ? _projectRole : "owner");
   if (typeof canManageProject === "function" && !canManageProject(role)) return;
 
-  if (Object.keys(allProjects).length <= 1) {
+  if (!_canDeleteProjectCount(Object.keys(allProjects).length)) {
     const cannotDelete = _getCannotDeleteLastProjectModel();
     Swal.fire({ icon: "info", title: cannotDelete.title, text: cannotDelete.text });
     return;
@@ -1624,10 +1715,11 @@ async function deleteProject(id) {
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
     await apiDeleteProject(id);
   }
+  const nextProjectId = _resolveNextProjectAfterDeletion(Object.keys(allProjects), currentId, id);
   delete allProjects[id];
   if (currentId === id) {
-    currentId = Object.keys(allProjects)[0];
-    loadCurrent();
+    currentId = nextProjectId;
+    if (currentId) loadCurrent();
   }
   saveAll();
   render();

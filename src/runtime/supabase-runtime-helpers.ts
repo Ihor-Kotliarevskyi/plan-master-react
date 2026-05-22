@@ -81,6 +81,13 @@ import {
 } from "../domain/storage";
 import { buildStorageUiModel } from "../domain/storage-ui";
 import {
+  applyProjectSettingsUpdate,
+  canDeleteProjectCount,
+  createDemoProjectSnapshot,
+  createEmptyProjectSnapshot,
+  resolveNextProjectAfterDeletion,
+} from "../domain/project-lifecycle";
+import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
@@ -235,6 +242,11 @@ const runtimeHelpers = {
   buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   buildRuntimeStorageUiModel: buildStorageUiModel,
+  buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+  buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
+  buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
+  canRuntimeDeleteProjectCount: canDeleteProjectCount,
+  resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,

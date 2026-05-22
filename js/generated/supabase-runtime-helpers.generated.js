@@ -1053,6 +1053,96 @@
     };
   }
 
+  // src/domain/project-lifecycle.ts
+  function clonePhaseWithShift(phase, shift) {
+    return {
+      ...phase,
+      ms: Math.max(0, phase.ms + shift),
+      me: Math.max(0, phase.me + shift)
+    };
+  }
+  function cloneTaskWithShift(task, shift) {
+    return {
+      ...task,
+      ms: Math.max(0, task.ms + shift),
+      me: Math.max(0, task.me + shift),
+      phases: task.phases?.map((phase) => clonePhaseWithShift(phase, shift)) || task.phases || null
+    };
+  }
+  function applyProjectSettingsUpdate(input) {
+    const { snapshot, name, sm, sy, nm } = input;
+    const before = {
+      name: snapshot.proj.name,
+      sm: snapshot.proj.sm,
+      sy: snapshot.proj.sy,
+      nm: snapshot.proj.nm
+    };
+    const nextNm = Math.min(120, Math.max(3, nm));
+    const oldAbsStart = snapshot.proj.sy * 12 + snapshot.proj.sm;
+    const newAbsStart = sy * 12 + sm;
+    const shift = oldAbsStart - newAbsStart;
+    const shiftedTasks = shift !== 0;
+    return {
+      snapshot: {
+        ...snapshot,
+        proj: {
+          ...snapshot.proj,
+          name: name.trim() || snapshot.proj.name,
+          sm,
+          sy,
+          nm: nextNm
+        },
+        tasks: shiftedTasks ? snapshot.tasks.map((task) => cloneTaskWithShift(task, shift)) : snapshot.tasks
+      },
+      before,
+      after: {
+        name: name.trim() || snapshot.proj.name,
+        sm,
+        sy,
+        nm: nextNm
+      },
+      shift,
+      shiftedTasks
+    };
+  }
+  function createEmptyProjectSnapshot(input) {
+    const { name, defaults, categories, meta } = input;
+    return {
+      proj: {
+        name: name.trim(),
+        sm: defaults.sm,
+        sy: defaults.sy,
+        nm: defaults.nm
+      },
+      cats: categories.map((category) => ({ ...category })),
+      tasks: [],
+      nextN: 1,
+      ...meta || {}
+    };
+  }
+  function createDemoProjectSnapshot(input) {
+    const { projectName, startYear, categories, tasks, nextN, meta } = input;
+    return {
+      proj: {
+        name: projectName,
+        sm: 0,
+        sy: startYear,
+        nm: 12
+      },
+      cats: categories.map((category) => ({ ...category })),
+      tasks: tasks.map((task) => ({ ...task })),
+      nextN,
+      ...meta || {}
+    };
+  }
+  function canDeleteProjectCount(projectCount) {
+    return projectCount > 1;
+  }
+  function resolveNextProjectAfterDeletion(projectIds, currentId, deletedId) {
+    if (currentId !== deletedId) return currentId;
+    return projectIds.find((projectId) => projectId !== deletedId) || null;
+  }
+
   // src/domain/audit.ts
   function formatAuditEntry(entry) {
     return {
@@ -1388,6 +1478,11 @@
     buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     buildRuntimeStorageUiModel: buildStorageUiModel,
+    buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+    buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
+    buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
+    canRuntimeDeleteProjectCount: canDeleteProjectCount,
+    resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
