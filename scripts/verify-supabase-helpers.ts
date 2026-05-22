@@ -30,6 +30,7 @@ import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
 import { buildPrintUiModel } from "../src/domain/print-ui";
+import { buildStorageUiModel } from "../src/domain/storage-ui";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
@@ -505,6 +506,9 @@ const printUi = buildPrintUiModel();
 assert.equal(printUi.noChartsText, "Немає побудованих графіків");
 assert.equal(printUi.financeTitle, "Фінансовий звіт");
 assert.equal(printUi.exportPdfSuccessTitle, "PDF збережено");
+
+const storageUi = buildStorageUiModel();
+assert.equal(storageUi.offlineIndicatorText, "⚠ офлайн — зміни збережено локально");
 
 const contractorSummaryLabels = buildContractorSummaryLabels();
 assert.equal(contractorSummaryLabels.contractors, "Контрагентів");

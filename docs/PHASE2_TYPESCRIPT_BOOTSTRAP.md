@@ -32,6 +32,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/charts-ui.ts`
   - `src/domain/finance-ui.ts`
   - `src/domain/print-ui.ts`
+  - `src/domain/storage-ui.ts`
   - `src/domain/contractors-ui.ts`
   - `src/domain/costs-ui.ts`
   - `src/domain/guard-ui.ts`
@@ -111,6 +112,8 @@ and Supabase adapters happen against stable interfaces.
   - print dialog empty states
   - report/page titles
   - PDF export feedback copy
+- `js/storage.js` now uses the generated helper layer for:
+  - offline sync-indicator copy
 - `js/user.js` now uses the generated helper layer for:
   - project sync-state calculation
   - sync-badge resolution

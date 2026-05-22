@@ -926,6 +926,13 @@
     return allProjects;
   }
 
+  // src/domain/storage-ui.ts
+  function buildStorageUiModel() {
+    return {
+      offlineIndicatorText: "⚠ офлайн — зміни збережено локально"
+    };
+  }
+
   // src/domain/audit.ts
   function formatAuditEntry(entry) {
     return {
@@ -1260,6 +1267,7 @@
     buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
     buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
+    buildRuntimeStorageUiModel: buildStorageUiModel,
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,

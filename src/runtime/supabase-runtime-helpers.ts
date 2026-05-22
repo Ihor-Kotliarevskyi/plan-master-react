@@ -78,6 +78,7 @@ import {
   buildStorageBufferPayload,
   normalizeBufferedProjectRoles,
 } from "../domain/storage";
+import { buildStorageUiModel } from "../domain/storage-ui";
 import {
   mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
@@ -232,6 +233,7 @@ const runtimeHelpers = {
   buildRuntimeProjectSnapshotMeta: buildProjectSnapshotMeta,
   buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
+  buildRuntimeStorageUiModel: buildStorageUiModel,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
