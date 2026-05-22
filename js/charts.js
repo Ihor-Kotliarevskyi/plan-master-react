@@ -1,23 +1,46 @@
-const Y_LABELS = {
-  count: "Кількість",
-  budget: "Бюджет (грн)",
-  spent: "Витрачено (грн)",
-  rest: "Залишок (грн)",
-  prog: "Виконання (%)",
-  dur: "Тривалість (тиж.)",
-  cat: "Категорія",
-  contr: "Підрядник",
-  status: "Статус",
-  month: "Місяць",
-  task: "Робота",
-};
-const X_LABELS = { ...Y_LABELS };
+const CHARTS_UI = typeof buildRuntimeChartsUiModel === "function"
+  ? buildRuntimeChartsUiModel()
+  : {
+      axisLabels: {
+        count: "?????????",
+        budget: "?????? (???)",
+        spent: "????????? (???)",
+        rest: "??????? (???)",
+        prog: "????????? (%)",
+        dur: "?????????? (???.)",
+        cat: "?????????",
+        contr: "?????????",
+        status: "??????",
+        month: "??????",
+        task: "??????",
+      },
+      actionLabels: {
+        allCategoriesLabel: "???",
+        noContractorLabel: "(??? ??????????)",
+        doneStatusLabel: "?????????",
+        activeStatusLabel: "? ??????",
+        pendingStatusLabel: "?? ?????????",
+        editTitle: "??????????",
+        printTitle: "????",
+        deleteTitle: "????????",
+        chartFallbackTitle: "Chart",
+      },
+      autoCharts: [
+        { id: "a1", type: "pie", x: "cat", y: "count", title: "????????? ????? ?? ??????????" },
+        { id: "a2", type: "bar", x: "cat", y: "prog", title: "??????? ????????? ?? ?????????? (%)" },
+        { id: "a3", type: "doughnut", x: "status", y: "count", title: "?????? ?????????" },
+        { id: "a4", type: "bar", x: "task", y: "dur", title: "?????????? (???., ??? 15)" },
+        { id: "a5", type: "line", x: "month", y: "count", title: "???????? ????? ?? ???????" },
+      ],
+    };
+const Y_LABELS = CHARTS_UI.axisLabels;
+const X_LABELS = { ...CHARTS_UI.axisLabels };
 
 /** Оновлює список категорій у фільтрі chart builder. */
 function updateCbCatFilter() {
   const s = document.getElementById("cb-fcat");
   s.innerHTML =
-    '<option value="">Усі</option>' +
+    `<option value="">${CHARTS_UI.actionLabels.allCategoriesLabel}</option>` +
     cats.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
 }
 
@@ -36,14 +59,14 @@ function getChartData(xKey, yKey, catF, statF) {
     if (xKey === "cat") return CN(t.cat);
     if (xKey === "contr") {
       const contractors = typeof taskContractors === "function" ? taskContractors(t) : [t.contr || ""];
-      return contractors.length ? contractors.join(", ") : "(без підрядника)";
+      return contractors.length ? contractors.join(", ") : CHARTS_UI.actionLabels.noContractorLabel;
     }
     if (xKey === "status")
       return t.prog === 100
-        ? "Завершено"
+        ? CHARTS_UI.actionLabels.doneStatusLabel
         : t.prog > 0
-          ? "В роботі"
-          : "Не розпочато";
+          ? CHARTS_UI.actionLabels.activeStatusLabel
+          : CHARTS_UI.actionLabels.pendingStatusLabel;
     if (xKey === "task") return t.n + ". " + t.name.substring(0, 22);
     if (xKey === "month") {
       const ml = getML();
@@ -177,9 +200,9 @@ function renderCustomChart(c) {
   card.id = c.id;
   card.innerHTML = `<h4><span>${c.title}</span>
     <div class="chart-actions">
-      <button class="chart-act-btn" onclick="openChartEdit('${c.id}')" title="Редагувати"><i data-lucide="pencil"></i></button>
-      <button class="chart-act-btn" onclick="printChart('${c.id}')"   title="Друк"><i data-lucide="printer"></i></button>
-      <button class="chart-act-btn del" onclick="removeChart('${c.id}')" title="Видалити"><i data-lucide="x"></i></button>
+      <button class="chart-act-btn" onclick="openChartEdit('${c.id}')" title="${CHARTS_UI.actionLabels.editTitle}"><i data-lucide="pencil"></i></button>
+      <button class="chart-act-btn" onclick="printChart('${c.id}')"   title="${CHARTS_UI.actionLabels.printTitle}"><i data-lucide="printer"></i></button>
+      <button class="chart-act-btn del" onclick="removeChart('${c.id}')" title="${CHARTS_UI.actionLabels.deleteTitle}"><i data-lucide="x"></i></button>
     </div>
   </h4><canvas height="200"></canvas>`;
   lucide.createIcons({ nodes: [card] });
@@ -240,7 +263,7 @@ function openChartEdit(id) {
 
   const sel = document.getElementById("ce-fcat");
   sel.innerHTML =
-    '<option value="">Усі</option>' +
+    `<option value="">${CHARTS_UI.actionLabels.allCategoriesLabel}</option>` +
     cats.map((c, i) => `<option value="${i}">${c.name}</option>`).join("");
 
   if (cc) {
@@ -347,7 +370,7 @@ function printChart(id) {
   const card = document.getElementById(id);
   if (!card) return;
   const canvas = card.querySelector("canvas");
-  const title = card.querySelector("h4 span")?.textContent || "Chart";
+  const title = card.querySelector("h4 span")?.textContent || CHARTS_UI.actionLabels.chartFallbackTitle;
   const img = canvas.toDataURL("image/png");
   const w = window.open("", "_blank");
   w.document.write(
@@ -364,7 +387,7 @@ function printChart(id) {
 printChart = function (id) {
   const card = document.getElementById(id);
   if (!card) return;
-  const title = card.querySelector("h4 span")?.textContent || "Chart";
+  const title = card.querySelector("h4 span")?.textContent || CHARTS_UI.actionLabels.chartFallbackTitle;
   const img = typeof _getChartImage === "function"
     ? _getChartImage(id)
     : card.querySelector("canvas")?.toDataURL("image/png");
@@ -412,13 +435,7 @@ function renderAutoCharts() {
     });
   chartInstances = chartInstances.filter((c) => c.id.startsWith("cc_"));
 
-  const autoCharts = [
-    { id: "a1", type: "pie", x: "cat", y: "count", title: "Кількість робіт за категорією" },
-    { id: "a2", type: "bar", x: "cat", y: "prog", title: "Середнє виконання за категорією (%)" },
-    { id: "a3", type: "doughnut", x: "status", y: "count", title: "Статус виконання" },
-    { id: "a4", type: "bar", x: "task", y: "dur", title: "Тривалість (тиж., топ 15)" },
-    { id: "a5", type: "line", x: "month", y: "count", title: "Активних робіт по місяцях" },
-  ];
+  const autoCharts = CHARTS_UI.autoCharts;
 
   autoCharts.forEach((c) => {
     if (removedAutoCharts.has(c.id)) return;
@@ -429,9 +446,9 @@ function renderAutoCharts() {
     card.id = c.id;
     card.innerHTML = `<h4><span>${c.title}</span>
       <div class="chart-actions">
-        <button class="chart-act-btn" onclick="openChartEdit('${c.id}')" title="Редагувати"><i data-lucide="pencil"></i></button>
-        <button class="chart-act-btn" onclick="printChart('${c.id}')"   title="Друк"><i data-lucide="printer"></i></button>
-        <button class="chart-act-btn del" onclick="removeAutoChart('${c.id}')" title="Видалити"><i data-lucide="x"></i></button>
+        <button class="chart-act-btn" onclick="openChartEdit('${c.id}')" title="${CHARTS_UI.actionLabels.editTitle}"><i data-lucide="pencil"></i></button>
+        <button class="chart-act-btn" onclick="printChart('${c.id}')"   title="${CHARTS_UI.actionLabels.printTitle}"><i data-lucide="printer"></i></button>
+        <button class="chart-act-btn del" onclick="removeAutoChart('${c.id}')" title="${CHARTS_UI.actionLabels.deleteTitle}"><i data-lucide="x"></i></button>
       </div>
     </h4><canvas height="200"></canvas>`;
     lucide.createIcons({ nodes: [card] });
@@ -457,4 +474,3 @@ function renderAutoCharts() {
     chartInstances.push({ id: c.id, inst });
   });
 }
-

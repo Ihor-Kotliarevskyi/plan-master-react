@@ -27,6 +27,7 @@ import {
   buildTableLabels,
 } from "../src/domain/render-ui";
 import { buildAppUiModel } from "../src/domain/app-ui";
+import { buildChartsUiModel } from "../src/domain/charts-ui";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
 import {
   buildContractorFilterLabels,
@@ -488,6 +489,11 @@ assert.equal(appUi.importedProjectFallbackName, "Імпортований про
 assert.equal(appUi.copiedTaskSuffix, " (копія)");
 assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
 assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
+
+const chartsUi = buildChartsUiModel();
+assert.equal(chartsUi.axisLabels.prog, "Виконання (%)");
+assert.equal(chartsUi.actionLabels.printTitle, "Друк");
+assert.equal(chartsUi.autoCharts[0]?.id, "a1");
 
 const financeUi = buildFinanceUiModel();
 assert.equal(financeUi.filters.searchPlaceholder, "Пошук у фінансах...");

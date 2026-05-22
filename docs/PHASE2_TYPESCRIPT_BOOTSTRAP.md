@@ -29,6 +29,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/modal-ui.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
+  - `src/domain/charts-ui.ts`
   - `src/domain/finance-ui.ts`
   - `src/domain/contractors-ui.ts`
   - `src/domain/costs-ui.ts`
@@ -101,6 +102,10 @@ and Supabase adapters happen against stable interfaces.
   - filter/search labels
   - bulk delete confirmation copy
   - chart dataset and tooltip labels
+- `js/charts.js` now uses the generated helper layer for:
+  - axis and title labels
+  - chart action tooltips
+  - auto-chart preset titles
 - `js/user.js` now uses the generated helper layer for:
   - project sync-state calculation
   - sync-badge resolution
