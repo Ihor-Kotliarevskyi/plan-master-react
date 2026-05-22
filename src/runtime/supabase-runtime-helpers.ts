@@ -43,6 +43,13 @@ import {
 } from "../domain/finance";
 import { buildPrintUiModel } from "../domain/print-ui";
 import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../domain/print";
+import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
   buildContractorSummaryLabels,
@@ -314,6 +321,11 @@ const runtimeHelpers = {
   buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
   buildRuntimeBuildFinanceRows: buildFinanceRows,
   buildRuntimePrintUiModel: buildPrintUiModel,
+  buildRuntimeResolvePrintSections: resolvePrintSections,
+  buildRuntimeResolvePrintSettings: resolvePrintSettings,
+  buildRuntimeGetPrintMetrics: getPrintMetrics,
+  buildRuntimeGetPrintPreviewState: getPrintPreviewState,
+  buildRuntimeResolvePrintGanttLayout: resolvePrintGanttLayout,
   buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
   buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
   buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,

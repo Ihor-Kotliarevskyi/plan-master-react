@@ -43,6 +43,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/costs.ts`
   - `src/domain/finance.ts`
   - `src/domain/contractors.ts`
+  - `src/domain/print.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed Supabase extraction helpers in:
@@ -130,11 +131,16 @@ and Supabase adapters happen against stable interfaces.
   - auto-chart preset titles
 - `js/print.js` now uses the generated helper layer for:
   - print dialog empty states
+  - print-section normalization
+  - print settings normalization
   - report/page titles
+  - print metrics calculation
   - preview loading and page-count labels
+  - preview pagination and geometry state
   - planned/actual chart labels
   - PDF export feedback copy
   - PDF page-progress copy
+  - gantt print layout resolution
 - `js/storage.js` now uses the generated helper layer for:
   - offline sync-indicator copy
 - `js/user.js` now uses the generated helper layer for:

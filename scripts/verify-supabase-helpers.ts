@@ -41,6 +41,13 @@ import {
   summarizeFinanceDeletion,
 } from "../src/domain/finance";
 import { buildPrintUiModel } from "../src/domain/print-ui";
+import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../src/domain/print";
 import { buildStorageUiModel } from "../src/domain/storage-ui";
 import {
   buildContractorFilterLabels,
@@ -648,6 +655,96 @@ assert.equal(printUi.financeTitle, "Фінансовий звіт");
 assert.equal(printUi.exportPdfSuccessTitle, "PDF збережено");
 assert.equal(printUi.previewPagesLabel(3), "3 стор.");
 assert.equal(printUi.pdfPageProgressText(2, 5), "Сторінка 2 з 5...");
+
+const printSections = resolvePrintSections({
+  charts: true,
+  chartIds: ["chart-1", "", "chart-2"],
+});
+assert.equal(printSections.gantt, true);
+assert.equal(printSections.charts, true);
+assert.deepEqual(printSections.chartIds, ["chart-1", "chart-2"]);
+assert.equal(printSections.range, "all");
+
+const printSettings = resolvePrintSettings(
+  {
+    paper: "letter",
+    orientation: "portrait",
+    contentScale: 2,
+    renderScale: 0.5,
+    margin: -3,
+    fitMode: "height",
+  },
+  {
+    paper: "a3",
+    orientation: "landscape",
+    contentScale: 1,
+    renderScale: 1,
+    margin: 5,
+    fitMode: "paginate",
+  },
+);
+assert.equal(printSettings.paper, "letter");
+assert.equal(printSettings.orientation, "portrait");
+assert.equal(printSettings.contentScale, 1);
+assert.equal(printSettings.renderScale, 1);
+assert.equal(printSettings.margin, 0);
+assert.equal(printSettings.fitMode, "height");
+
+const printMetrics = getPrintMetrics(printSettings, {
+  a3: { w: 297, h: 420 },
+  a4: { w: 210, h: 297 },
+  letter: { w: 215.9, h: 279.4 },
+});
+assert.equal(printMetrics.pageW, 215.9);
+assert.equal(printMetrics.pageH, 279.4);
+assert.equal(printMetrics.contentWmm, 215.9);
+assert.equal(printMetrics.contentHmm, 279.4);
+assert.equal(printMetrics.contentWpx > 0, true);
+assert.equal(printMetrics.contentHpx > 0, true);
+
+const printPreviewState = getPrintPreviewState({
+  currentPage: 5,
+  pagesCount: 3,
+  availableWidth: 300,
+  availableHeight: 200,
+  pageWidth: 600,
+  pageHeight: 400,
+});
+assert.equal(printPreviewState?.pageIndex, 2);
+assert.equal(printPreviewState?.pageLabel, "3 / 3");
+assert.equal(printPreviewState?.prevDisabled, false);
+assert.equal(printPreviewState?.nextDisabled, true);
+assert.equal(printPreviewState?.targetWidth, 300);
+assert.equal(printPreviewState?.targetHeight, 200);
+assert.equal(printPreviewState?.targetLeft, 0);
+assert.equal(printPreviewState?.targetTop, 0);
+assert.equal(printPreviewState?.scale, 0.5);
+
+const printGanttLayout = resolvePrintGanttLayout({
+  settings: {
+    paper: "a3",
+    orientation: "landscape",
+    contentScale: 1,
+    renderScale: 1,
+    margin: 5,
+    fitMode: "page",
+  },
+  metrics: {
+    pageW: 420,
+    pageH: 297,
+    contentWmm: 410,
+    contentHmm: 287,
+    contentWpx: 1550,
+    contentHpx: 1085,
+  },
+  taskCount: 24,
+  allWeeks: 18,
+});
+assert.equal(printGanttLayout.weeksPerPage, 18);
+assert.equal(printGanttLayout.rowsPerPage, 24);
+assert.equal(printGanttLayout.fixedW > 0, true);
+assert.equal(printGanttLayout.weekW >= 2, true);
+assert.equal(printGanttLayout.rowH >= 12, true);
 
 const storageUi = buildStorageUiModel();
 assert.equal(storageUi.offlineIndicatorText, "⚠ офлайн — зміни збережено локально");

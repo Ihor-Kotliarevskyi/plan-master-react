@@ -632,6 +632,98 @@
     };
   }
 
+  // src/domain/print.ts
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+  function resolvePrintSections(input) {
+    return {
+      gantt: input.gantt ?? true,
+      finance: input.finance ?? false,
+      charts: input.charts ?? false,
+      chartIds: Array.isArray(input.chartIds) ? input.chartIds.filter(Boolean) : [],
+      range: input.range || "all"
+    };
+  }
+  function resolvePrintSettings(input, defaults) {
+    const paper = typeof input.paper === "string" ? input.paper : defaults.paper;
+    const orientation = typeof input.orientation === "string" ? input.orientation : defaults.orientation;
+    const fitMode = typeof input.fitMode === "string" ? input.fitMode : defaults.fitMode;
+    const contentScale = Number.isFinite(Number(input.contentScale)) ? Number(input.contentScale) : defaults.contentScale;
+    const renderScale = Number.isFinite(Number(input.renderScale)) ? Number(input.renderScale) : defaults.renderScale;
+    const margin = Number.isFinite(Number(input.margin)) ? Number(input.margin) : defaults.margin;
+    return {
+      paper: ["a3", "a4", "letter"].includes(paper) ? paper : "a3",
+      orientation: ["landscape", "portrait"].includes(orientation) ? orientation : "landscape",
+      contentScale: clamp(contentScale, 0.25, 1),
+      renderScale: clamp(renderScale, 1, 2),
+      margin: clamp(margin, 0, 25),
+      fitMode: ["paginate", "width", "height", "page"].includes(fitMode) ? fitMode : "paginate"
+    };
+  }
+  function getPrintMetrics(settings, paperMm) {
+    const base = paperMm[settings.paper] || paperMm.a3;
+    const pageW = settings.orientation === "landscape" ? base.h : base.w;
+    const pageH = settings.orientation === "landscape" ? base.w : base.h;
+    const contentWmm = Math.max(50, pageW - settings.margin * 2);
+    const contentHmm = Math.max(50, pageH - settings.margin * 2);
+    const pxPerMm = 96 / 25.4;
+    return {
+      pageW,
+      pageH,
+      contentWmm,
+      contentHmm,
+      contentWpx: Math.round(contentWmm * pxPerMm),
+      contentHpx: Math.round(contentHmm * pxPerMm)
+    };
+  }
+  function getPrintPreviewState(input) {
+    const { pagesCount, availableWidth, availableHeight, pageWidth, pageHeight } = input;
+    if (!pagesCount || !pageWidth || !pageHeight) return null;
+    const pageIndex = Math.min(pagesCount - 1, Math.max(0, input.currentPage));
+    const scale = Math.min(1, availableWidth / pageWidth, availableHeight / pageHeight);
+    return {
+      pageIndex,
+      pageLabel: `${pageIndex + 1} / ${pagesCount}`,
+      prevDisabled: pageIndex <= 0,
+      nextDisabled: pageIndex >= pagesCount - 1,
+      targetWidth: Math.ceil(pageWidth * scale),
+      targetHeight: Math.ceil(pageHeight * scale),
+      targetLeft: Math.max(0, (availableWidth - pageWidth * scale) / 2),
+      targetTop: Math.max(0, (availableHeight - pageHeight * scale) / 2),
+      cloneWidth: pageWidth,
+      cloneHeight: pageHeight,
+      scale
+    };
+  }
+  function resolvePrintGanttLayout(input) {
+    const { settings, metrics, taskCount, allWeeks } = input;
+    const density = settings.contentScale;
+    const headH = 118;
+    const nW = Math.max(20, Math.round(34 * density));
+    const nameW = Math.max(110, Math.round(220 * density));
+    const progW = Math.max(34, Math.round(46 * density));
+    const fixedW = nW + nameW + progW;
+    let weekW = Math.max(8, Math.round(22 * density));
+    let rowH = Math.max(22, Math.round(28 * density));
+    if (settings.fitMode === "width" || settings.fitMode === "page") {
+      weekW = Math.max(2, Math.floor((metrics.contentWpx - fixedW - 2) / Math.max(1, allWeeks)));
+    }
+    if (settings.fitMode === "height" || settings.fitMode === "page") {
+      rowH = Math.max(12, Math.floor((metrics.contentHpx - headH) / Math.max(1, taskCount)));
+    }
+    return {
+      nW,
+      nameW,
+      progW,
+      fixedW,
+      weekW,
+      rowH,
+      weeksPerPage: settings.fitMode === "width" || settings.fitMode === "page" ? Math.max(1, allWeeks) : Math.max(4, Math.floor((metrics.contentWpx - fixedW - 2) / weekW)),
+      rowsPerPage: settings.fitMode === "height" || settings.fitMode === "page" ? Math.max(1, taskCount) : Math.max(8, Math.floor((metrics.contentHpx - headH) / rowH))
+    };
+  }
+
   // src/domain/contractors-ui.ts
   function buildContractorSummaryLabels() {
     return {
@@ -2053,6 +2145,11 @@
     buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
     buildRuntimeBuildFinanceRows: buildFinanceRows,
     buildRuntimePrintUiModel: buildPrintUiModel,
+    buildRuntimeResolvePrintSections: resolvePrintSections,
+    buildRuntimeResolvePrintSettings: resolvePrintSettings,
+    buildRuntimeGetPrintMetrics: getPrintMetrics,
+    buildRuntimeGetPrintPreviewState: getPrintPreviewState,
+    buildRuntimeResolvePrintGanttLayout: resolvePrintGanttLayout,
     buildRuntimeContractorSummaryLabels: buildContractorSummaryLabels,
     buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
     buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
