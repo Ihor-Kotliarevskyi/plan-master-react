@@ -492,6 +492,9 @@ assert.equal(contractorTableLabels.addPaymentTitle, "Додати платіж")
 assert.equal(contractorTableLabels.bulkDeleteConfirmTitle, "Підтвердьте видалення");
 assert.equal(contractorTableLabels.registerNameTitle, "Назва реєстру");
 assert.equal(contractorTableLabels.importReviewTitle, "Перевірка імпорту");
+assert.equal(contractorTableLabels.editPaymentTitle("Acme"), "Редагувати платіж: Acme");
+assert.equal(contractorTableLabels.paymentAmountValidation, "Вкажіть суму платежу");
+assert.equal(contractorTableLabels.contractPlaceholder, "Договір №");
 
 const taskFormPanel = buildTaskFormPanelModel();
 assert.equal(taskFormPanel.newTaskTitle, "Нова робота");

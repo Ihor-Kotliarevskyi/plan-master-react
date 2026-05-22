@@ -1226,7 +1226,7 @@ async function editContractorPayment(path) {
     .join("");
   const selectedContractItem = contracts.find(({ item: contract }) => String(payment.contractId || item.id) === String(contract.id))?.item || item;
   const result = await Swal.fire({
-    title: `Редагувати платіж: ${_ctEsc(currentName)}`,
+    title: CONTRACTOR_UI.editPaymentTitle(_ctEsc(currentName)),
     width: 820,
     html: `
       <div class="swal-form-grid">
@@ -1239,12 +1239,12 @@ async function editContractorPayment(path) {
         <label class="swal-span-2">Примітка<input id="pay-edit-note" class="swal2-input" value="${_ctAttr(payment.note || "")}"></label>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Зберегти",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.saveLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("pay-edit-amount")?.value);
       if (amount === null || amount < 0) {
-        Swal.showValidationMessage("Вкажіть коректну суму");
+        Swal.showValidationMessage(CONTRACTOR_UI.correctAmountValidation);
         return false;
       }
       return {
@@ -1304,10 +1304,10 @@ async function deleteContractorPayment(path) {
   if (!found) return;
   const result = await Swal.fire({
     icon: "warning",
-    title: "Видалити платіж?",
+    title: CONTRACTOR_UI.deletePaymentTitlePrompt,
     showCancelButton: true,
-    confirmButtonText: "Видалити",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.deleteLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     confirmButtonColor: "#dc2626",
   });
   if (!result.isConfirmed) return;
@@ -1491,7 +1491,7 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
   }
   const initialItemName = pathContract?.item?.name || contracts[0]?.item?.name || "";
   const result = await Swal.fire({
-    title: `Додати акт: ${_ctEsc(supplier)}`,
+    title: CONTRACTOR_UI.addActTitleWithSupplier(_ctEsc(supplier)),
     width: 760,
     html: `
       <div class="swal-form-grid">
@@ -1524,11 +1524,11 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
       const amount = _ctAmount(document.getElementById("act-amount")?.value);
       const name = _ctText(document.getElementById("act-name")?.value);
       if (!name) {
-        Swal.showValidationMessage("Вкажіть номер акту");
+        Swal.showValidationMessage(CONTRACTOR_UI.actNumberValidation);
         return false;
       }
       if (amount === null || amount <= 0) {
-        Swal.showValidationMessage("Вкажіть суму акту");
+        Swal.showValidationMessage(CONTRACTOR_UI.actAmountValidation);
         return false;
       }
       return {
@@ -1571,7 +1571,7 @@ async function editContractorAct(path) {
   const supplier = _contractorName(item.supplier);
   const contracts = _contractorContractsForSupplier(supplier);
   const result = await Swal.fire({
-    title: `Редагувати акт: ${_ctEsc(supplier)}`,
+    title: CONTRACTOR_UI.editActTitleWithSupplier(_ctEsc(supplier)),
     width: 760,
     html: `
       <div class="swal-form-grid">
@@ -1590,17 +1590,17 @@ async function editContractorAct(path) {
         <label class="swal-span-2">Примітка<input id="act-edit-note" class="swal2-input" value="${_ctAttr(act.note || "")}"></label>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Зберегти",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: CONTRACTOR_UI.saveLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("act-edit-amount")?.value);
       const name = _ctText(document.getElementById("act-edit-name")?.value);
       if (!name) {
-        Swal.showValidationMessage("Вкажіть номер акту");
+        Swal.showValidationMessage(CONTRACTOR_UI.actNumberValidation);
         return false;
       }
       if (amount === null || amount <= 0) {
-        Swal.showValidationMessage("Вкажіть суму акту");
+        Swal.showValidationMessage(CONTRACTOR_UI.actAmountValidation);
         return false;
       }
       return {
@@ -1641,7 +1641,7 @@ async function deleteContractorAct(path) {
   if (!found) return;
   const result = await Swal.fire({
     icon: "warning",
-    title: "Видалити акт?",
+    title: CONTRACTOR_UI.deleteActTitlePrompt,
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.deleteLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
@@ -1673,7 +1673,7 @@ async function openContractorPaymentModal(contractPath = "", actPath = "") {
   const selectedAct = actEntry?.act || null;
 
   const result = await Swal.fire({
-    title: `Додати платіж: ${_ctEsc(supplier)}`,
+    title: CONTRACTOR_UI.addPaymentTitleWithSupplier(_ctEsc(supplier)),
     width: 760,
     html: `
       <div class="swal-form-grid">
@@ -1693,7 +1693,7 @@ async function openContractorPaymentModal(contractPath = "", actPath = "") {
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("pay-add-amount")?.value);
       if (amount === null || amount <= 0) {
-        Swal.showValidationMessage("Вкажіть суму платежу");
+        Swal.showValidationMessage(CONTRACTOR_UI.paymentAmountValidation);
         return false;
       }
       return {
@@ -1766,7 +1766,7 @@ function openContractorEntryModal(prefillSupplier = "", lockSupplier = false) {
   if (supplierEl) {
     supplierEl.readOnly = !!lockSupplier;
     supplierEl.classList.toggle("contractor-entry-locked", !!lockSupplier);
-    supplierEl.title = lockSupplier ? "Контрагент зафіксований для цього рядка" : "";
+    supplierEl.title = lockSupplier ? CONTRACTOR_UI.supplierLockedTitle : "";
     supplierEl.oninput = null;
   }
 
@@ -1802,12 +1802,12 @@ function renderContractorContractManagerRows() {
 
 function _contractorContractEditRow({ path = "", ti = 0, no = "", date = "", amount = "", note = "" } = {}) {
   return `<div class="contractor-contract-row" data-path="${_ctAttr(path)}" data-ti="${ti}">
-    <label>Робота<select class="ce-contract-task">${_contractorTaskOptions(ti)}</select></label>
-    <label>Номер договору<input class="ce-contract-no" value="${_ctAttr(no)}" placeholder="Договір №"></label>
-    <label>Дата<input class="ce-contract-date" type="date" value="${_ctAttr(date)}"></label>
-    <label>Сума<input class="ce-contract-amount" type="number" min="0" step="100" value="${_ctAttr(amount || "")}" placeholder="0"></label>
-    <label>Примітка<input class="ce-contract-note" value="${_ctAttr(note)}" placeholder="Примітка до договору"></label>
-    <button type="button" class="btn btn-sm contractor-row-action danger" onclick="this.closest('.contractor-contract-row').classList.toggle('marked-delete')" title="Видалити">
+    <label>${CONTRACTOR_UI.workFieldLabel}<select class="ce-contract-task">${_contractorTaskOptions(ti)}</select></label>
+    <label>${CONTRACTOR_UI.contractNumberLabel}<input class="ce-contract-no" value="${_ctAttr(no)}" placeholder="${CONTRACTOR_UI.contractPlaceholder}"></label>
+    <label>${CONTRACTOR_UI.dateFieldLabel}<input class="ce-contract-date" type="date" value="${_ctAttr(date)}"></label>
+    <label>${CONTRACTOR_UI.amountFieldLabel}<input class="ce-contract-amount" type="number" min="0" step="100" value="${_ctAttr(amount || "")}" placeholder="${CONTRACTOR_UI.amountPlaceholder}"></label>
+    <label>${CONTRACTOR_UI.noteFieldLabel}<input class="ce-contract-note" value="${_ctAttr(note)}" placeholder="${CONTRACTOR_UI.contractNotePlaceholder}"></label>
+    <button type="button" class="btn btn-sm contractor-row-action danger" onclick="this.closest('.contractor-contract-row').classList.toggle('marked-delete')" title="${CONTRACTOR_UI.deleteLabel}">
       <i data-lucide="trash-2"></i>
     </button>
   </div>`;
@@ -1831,13 +1831,13 @@ function saveContractorEntry() {
 
   const supplier = _ctText(document.getElementById("ce-supplier")?.value);
   if (!supplier) {
-    Swal.fire({ icon: "warning", title: "Вкажіть контрагента" });
+    Swal.fire({ icon: "warning", title: CONTRACTOR_UI.supplierRequiredTitle });
     return;
   }
 
   const rows = [...document.querySelectorAll("#ce-contract-list .contractor-contract-row")];
   if (!rows.length) {
-    Swal.fire({ icon: "warning", title: "Додайте договір" });
+    Swal.fire({ icon: "warning", title: CONTRACTOR_UI.addContractTitle });
     return;
   }
 
@@ -1866,7 +1866,7 @@ function saveContractorEntry() {
     }
 
     if (amount === null || amount <= 0) {
-      Swal.fire({ icon: "warning", title: "Вкажіть суму договору" });
+      Swal.fire({ icon: "warning", title: CONTRACTOR_UI.contractAmountValidation });
       return;
     }
 
@@ -3941,7 +3941,7 @@ function _renderContractorPaymentCell(p, key) {
   if (key === "itemName") return `<td>${_ctEsc(p.itemName)}</td>`;
   if (key === "note") return `<td>${_ctEsc(p.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="editContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.editPaymentTitle}"><i data-lucide="pencil"></i></button>
+    <button class="btn btn-sm contractor-row-action" onclick="editContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.editPaymentActionTitle}"><i data-lucide="pencil"></i></button>
     <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.deletePaymentTitle}"><i data-lucide="trash-2"></i></button>
   </td>`;
   return `<td></td>`;
