@@ -580,11 +580,19 @@ function importJSON(e) {
         });
       }
     } catch {
+      if (appUi) {
+        Swal.fire({
+          icon: "error",
+          title: appUi.importInvalidTitle,
+          text: appUi.importInvalidText,
+        });
+      } else
       Swal.fire({
         icon: "error",
         title: appUi.importInvalidTitle,
         text: appUi.importInvalidText,
       });
+      }
     }
   };
   r.readAsText(f);
