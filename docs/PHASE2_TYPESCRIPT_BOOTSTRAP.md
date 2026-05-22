@@ -111,7 +111,10 @@ and Supabase adapters happen against stable interfaces.
 - `js/print.js` now uses the generated helper layer for:
   - print dialog empty states
   - report/page titles
+  - preview loading and page-count labels
+  - planned/actual chart labels
   - PDF export feedback copy
+  - PDF page-progress copy
 - `js/storage.js` now uses the generated helper layer for:
   - offline sync-indicator copy
 - `js/user.js` now uses the generated helper layer for:
@@ -139,6 +142,8 @@ and Supabase adapters happen against stable interfaces.
   - gantt toolbar labels
   - task row labels and notes/phase captions
   - app import-conflict dialogs and import/copy feedback labels
+  - XLSX sheet/header labels
+  - overdue banner labels and duration formatting
   - contractor summary, filters, table headers, and selection labels
   - baseline dialogs/toasts
   - access-guard capability labels and denial toast copy

@@ -278,7 +278,68 @@
       numberedCopySuffix: (count) => ` (копія ${count})`,
       importSuccessTitle: (projectName) => `Імпортовано: «${projectName}»`,
       importInvalidTitle: "Помилка",
-      importInvalidText: "Не вдалося прочитати файл. Перевірте формат JSON."
+      importInvalidText: "Не вдалося прочитати файл. Перевірте формат JSON.",
+      workbookSheets: {
+        schedule: "Графік",
+        summary: "Зведення",
+        estimate: "Кошторис",
+        payments: "Платежі"
+      },
+      scheduleHeader: [
+        "№",
+        "Назва",
+        "Категорія",
+        "Підрядник",
+        "Початок (міс.)",
+        "Початок (тижд.)",
+        "Кінець (міс.)",
+        "Кінець (тижд.)",
+        "Тривалість (тижд.)",
+        "Виконання (%)",
+        "Бюджет (грн)",
+        "Витрачено (грн)",
+        "Залишок (грн)",
+        "Залежності"
+      ],
+      summaryHeader: [
+        "Категорія",
+        "Кількість робіт",
+        "Бюджет (грн)",
+        "Витрачено (грн)",
+        "Залишок (грн)",
+        "Середнє виконання (%)"
+      ],
+      estimateHeader: [
+        "№",
+        "Назва роботи",
+        "Тип",
+        "Матеріал/Послуга",
+        "Постач./Підр.",
+        "Од.",
+        "К-ть",
+        "Ціна/од.",
+        "Кошторис (грн)",
+        "Сплачено (грн)"
+      ],
+      paymentsHeader: [
+        "№",
+        "Назва роботи",
+        "Контрагент",
+        "Тип позиції",
+        "Матеріал/Послуга",
+        "Дата платежу",
+        "Тип платежу",
+        "Сума платежу (грн)",
+        "Примітка"
+      ],
+      overdueWeeksLabel: (weeks) => `${weeks} тижд.`,
+      overdueMonthsLabel: (months) => `${months} міс.`,
+      overdueRemainingLabel: (remaining) => `залишилось <b>${remaining}%</b>`,
+      overdueLateLabel: (duration) => `прострочено <b>${duration}</b>`,
+      overdueTitle: (count) => `Прострочено ${count} ${count === 1 ? "роботу" : count < 5 ? "роботи" : "робіт"}`,
+      overdueShowMoreLabel: (count) => `▼ Показати ще ${count}`,
+      overdueCollapseLabel: "▲ Згорнути",
+      overdueCloseTitle: "Закрити"
     };
   }
 
@@ -377,6 +438,7 @@
     return {
       noChartsText: "Немає побудованих графіків",
       previewLoadingText: "Оновлення передперегляду...",
+      previewPagesLabel: (pages) => `${pages} стор.`,
       reportTitle: "Звіт",
       nothingSelectedText: "Нічого не вибрано для друку.",
       projectFallbackTitle: "Проєкт",
@@ -394,14 +456,18 @@
       exportPdfProgressText: "Підготовка...",
       exportPdfSuccessTitle: "PDF збережено",
       exportPdfErrorTitle: "Помилка PDF",
+      pdfPageProgressText: (current, total) => `Сторінка ${current} з ${total}...`,
       ganttPageTitlePrefix: "Діаграма Ганта: тижні",
       tasksMetaLabel: "робіт",
       workTypeHeader: "Вид робіт",
+      plannedLabel: "Плановий",
+      actualLabel: "Фактичний",
       financeBudgetLabel: "Бюджет",
       financeSpentLabel: "Витрачено",
       financeRestLabel: "Залишок",
       financeTasksLabel: "Робіт",
       financeDoneSuffix: "завершено",
+      currencyUnit: "грн",
       financeTableHeaders: {
         task: "Робота",
         category: "Категорія",

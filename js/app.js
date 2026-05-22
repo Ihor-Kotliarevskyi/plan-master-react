@@ -1,3 +1,49 @@
+const APP_UI = typeof buildRuntimeAppUiModel === "function"
+  ? buildRuntimeAppUiModel()
+  : {
+      importedProjectFallbackName: "Imported project",
+      copiedTaskSuffix: " (copy)",
+      duplicateProjectTitle: "A project with this name already exists",
+      duplicateProjectText: "Choose a different name for the imported project.",
+      importConfirmButtonText: "Import",
+      cancelButtonText: "Cancel",
+      requiredProjectNameMessage: "Enter project name",
+      duplicateProjectNameMessage: "A project with this name already exists",
+      numberedCopySuffix: (count) => ` (copy ${count})`,
+      importSuccessTitle: (projectName) => `Imported: \"${projectName}\"`,
+      importInvalidTitle: "Error",
+      importInvalidText: "Could not read the file. Check the JSON format.",
+      workbookSheets: { schedule: "Schedule", summary: "Summary", estimate: "Estimate", payments: "Payments" },
+      scheduleHeader: [
+        "#", "Name", "Category", "Contractor",
+        "Start (month)", "Start (week)",
+        "End (month)", "End (week)",
+        "Duration (weeks)", "Progress (%)",
+        "Budget", "Spent", "Remaining",
+        "Dependencies",
+      ],
+      summaryHeader: [
+        "Category", "Task count", "Budget",
+        "Spent", "Remaining", "Avg progress (%)",
+      ],
+      estimateHeader: [
+        "#", "Task name", "Type", "Material/Service",
+        "Supplier", "Unit", "Qty", "Unit price",
+        "Estimate", "Paid",
+      ],
+      paymentsHeader: [
+        "#", "Task name", "Contractor", "Item type", "Material/Service",
+        "Payment date", "Payment type", "Payment amount", "Note",
+      ],
+      overdueWeeksLabel: (weeks) => `${weeks} w`,
+      overdueMonthsLabel: (months) => `${months} mo`,
+      overdueRemainingLabel: (remaining) => `remaining <b>${remaining}%</b>`,
+      overdueLateLabel: (duration) => `overdue <b>${duration}</b>`,
+      overdueTitle: (count) => `Overdue: ${count}`,
+      overdueShowMoreLabel: (count) => `Show ${count} more`,
+      overdueCollapseLabel: "Collapse",
+      overdueCloseTitle: "Close",
+    };
 function switchTab(id, el) {
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
   document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
@@ -166,20 +212,17 @@ function toggleCat(i, e) {
 
 function copyTask(ti) {
   const src = tasks[ti];
-  const appUi = typeof buildRuntimeAppUiModel === "function"
-    ? buildRuntimeAppUiModel()
-    : { copiedTaskSuffix: " (копія)" };
+  const appUi = APP_UI;
   const copy = {
     ...src,
     id: genId(),
     n: nextN++,
-    name: src.name + " (копія)",
+    name: src.name + appUi.copiedTaskSuffix,
     notes: [],
     phases: src.phases ? src.phases.map((p) => ({ ...p })) : null,
     costItems: taskCostItems(src).length ? taskCostItems(src).map((c) => ({ ...c })) : null,
     deps: [],
   };
-  copy.name = src.name + appUi.copiedTaskSuffix;
   tasks.splice(ti + 1, 0, copy);
   saveAll();
   renderTable();
@@ -208,14 +251,7 @@ function _saveFilterState() {
 function exportXLSX() {
   const ml = getML();
 
-  const header = [
-    "№", "Назва", "Категорія", "Підрядник",
-    "Початок (міс.)", "Початок (тижд.)",
-    "Кінець (міс.)", "Кінець (тижд.)",
-    "Тривалість (тижд.)", "Виконання (%)",
-    "Бюджет (грн)", "Витрачено (грн)", "Залишок (грн)",
-    "Залежності",
-  ];
+  const header = APP_UI.scheduleHeader;
 
   const rows = tasks.map((t) => [
     t.n,
@@ -251,12 +287,9 @@ function exportXLSX() {
   ];
   ws["!freeze"] = { xSplit: 0, ySplit: 1 };
 
-  XLSX.utils.book_append_sheet(wb, ws, "Графік");
+  XLSX.utils.book_append_sheet(wb, ws, APP_UI.workbookSheets.schedule);
 
-  const finHeader = [
-    "Категорія", "Кількість робіт", "Бюджет (грн)",
-    "Витрачено (грн)", "Залишок (грн)", "Середнє виконання (%)",
-  ];
+  const finHeader = APP_UI.summaryHeader;
   const finRows = cats.map((c, i) => {
     const ct = tasks.filter((t) => t.cat === i);
     const b = ct.reduce((s, t) => s + (+t.budget || 0), 0);
@@ -271,13 +304,9 @@ function exportXLSX() {
     { wch: 24 }, { wch: 12 }, { wch: 14 },
     { wch: 14 }, { wch: 14 }, { wch: 16 },
   ];
-  XLSX.utils.book_append_sheet(wb, wsFin, "Зведення");
+  XLSX.utils.book_append_sheet(wb, wsFin, APP_UI.workbookSheets.summary);
 
-  const costHeader = [
-    "№", "Назва роботи", "Тип", "Матеріал/Послуга",
-    "Постач./Підр.", "Од.", "К-ть", "Ціна/од.",
-    "Кошторис (грн)", "Сплачено (грн)",
-  ];
+  const costHeader = APP_UI.estimateHeader;
   const costRows = [];
   tasks.forEach((t) => {
     taskCostItems(t).forEach((it) => {
@@ -307,13 +336,10 @@ function exportXLSX() {
       { wch: 20 }, { wch: 6 }, { wch: 7 }, { wch: 10 },
       { wch: 14 }, { wch: 14 },
     ];
-    XLSX.utils.book_append_sheet(wb, wsC, "Кошторис");
+    XLSX.utils.book_append_sheet(wb, wsC, APP_UI.workbookSheets.estimate);
   }
 
-  const payHeader = [
-    "№", "Назва роботи", "Контрагент", "Тип позиції", "Матеріал/Послуга",
-    "Дата платежу", "Тип платежу", "Сума платежу (грн)", "Примітка",
-  ];
+  const payHeader = APP_UI.paymentsHeader;
   const payRows = [];
   tasks.forEach((t) => {
     taskCostItems(t).forEach((it) => {
@@ -338,7 +364,7 @@ function exportXLSX() {
       { wch: 5 }, { wch: 30 }, { wch: 24 }, { wch: 14 }, { wch: 28 },
       { wch: 13 }, { wch: 12 }, { wch: 16 }, { wch: 28 },
     ];
-    XLSX.utils.book_append_sheet(wb, wsP, "Платежі");
+    XLSX.utils.book_append_sheet(wb, wsP, APP_UI.workbookSheets.payments);
   }
 
   XLSX.writeFile(wb, `${proj.name}.xlsx`);
@@ -361,79 +387,40 @@ function _projectNameExists(name) {
 }
 
 function _uniqueProjectName(baseName) {
-  if (typeof buildRuntimeAppUiModel === "function") {
-    const appUi = buildRuntimeAppUiModel();
-    const cleanBase = String(baseName || appUi.importedProjectFallbackName).trim() || appUi.importedProjectFallbackName;
-    if (!_projectNameExists(cleanBase)) return cleanBase;
-    const firstCopy = `${cleanBase}${appUi.copiedTaskSuffix}`;
-    if (!_projectNameExists(firstCopy)) return firstCopy;
-    for (let i = 2; i < 1000; i++) {
-      const candidate = `${cleanBase}${appUi.numberedCopySuffix(i)}`;
-      if (!_projectNameExists(candidate)) return candidate;
-    }
-    return `${cleanBase}${appUi.numberedCopySuffix(Date.now())}`;
-  }
-  const cleanBase = String(baseName || "Імпортований проєкт").trim() || "Імпортований проєкт";
+  const cleanBase = String(baseName || APP_UI.importedProjectFallbackName).trim() || APP_UI.importedProjectFallbackName;
   if (!_projectNameExists(cleanBase)) return cleanBase;
-  const firstCopy = `${cleanBase} (копія)`;
+  const firstCopy = `${cleanBase}${APP_UI.copiedTaskSuffix}`;
   if (!_projectNameExists(firstCopy)) return firstCopy;
   for (let i = 2; i < 1000; i++) {
-    const candidate = `${cleanBase} (копія ${i})`;
+    const candidate = `${cleanBase}${APP_UI.numberedCopySuffix(i)}`;
     if (!_projectNameExists(candidate)) return candidate;
   }
-  return `${cleanBase} (копія ${Date.now()})`;
+  return `${cleanBase}${APP_UI.numberedCopySuffix(Date.now())}`;
 }
-
 async function _resolveImportProjectName(baseName) {
-  if (typeof buildRuntimeAppUiModel === "function") {
-    const appUi = buildRuntimeAppUiModel();
-    const name = String(baseName || appUi.importedProjectFallbackName).trim() || appUi.importedProjectFallbackName;
-    if (!_projectNameExists(name)) return name;
-
-    const suggested = _uniqueProjectName(name);
-    const result = await Swal.fire({
-      icon: "question",
-      title: appUi.duplicateProjectTitle,
-      text: appUi.duplicateProjectText,
-      input: "text",
-      inputValue: suggested,
-      showCancelButton: true,
-      confirmButtonText: appUi.importConfirmButtonText,
-      cancelButtonText: appUi.cancelButtonText,
-      inputValidator: (value) => {
-        const nextName = String(value || "").trim();
-        if (!nextName) return appUi.requiredProjectNameMessage;
-        if (_projectNameExists(nextName)) return appUi.duplicateProjectNameMessage;
-        return null;
-      },
-    });
-
-    return result.isConfirmed ? String(result.value || suggested).trim() : null;
-  }
-  const name = String(baseName || "Імпортований проєкт").trim() || "Імпортований проєкт";
+  const name = String(baseName || APP_UI.importedProjectFallbackName).trim() || APP_UI.importedProjectFallbackName;
   if (!_projectNameExists(name)) return name;
 
   const suggested = _uniqueProjectName(name);
   const result = await Swal.fire({
     icon: "question",
-    title: "Проєкт з такою назвою вже існує",
-    text: "Щоб не плутати копії, задайте назву для імпортованого проєкту.",
+    title: APP_UI.duplicateProjectTitle,
+    text: APP_UI.duplicateProjectText,
     input: "text",
     inputValue: suggested,
     showCancelButton: true,
-    confirmButtonText: "Імпортувати",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: APP_UI.importConfirmButtonText,
+    cancelButtonText: APP_UI.cancelButtonText,
     inputValidator: (value) => {
       const nextName = String(value || "").trim();
-      if (!nextName) return "Введіть назву проєкту";
-      if (_projectNameExists(nextName)) return "Проєкт з такою назвою вже існує";
+      if (!nextName) return APP_UI.requiredProjectNameMessage;
+      if (_projectNameExists(nextName)) return APP_UI.duplicateProjectNameMessage;
       return null;
     },
   });
 
   return result.isConfirmed ? String(result.value || suggested).trim() : null;
 }
-
 function _normalizeImportedBaseline(baseline, idMap) {
   if (!Array.isArray(baseline)) return baseline || null;
   return baseline
@@ -448,9 +435,7 @@ function _normalizeImportedBaseline(baseline, idMap) {
 function importJSON(e) {
   const f = e.target.files[0];
   if (!f) return;
-  const appUi = typeof buildRuntimeAppUiModel === "function"
-    ? buildRuntimeAppUiModel()
-    : null;
+  const appUi = APP_UI;
   const r = new FileReader();
   r.onload = async (ev) => {
     try {
@@ -536,40 +521,21 @@ function importJSON(e) {
         render();
         updateProjSel();
         if (typeof _updateReadOnlyUI === "function") _updateReadOnlyUI();
-
-        if (appUi) {
-          Swal.fire({
-            toast: true,
-            position: "top-end",
-            icon: "success",
-            title: appUi.importSuccessTitle(allProjects[id].proj.name),
-            showConfirmButton: false,
-            timer: 3000,
-          });
-        } else
         Swal.fire({
           toast: true,
           position: "top-end",
           icon: "success",
-          title: `Імпортовано: «${allProjects[id].proj.name}»`,
+          title: appUi.importSuccessTitle(allProjects[id].proj.name),
           showConfirmButton: false,
           timer: 3000,
         });
       }
     } catch {
-      if (appUi) {
-        Swal.fire({
-          icon: "error",
-          title: appUi.importInvalidTitle,
-          text: appUi.importInvalidText,
-        });
-      } else
       Swal.fire({
         icon: "error",
-        title: "Помилка",
-        text: "Не вдалося прочитати файл. Перевірте формат JSON.",
+        title: appUi.importInvalidTitle,
+        text: appUi.importInvalidText,
       });
-      }
     }
   };
   r.readAsText(f);
@@ -613,11 +579,10 @@ checkOverdue();
 
 function _formatOverdueDur(weeks) {
   if (weeks <= 0) return "";
-  if (weeks < 6) return `${weeks} тижд.`;
+  if (weeks < 6) return APP_UI.overdueWeeksLabel(weeks);
   const months = Math.round(weeks / 4);
-  return `${months} міс.`;
+  return APP_UI.overdueMonthsLabel(months);
 }
-
 /** Перевіряє прострочені задачі та показує/ховає банер. */
 function checkOverdue(forceShow = false) {
   const tw = todayWk();
@@ -660,8 +625,8 @@ function checkOverdue(forceShow = false) {
     return `<div class="ob-item">
       <span class="ob-num">#${t.n}</span>
       <span class="ob-name">${t.name}</span>
-      <span class="ob-stat">залишилось <b>${remaining}%</b></span>
-      <span class="ob-stat" style="color:var(--err)">прострочено <b>${durStr}</b></span>
+      <span class="ob-stat">${APP_UI.overdueRemainingLabel(remaining)}</span>
+      <span class="ob-stat" style="color:var(--err)">${APP_UI.overdueLateLabel(durStr)}</span>
     </div>`;
   });
 
@@ -673,7 +638,7 @@ function checkOverdue(forceShow = false) {
   banner.innerHTML = `
     <span class="ob-icon"><i data-lucide="triangle-alert"></i></span>
     <div class="ob-body">
-      <div class="ob-title">Прострочено ${overdue.length} ${overdue.length === 1 ? "роботу" : overdue.length < 5 ? "роботи" : "робіт"}</div>
+      <div class="ob-title">${APP_UI.overdueTitle(overdue.length)}</div>
       <div class="ob-list" id="ob-list-preview">${previewHTML}</div>
       ${
         hasMore
@@ -681,18 +646,17 @@ function checkOverdue(forceShow = false) {
         <div class="ob-list" id="ob-list-hidden" style="display:none">${hiddenHTML}</div>
         <button class="ob-show-more" id="ob-show-more-btn"
                 onclick="toggleOverdueExpand()">
-          ▼ Показати ще ${overdue.length - PREVIEW}
+          ${APP_UI.overdueShowMoreLabel(overdue.length - PREVIEW)}
         </button>`
           : ""
       }
     </div>
-    <span class="ob-close" onclick="closeOverdueBanner()" title="Закрити"><i data-lucide="x"></i></span>`;
+    <span class="ob-close" onclick="closeOverdueBanner()" title="${APP_UI.overdueCloseTitle}"><i data-lucide="x"></i></span>`;
 
   banner.classList.add("show");
   lucide.createIcons({ nodes: [banner] });
   if (reopenBtn) reopenBtn.style.display = "none";
 }
-
 function toggleOverdueExpand() {
   const hidden = document.getElementById("ob-list-hidden");
   const btn = document.getElementById("ob-show-more-btn");
@@ -700,8 +664,8 @@ function toggleOverdueExpand() {
   const isOpen = hidden.style.display !== "none";
   hidden.style.display = isOpen ? "none" : "block";
   btn.textContent = isOpen
-    ? `▼ Показати ще ${hidden.querySelectorAll(".ob-item").length}`
-    : "▲ Згорнути";
+    ? APP_UI.overdueShowMoreLabel(hidden.querySelectorAll(".ob-item").length)
+    : APP_UI.overdueCollapseLabel;
 }
 
 function closeOverdueBanner() {

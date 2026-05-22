@@ -1,6 +1,7 @@
 export interface PrintUiModel {
   noChartsText: string;
   previewLoadingText: string;
+  previewPagesLabel: (pages: number) => string;
   reportTitle: string;
   nothingSelectedText: string;
   projectFallbackTitle: string;
@@ -18,14 +19,18 @@ export interface PrintUiModel {
   exportPdfProgressText: string;
   exportPdfSuccessTitle: string;
   exportPdfErrorTitle: string;
+  pdfPageProgressText: (current: number, total: number) => string;
   ganttPageTitlePrefix: string;
   tasksMetaLabel: string;
   workTypeHeader: string;
+  plannedLabel: string;
+  actualLabel: string;
   financeBudgetLabel: string;
   financeSpentLabel: string;
   financeRestLabel: string;
   financeTasksLabel: string;
   financeDoneSuffix: string;
+  currencyUnit: string;
   financeTableHeaders: {
     task: string;
     category: string;
@@ -43,6 +48,7 @@ export function buildPrintUiModel(): PrintUiModel {
   return {
     noChartsText: "Немає побудованих графіків",
     previewLoadingText: "Оновлення передперегляду...",
+    previewPagesLabel: (pages: number) => `${pages} стор.`,
     reportTitle: "Звіт",
     nothingSelectedText: "Нічого не вибрано для друку.",
     projectFallbackTitle: "Проєкт",
@@ -60,14 +66,18 @@ export function buildPrintUiModel(): PrintUiModel {
     exportPdfProgressText: "Підготовка...",
     exportPdfSuccessTitle: "PDF збережено",
     exportPdfErrorTitle: "Помилка PDF",
+    pdfPageProgressText: (current: number, total: number) => `Сторінка ${current} з ${total}...`,
     ganttPageTitlePrefix: "Діаграма Ганта: тижні",
     tasksMetaLabel: "робіт",
     workTypeHeader: "Вид робіт",
+    plannedLabel: "Плановий",
+    actualLabel: "Фактичний",
     financeBudgetLabel: "Бюджет",
     financeSpentLabel: "Витрачено",
     financeRestLabel: "Залишок",
     financeTasksLabel: "Робіт",
     financeDoneSuffix: "завершено",
+    currencyUnit: "грн",
     financeTableHeaders: {
       task: "Робота",
       category: "Категорія",

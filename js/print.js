@@ -19,25 +19,49 @@ let _printPreviewPage = 0;
 const PRINT_UI = typeof buildRuntimePrintUiModel === "function"
   ? buildRuntimePrintUiModel()
   : {
-      noChartsText: "Немає побудованих графіків",
-      previewLoadingText: "Оновлення передперегляду...",
-      reportTitle: "Звіт",
-      nothingSelectedText: "Нічого не вибрано для друку.",
-      projectFallbackTitle: "Проєкт",
-      ganttTitle: "Діаграма Ганта",
-      ganttEmptyText: "Немає робіт для друку.",
-      financeTitle: "Фінансовий звіт",
-      sCurveTitle: "S-крива освоєння бюджету",
-      sCurveAlt: "S-крива",
-      sCurveUnavailableText: "S-крива недоступна для друку.",
-      weeklyCostTitle: "Тижневий графік витрат",
-      weeklyCostAlt: "Тижневий графік витрат",
-      weeklyCostUnavailableText: "Тижневий графік витрат недоступний для друку.",
-      chartFallbackTitle: "Графік",
-      exportPdfTitle: "Генерую PDF...",
-      exportPdfProgressText: "Підготовка...",
-      exportPdfSuccessTitle: "PDF збережено",
-      exportPdfErrorTitle: "Помилка PDF",
+      noChartsText: "No charts available",
+      previewLoadingText: "Refreshing preview...",
+      previewPagesLabel: (pages) => `${pages} pages`,
+      reportTitle: "Report",
+      nothingSelectedText: "Nothing selected for print.",
+      projectFallbackTitle: "Project",
+      ganttTitle: "Gantt chart",
+      ganttEmptyText: "No tasks available for print.",
+      financeTitle: "Financial report",
+      sCurveTitle: "S-curve",
+      sCurveAlt: "S-curve",
+      sCurveUnavailableText: "S-curve is unavailable for print.",
+      weeklyCostTitle: "Weekly cost chart",
+      weeklyCostAlt: "Weekly cost chart",
+      weeklyCostUnavailableText: "Weekly cost chart is unavailable for print.",
+      chartFallbackTitle: "Chart",
+      exportPdfTitle: "Generating PDF...",
+      exportPdfProgressText: "Preparing...",
+      exportPdfSuccessTitle: "PDF saved",
+      exportPdfErrorTitle: "PDF error",
+      pdfPageProgressText: (current, total) => `Page ${current} of ${total}...`,
+      ganttPageTitlePrefix: "Gantt chart: weeks",
+      tasksMetaLabel: "tasks",
+      workTypeHeader: "Work type",
+      plannedLabel: "Planned",
+      actualLabel: "Actual",
+      financeBudgetLabel: "Budget",
+      financeSpentLabel: "Spent",
+      financeRestLabel: "Remaining",
+      financeTasksLabel: "Tasks",
+      financeDoneSuffix: "done",
+      currencyUnit: "UAH",
+      financeTableHeaders: {
+        task: "Task",
+        category: "Category",
+        weeks: "Weeks",
+        budget: "Budget",
+        spent: "Spent",
+        rest: "Remaining",
+        progress: "%",
+      },
+      noTasksShortText: "No tasks.",
+      chartPageFallbackTitle: "Chart",
     };
 
 function openPrintDialog() {
@@ -464,7 +488,7 @@ function _buildSCurvePrintData() {
     labels: ml.map((m) => `${m.name.slice(0, 3)} ${m.y}`),
     datasets: [
       {
-        label: "РџР»Р°РЅРѕРІРёР№",
+        label: PRINT_UI.plannedLabel,
         data: cumPlanned,
         borderColor: "rgba(30,80,200,0.9)",
         backgroundColor: "rgba(30,80,200,0.08)",
@@ -474,7 +498,7 @@ function _buildSCurvePrintData() {
         pointRadius: 3,
       },
       {
-        label: "Р¤Р°РєС‚РёС‡РЅРёР№",
+        label: PRINT_UI.actualLabel,
         data: cumActual.map((v, i) => (i <= cutoff ? v : null)),
         borderColor: "rgba(22,128,60,0.95)",
         backgroundColor: "rgba(22,128,60,0.08)",
@@ -516,7 +540,7 @@ function _renderPrintPreview() {
   if (!target || !modal || modal.style.display === "none") return;
 
   _removePrintRoot();
-  target.innerHTML = `<div class="print-preview-empty">РћРЅРѕРІР»РµРЅРЅСЏ РїРµСЂРµРґРїРµСЂРµРіР»СЏРґСѓ...</div>`;
+  target.innerHTML = `<div class="print-preview-empty">${PRINT_UI.previewLoadingText}</div>`;
 
   const root = _buildPrintRoot(_getPrintSections(), _getPrintSettings());
   const clone = root.cloneNode(true);
@@ -546,7 +570,7 @@ function _renderPrintPreview() {
     target.style.height = `${clone.scrollHeight * scale}px`;
     if (meta) {
       const pages = clone.querySelectorAll(".print-page").length;
-      meta.textContent = `${pages} СЃС‚РѕСЂ.`;
+      meta.textContent = PRINT_UI.previewPagesLabel(pages);
     }
   });
 }
@@ -783,9 +807,9 @@ function _appendPrintFinance(root, metrics, settings) {
   const totalRest = totalBudget - totalSpent;
   const done = tasks.filter((t) => +t.prog >= 100).length;
   const cards = [
-    [PRINT_UI.financeBudgetLabel, fmtM(totalBudget), "грн"],
-    [PRINT_UI.financeSpentLabel, fmtM(totalSpent), "грн"],
-    [PRINT_UI.financeRestLabel, fmtM(totalRest), "грн"],
+    [PRINT_UI.financeBudgetLabel, fmtM(totalBudget), PRINT_UI.currencyUnit],
+    [PRINT_UI.financeSpentLabel, fmtM(totalSpent), PRINT_UI.currencyUnit],
+    [PRINT_UI.financeRestLabel, fmtM(totalRest), PRINT_UI.currencyUnit],
     [PRINT_UI.financeTasksLabel, String(tasks.length), `${done} ${PRINT_UI.financeDoneSuffix}`],
   ]
     .map(([label, value, sub]) => `<div class="print-fin-card"><span>${_printEsc(label)}</span><b>${_printEsc(value)}</b><small>${_printEsc(sub)}</small></div>`)
@@ -922,7 +946,7 @@ async function _generatePDF(sections, settings = PRINT_DEFAULTS) {
   const pages = [...root.querySelectorAll(".print-page")];
 
   for (let i = 0; i < pages.length; i++) {
-    if (progress) progress.textContent = `РЎС‚РѕСЂС–РЅРєР° ${i + 1} Р· ${pages.length}...`;
+    if (progress) progress.textContent = PRINT_UI.pdfPageProgressText(i + 1, pages.length);
     const canvas = await html2canvas(pages[i], {
       scale: settings.renderScale,
       useCORS: true,

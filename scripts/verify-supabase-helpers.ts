@@ -491,6 +491,8 @@ assert.equal(appUi.importedProjectFallbackName, "Імпортований про
 assert.equal(appUi.copiedTaskSuffix, " (копія)");
 assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
 assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
+assert.equal(appUi.workbookSheets.schedule, "Графік");
+assert.equal(appUi.overdueShowMoreLabel(2), "▼ Показати ще 2");
 
 const chartsUi = buildChartsUiModel();
 assert.equal(chartsUi.axisLabels.prog, "Виконання (%)");
@@ -506,6 +508,8 @@ const printUi = buildPrintUiModel();
 assert.equal(printUi.noChartsText, "Немає побудованих графіків");
 assert.equal(printUi.financeTitle, "Фінансовий звіт");
 assert.equal(printUi.exportPdfSuccessTitle, "PDF збережено");
+assert.equal(printUi.previewPagesLabel(3), "3 стор.");
+assert.equal(printUi.pdfPageProgressText(2, 5), "Сторінка 2 з 5...");
 
 const storageUi = buildStorageUiModel();
 assert.equal(storageUi.offlineIndicatorText, "⚠ офлайн — зміни збережено локально");
