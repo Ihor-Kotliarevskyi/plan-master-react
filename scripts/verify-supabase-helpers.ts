@@ -48,6 +48,18 @@ import {
   buildContractorSummaryLabels,
   buildContractorTableLabels,
 } from "../src/domain/contractors-ui";
+import {
+  buildContractorRows,
+  contractorItemTotal,
+  contractorKey,
+  contractorName,
+  contractorStatus,
+  paymentRegisterFiltersLabel,
+  paymentRegisterRowsFromContractorRows,
+  paymentRegisterTotal,
+  selectedContractorKeys,
+  summarizeContractorBulkDelete,
+} from "../src/domain/contractors";
 import { buildCostUiModel } from "../src/domain/costs-ui";
 import {
   addPaymentToCostItem,
@@ -664,6 +676,72 @@ assert.equal(contractorTableLabels.importReviewTitle, "Перевірка імп
 assert.equal(contractorTableLabels.editPaymentTitle("Acme"), "Редагувати платіж: Acme");
 assert.equal(contractorTableLabels.paymentAmountValidation, "Вкажіть суму платежу");
 assert.equal(contractorTableLabels.contractPlaceholder, "Договір №");
+
+assert.equal(contractorName("", "Без контрагента"), "Без контрагента");
+assert.equal(contractorKey("Acme", "Без контрагента"), "acme");
+assert.equal(contractorItemTotal({ qty: 3, unitPrice: 200 }), 600);
+assert.equal(contractorStatus({ budget: 100, paid: 0, rest: 100 }).key, "debt");
+assert.deepEqual(selectedContractorKeys(["a", "b", "__forecast__"], (key) => key.startsWith("__")), ["a", "b"]);
+assert.deepEqual(summarizeContractorBulkDelete([{ itemsCount: 2, paymentsCount: 3, acts: [1] }]), {
+  contractors: 1,
+  items: 2,
+  payments: 3,
+  acts: 1,
+});
+
+const contractorRows = buildContractorRows(
+  [
+    {
+      id: "task-1",
+      n: 1,
+      name: "Foundation",
+      cat: 0,
+      budget: 1000,
+      spent: 300,
+      costItems: [{
+        id: "item-1",
+        supplier: "Acme",
+        type: "work",
+        contractNo: "C-1",
+        qty: 2,
+        unitPrice: 150,
+        payments: [{ amount: 100, date: "2026-05-01", type: "act" }],
+        acts: [{ amount: 120, date: "2026-04-20", type: "act", name: "A-1" }],
+      }],
+    },
+  ],
+  {
+    filters: { q: "", status: [], type: [], cat: [] },
+    emptyName: "Без контрагента",
+    multiFilterHas: (selected, value) => !Array.isArray(selected) || !selected.length || selected.includes(value),
+    multiFilterValues: (selected) => Array.isArray(selected) ? selected.map(String) : [],
+    getTaskCostItems: (task) => task.costItems || [],
+    sort: { col: "paid", dir: -1 },
+  },
+);
+assert.equal(contractorRows.length, 1);
+assert.equal(contractorRows[0]?.supplier, "Acme");
+assert.equal(contractorRows[0]?.budget, 300);
+assert.equal(contractorRows[0]?.paid, 100);
+assert.equal(contractorRows[0]?.status, "debt");
+
+const registerRows = paymentRegisterRowsFromContractorRows([{
+  supplier: "Acme",
+  isForecast: false,
+  payments: [{ date: "2026-05-01", amount: 100, typeLabel: "Act", taskNo: 1, taskName: "Foundation", itemName: "Work", note: "" }],
+}]);
+assert.equal(registerRows.length, 1);
+assert.equal(registerRows[0]?.type, "Act");
+assert.equal(paymentRegisterTotal(registerRows), 100);
+assert.equal(
+  paymentRegisterFiltersLabel(
+    { q: "acme", status: ["debt"], type: ["work"], cat: ["0"] },
+    (selected) => Array.isArray(selected) ? selected.map(String) : [],
+    (type) => ({ work: "Роботи" }[type] || type),
+    (cat) => ({ "0": "General" }[cat] || cat),
+  ),
+  "пошук: acme; статус: debt; тип: Роботи; категорія: General",
+);
 
 const costUi = buildCostUiModel();
 assert.equal(costUi.labels.addPaymentLabel, "+ Платіж");

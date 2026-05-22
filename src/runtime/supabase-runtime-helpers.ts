@@ -48,6 +48,18 @@ import {
   buildContractorSummaryLabels,
   buildContractorTableLabels,
 } from "../domain/contractors-ui";
+import {
+  buildContractorRows,
+  contractorItemTotal,
+  contractorKey,
+  contractorName,
+  contractorStatus,
+  paymentRegisterFiltersLabel,
+  paymentRegisterRowsFromContractorRows,
+  paymentRegisterTotal,
+  selectedContractorKeys,
+  summarizeContractorBulkDelete,
+} from "../domain/contractors";
 import { buildCostUiModel } from "../domain/costs-ui";
 import {
   addPaymentToCostItem,
@@ -306,6 +318,16 @@ const runtimeHelpers = {
   buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
   buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
   buildRuntimeContractorTableLabels: buildContractorTableLabels,
+  buildRuntimeContractorName: contractorName,
+  buildRuntimeContractorKey: contractorKey,
+  buildRuntimeContractorItemTotal: contractorItemTotal,
+  buildRuntimeContractorStatus: contractorStatus,
+  buildRuntimeSelectedContractorKeys: selectedContractorKeys,
+  buildRuntimeSummarizeContractorBulkDelete: summarizeContractorBulkDelete,
+  buildRuntimeContractorRows: buildContractorRows,
+  buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
+  buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
+  buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
   buildRuntimeCostUiModel: buildCostUiModel,
   buildRuntimeCreateCostItem: createCostItem,
   buildRuntimeCreateCostPayment: createCostPayment,

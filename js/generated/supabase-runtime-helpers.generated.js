@@ -476,13 +476,13 @@
   function hasFinanceFilters(filters, multiValues) {
     return !!(multiValues(filters.cat).length || multiValues(filters.stat).length || multiValues(filters.contr).length || filters.budgetMin !== "" || filters.budgetMax !== "" || filters.onlyBudget);
   }
-  function financeScopedCostItems(task, selectedContractors, contractorKey, getTaskCostItems) {
+  function financeScopedCostItems(task, selectedContractors, contractorKey2, getTaskCostItems) {
     const items = getTaskCostItems(task);
     if (!selectedContractors.length) return items;
-    return items.filter((item) => selectedContractors.includes(contractorKey(item.supplier)));
+    return items.filter((item) => selectedContractors.includes(contractorKey2(item.supplier)));
   }
-  function financeTaskScope(task, selectedContractors, contractorKey, getTaskCostItems) {
-    const items = financeScopedCostItems(task, selectedContractors, contractorKey, getTaskCostItems);
+  function financeTaskScope(task, selectedContractors, contractorKey2, getTaskCostItems) {
+    const items = financeScopedCostItems(task, selectedContractors, contractorKey2, getTaskCostItems);
     const payments = items.flatMap((item) => item.payments || []);
     if (selectedContractors.length) {
       const budget = items.reduce((sum, item) => sum + financeItemTotal(item), 0);
@@ -764,6 +764,212 @@
       addContractTitle: "Додайте договір",
       contractAmountValidation: "Вкажіть суму договору"
     };
+  }
+
+  // src/domain/contractors.ts
+  function contractorName(name, emptyName) {
+    const text = String(name ?? "").trim();
+    return text || emptyName;
+  }
+  function contractorKey(name, emptyName) {
+    return contractorName(name, emptyName).toLocaleLowerCase("uk-UA");
+  }
+  function contractorItemTotal(item) {
+    const qty = item?.qty == null ? 1 : +item.qty || 0;
+    return qty * (+item?.unitPrice || 0);
+  }
+  function contractorStatus(row) {
+    if (row.rest < -0.5) return { key: "over", label: "Переплата" };
+    if (row.budget > 0 && row.paid <= 0.5) return { key: "debt", label: "Без оплати" };
+    if (row.budget > 0 && row.rest > 0.5) return { key: "debt", label: "Залишок" };
+    if (row.budget > 0 && Math.abs(row.rest) <= 0.5) return { key: "paid", label: "Оплачено" };
+    return { key: "empty", label: "Без сум" };
+  }
+  function isPinnedContractorRow(row, emptyName) {
+    return !!row?.isForecast || row?.key === contractorKey(emptyName, emptyName);
+  }
+  function pinnedContractorRank(row, emptyName) {
+    if (row?.isForecast) return 0;
+    if (row?.key === contractorKey(emptyName, emptyName)) return 1;
+    return 2;
+  }
+  function selectedContractorKeys(selected, isBlocked) {
+    return Array.from(selected).filter((key) => !isBlocked(key));
+  }
+  function paymentRegisterTotal(rows) {
+    return rows.reduce((sum, row) => sum + (+row.amount || 0), 0);
+  }
+  function paymentRegisterRowsFromContractorRows(rows) {
+    return rows.filter((row) => !row.isForecast).flatMap(
+      (row) => (row.payments || []).map((payment) => ({
+        supplier: row.supplier,
+        date: payment.date || "",
+        amount: +payment.amount || 0,
+        type: payment.typeLabel || payment.type || "Інше",
+        taskNo: payment.taskNo,
+        taskName: payment.taskName,
+        itemName: payment.itemName,
+        note: payment.note || ""
+      }))
+    ).sort(
+      (a, b) => (a.date || "").localeCompare(b.date || "") || String(a.supplier || "").localeCompare(String(b.supplier || ""), "uk")
+    );
+  }
+  function paymentRegisterFiltersLabel(filters, multiValues, typeLabel, categoryLabel) {
+    const parts = [];
+    if (filters.q) parts.push(`пошук: ${filters.q}`);
+    const statuses = multiValues(filters.status);
+    if (statuses.length) parts.push(`статус: ${statuses.join(", ")}`);
+    const types = multiValues(filters.type);
+    if (types.length) parts.push(`тип: ${types.map(typeLabel).join(", ")}`);
+    const cats = multiValues(filters.cat);
+    if (cats.length) parts.push(`категорія: ${cats.map(categoryLabel).join(", ")}`);
+    return parts.join("; ") || "усі платежі";
+  }
+  function summarizeContractorBulkDelete(rows) {
+    return rows.reduce(
+      (acc, row) => {
+        acc.contractors += 1;
+        acc.items += row.itemsCount || 0;
+        acc.payments += row.paymentsCount || 0;
+        acc.acts += (row.acts || []).length || 0;
+        return acc;
+      },
+      { contractors: 0, items: 0, payments: 0, acts: 0 }
+    );
+  }
+  function buildContractorRows(tasks, options) {
+    const {
+      filters,
+      emptyName,
+      multiFilterHas,
+      multiFilterValues,
+      getTaskCostItems,
+      addForecastRemainder,
+      sort
+    } = options;
+    const buckets = /* @__PURE__ */ new Map();
+    tasks.forEach((task, ti) => {
+      if (!multiFilterHas(filters.cat, String(task.cat))) return;
+      const costItems = getTaskCostItems(task);
+      costItems.forEach((item, itemIndex) => {
+        if (!multiFilterHas(filters.type, item.type || "other")) return;
+        const supplier = contractorName(item.supplier, emptyName);
+        const key = contractorKey(supplier, emptyName);
+        const bucket = buckets.get(key) || {
+          key,
+          supplier,
+          budget: 0,
+          paid: 0,
+          rest: 0,
+          actsAmount: 0,
+          actsDebt: 0,
+          tasks: /* @__PURE__ */ new Set(),
+          taskNames: /* @__PURE__ */ new Map(),
+          items: [],
+          acts: [],
+          payments: [],
+          lastPayment: "",
+          search: ""
+        };
+        const itemBudget = contractorItemTotal(item);
+        const itemPayments = item.payments || [];
+        const itemPaid = itemPayments.reduce((sum, payment) => sum + (+payment.amount || 0), 0);
+        const itemName = item.name || "Опис товару/послуги";
+        bucket.budget += itemBudget;
+        bucket.paid += itemPaid;
+        bucket.tasks.add(task.id || String(task.n));
+        bucket.taskNames.set(task.id || String(task.n), task.name);
+        bucket.items.push({
+          ti,
+          itemId: item.id,
+          itemIndex,
+          taskNo: task.n,
+          taskName: task.name,
+          contractNo: item.contractNo || "-",
+          itemName,
+          type: item.type,
+          total: itemBudget,
+          budget: itemBudget,
+          paid: itemPaid,
+          note: item.contractNote || item.note || ""
+        });
+        (item.acts || []).forEach((act) => {
+          const actAmount = +act.amount || 0;
+          bucket.actsAmount += actAmount;
+          bucket.acts.push({
+            ti,
+            taskNo: task.n,
+            taskName: task.name,
+            itemName,
+            contractNo: item.contractNo || "",
+            contractAmount: itemBudget,
+            type: act.type || "contract",
+            name: act.name || "",
+            date: act.date || "",
+            amount: actAmount,
+            note: act.note || ""
+          });
+        });
+        itemPayments.forEach((payment) => {
+          bucket.payments.push({
+            ti,
+            taskNo: task.n,
+            taskName: task.name,
+            itemName,
+            date: payment.date || "",
+            type: payment.type || "other",
+            amount: +payment.amount || 0,
+            typeLabel: payment.typeLabel,
+            contractNo: item.contractNo || "",
+            contractAmount: itemBudget,
+            actId: payment.actId || "",
+            actNo: payment.actNo || "",
+            note: payment.note || ""
+          });
+          if (payment.date && payment.date > bucket.lastPayment) bucket.lastPayment = payment.date;
+        });
+        bucket.search += ` ${supplier} ${task.name} ${itemName} ${item.type || ""} ${itemPayments.map((payment) => `${payment.note || ""} ${payment.amount || ""}`).join(" ")}`;
+        buckets.set(key, bucket);
+      });
+      if (!multiFilterValues(filters.type).length && typeof addForecastRemainder === "function") {
+        addForecastRemainder(buckets, task, ti, costItems);
+      }
+    });
+    const q = String(filters.q || "").trim().toLocaleLowerCase("uk-UA");
+    const rows = Array.from(buckets.values()).map((row) => {
+      row.actsAmount = row.actsAmount || 0;
+      row.rest = row.budget - row.paid;
+      row.actsDebt = row.isForecast ? 0 : row.actsAmount - row.paid;
+      row.tasksCount = row.tasks.size;
+      row.itemsCount = row.items.length;
+      row.paymentsCount = row.payments.length;
+      row.topTask = Array.from(row.taskNames.values())[0] || "";
+      row.status = contractorStatus(row).key;
+      return row;
+    }).filter((row) => {
+      if (q && !String(row.search || "").toLocaleLowerCase("uk-UA").includes(q)) return false;
+      const statuses = multiFilterValues(filters.status);
+      if (statuses.length) {
+        const matchesStatus = statuses.includes("debt") && row.rest > 0.5 || statuses.includes("paid") && row.budget > 0 && Math.abs(row.rest) <= 0.5 || statuses.includes("over") && row.rest < -0.5 || statuses.includes("unpaid") && row.budget > 0 && row.paid <= 0.5;
+        if (!matchesStatus) return false;
+      }
+      return true;
+    });
+    rows.sort((a, b) => {
+      const ap = isPinnedContractorRow(a, emptyName);
+      const bp = isPinnedContractorRow(b, emptyName);
+      if (ap !== bp) return ap ? -1 : 1;
+      if (ap && bp) return pinnedContractorRank(a, emptyName) - pinnedContractorRank(b, emptyName);
+      const av = a[sort.col];
+      const bv = b[sort.col];
+      const cmp = typeof av === "string" ? String(av ?? "").localeCompare(String(bv ?? ""), "uk") : (Number(av) || 0) - (Number(bv) || 0);
+      return sort.dir * cmp;
+    });
+    rows.forEach((row, index) => {
+      row.rowNo = index + 1;
+    });
+    return rows;
   }
 
   // src/domain/costs-ui.ts
@@ -1851,6 +2057,16 @@
     buildRuntimeContractorFilterLabels: buildContractorFilterLabels,
     buildRuntimeContractorSelectionLabels: buildContractorSelectionLabels,
     buildRuntimeContractorTableLabels: buildContractorTableLabels,
+    buildRuntimeContractorName: contractorName,
+    buildRuntimeContractorKey: contractorKey,
+    buildRuntimeContractorItemTotal: contractorItemTotal,
+    buildRuntimeContractorStatus: contractorStatus,
+    buildRuntimeSelectedContractorKeys: selectedContractorKeys,
+    buildRuntimeSummarizeContractorBulkDelete: summarizeContractorBulkDelete,
+    buildRuntimeContractorRows: buildContractorRows,
+    buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
+    buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
+    buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
     buildRuntimeCostUiModel: buildCostUiModel,
     buildRuntimeCreateCostItem: createCostItem,
     buildRuntimeCreateCostPayment: createCostPayment,

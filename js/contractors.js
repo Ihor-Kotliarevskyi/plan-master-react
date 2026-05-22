@@ -717,6 +717,17 @@ function _compareContractorDetailRows(a, b, sort) {
 }
 
 function _getContractorRows() {
+  if (typeof buildRuntimeContractorRows === "function") {
+    return buildRuntimeContractorRows(tasks, {
+      filters: contractorFilters,
+      emptyName: CONTRACTOR_EMPTY_NAME,
+      multiFilterHas,
+      multiFilterValues,
+      getTaskCostItems: (task) => typeof taskCostItems === "function" ? taskCostItems(task) : (task.costItems || task.cost_items || []),
+      addForecastRemainder: _addTaskForecastRemainder,
+      sort: contractorSort,
+    });
+  }
   const buckets = new Map();
 
   tasks.forEach((task, ti) => {
@@ -930,6 +941,7 @@ function _addTaskForecastRemainder(buckets, task, ti, costItems) {
 }
 
 function _contractorStatus(row) {
+  if (typeof buildRuntimeContractorStatus === "function") return buildRuntimeContractorStatus(row);
   if (row.rest < -0.5) return { key: "over", label: "Переплата" };
   if (row.budget > 0 && row.paid <= 0.5) return { key: "debt", label: "Без оплат" };
   if (row.budget > 0 && row.rest > 0.5) return { key: "debt", label: "Залишок" };
@@ -1337,6 +1349,9 @@ function _isBulkDeleteBlockedKey(key) {
 }
 
 function _selectedContractorKeys() {
+  if (typeof buildRuntimeSelectedContractorKeys === "function") {
+    return buildRuntimeSelectedContractorKeys(contractorSelected, _isBulkDeleteBlockedKey);
+  }
   return Array.from(contractorSelected).filter((key) => !_isBulkDeleteBlockedKey(key));
 }
 
@@ -1413,13 +1428,15 @@ async function _bulkDeleteContractors(keys, scopeLabel) {
   if (!uniqueKeys.length) return;
 
   const rows = _getContractorRows().filter((row) => uniqueKeys.includes(row.key));
-  const summary = rows.reduce((acc, row) => {
-    acc.contractors += 1;
-    acc.items += row.itemsCount || 0;
-    acc.payments += row.paymentsCount || 0;
-    acc.acts += (row.acts || []).length || 0;
-    return acc;
-  }, { contractors: 0, items: 0, payments: 0, acts: 0 });
+  const summary = typeof buildRuntimeSummarizeContractorBulkDelete === "function"
+    ? buildRuntimeSummarizeContractorBulkDelete(rows)
+    : rows.reduce((acc, row) => {
+        acc.contractors += 1;
+        acc.items += row.itemsCount || 0;
+        acc.payments += row.paymentsCount || 0;
+        acc.acts += (row.acts || []).length || 0;
+        return acc;
+      }, { contractors: 0, items: 0, payments: 0, acts: 0 });
 
   const confirmOne = await Swal.fire({
     icon: "warning",
@@ -1927,7 +1944,19 @@ function _ensurePaymentRegisters() {
 }
 
 function _paymentRegisterRowsFromFilters() {
-  return _getContractorRows()
+  const rows = _getContractorRows();
+  if (typeof buildRuntimePaymentRegisterRowsFromContractorRows === "function") {
+    return buildRuntimePaymentRegisterRowsFromContractorRows(
+      rows.map((row) => ({
+        ...row,
+        payments: (row.payments || []).map((payment) => ({
+          ...payment,
+          typeLabel: PAYMENT_TYPES[payment.type] || payment.type || "Інше",
+        })),
+      })),
+    );
+  }
+  return rows
     .filter((row) => !row.isForecast)
     .flatMap((row) => row.payments.map((payment) => ({
       supplier: row.supplier,
@@ -1943,10 +1972,19 @@ function _paymentRegisterRowsFromFilters() {
 }
 
 function _paymentRegisterTotal(rows) {
+  if (typeof buildRuntimePaymentRegisterTotal === "function") return buildRuntimePaymentRegisterTotal(rows);
   return rows.reduce((sum, row) => sum + (+row.amount || 0), 0);
 }
 
 function _paymentRegisterFiltersLabel() {
+  if (typeof buildRuntimePaymentRegisterFiltersLabel === "function") {
+    return buildRuntimePaymentRegisterFiltersLabel(
+      contractorFilters,
+      multiFilterValues,
+      (type) => COST_TYPES?.[type]?.label || type,
+      (cat) => CN(+cat),
+    );
+  }
   const parts = [];
   if (contractorFilters.q) parts.push(`пошук: ${contractorFilters.q}`);
   const statuses = multiFilterValues(contractorFilters.status);
@@ -4180,6 +4218,7 @@ function _ctRecalcTaskTotals(task) {
 }
 
 function _ctItemTotal(item) {
+  if (typeof buildRuntimeContractorItemTotal === "function") return buildRuntimeContractorItemTotal(item);
   const qty = item.qty == null ? 1 : (+item.qty || 0);
   return qty * (+item.unitPrice || 0);
 }
@@ -4189,10 +4228,12 @@ function _ctIsEmptyRow(row) {
 }
 
 function _contractorName(name) {
+  if (typeof buildRuntimeContractorName === "function") return buildRuntimeContractorName(_ctText(name), CONTRACTOR_EMPTY_NAME);
   return _ctText(name) || CONTRACTOR_EMPTY_NAME;
 }
 
 function _contractorKey(name) {
+  if (typeof buildRuntimeContractorKey === "function") return buildRuntimeContractorKey(name, CONTRACTOR_EMPTY_NAME);
   return _contractorName(name).toLocaleLowerCase("uk-UA");
 }
 
