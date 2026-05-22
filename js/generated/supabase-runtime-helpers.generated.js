@@ -343,6 +343,41 @@
     };
   }
 
+  // src/domain/api-ui.ts
+  function buildApiUiModel() {
+    return {
+      sessionExpiredTitle: "Сесія закінчилась — увійдіть знову",
+      share: {
+        accessDeniedTitle: "У вас немає прав на керування доступом",
+        emptyText: "Нікому не надано доступ",
+        modalTitle: "👥 Спільний доступ",
+        projectLabel: "Проєкт",
+        grantSectionTitle: "Надати доступ:",
+        confirmButtonText: "Надати доступ",
+        cancelButtonText: "Закрити",
+        emailRequiredMessage: "Введіть email"
+      },
+      auth: {
+        loginTabLabel: "Увійти",
+        registerTabLabel: "Реєстрація",
+        nameLabel: "Ім'я",
+        namePlaceholder: "Ваше ім'я",
+        passwordLabel: "Пароль",
+        passwordPlaceholder: "Мінімум 6 символів",
+        loginSubmitLabel: "Увійти",
+        registerSubmitLabel: "Зареєструватись",
+        nameRequiredMessage: "Введіть ім'я",
+        loginSuccessTitle: (name) => `Вітаємо, ${name}! ☁ Синхронізацію увімкнено`,
+        authErrorFallback: "Помилка авторизації",
+        syncedTitle: "Синхронізовано. Клік — вийти",
+        syncedLogoutPromptTitle: "Вийти?",
+        syncedLogoutPromptText: "Дані залишаться в браузері.",
+        logoutConfirmButtonText: "Вийти",
+        loginButtonLabel: "☁ Увійти"
+      }
+    };
+  }
+
   // src/domain/charts-ui.ts
   function buildChartsUiModel() {
     const axisLabels = {
@@ -1360,6 +1395,7 @@
     buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
     buildRuntimeTableLabels: buildTableLabels,
     buildRuntimeAppUiModel: buildAppUiModel,
+    buildRuntimeApiUiModel: buildApiUiModel,
     buildRuntimeChartsUiModel: buildChartsUiModel,
     buildRuntimeFinanceUiModel: buildFinanceUiModel,
     buildRuntimePrintUiModel: buildPrintUiModel,

@@ -29,6 +29,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/modal-ui.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app-ui.ts`
+  - `src/domain/api-ui.ts`
   - `src/domain/charts-ui.ts`
   - `src/domain/finance-ui.ts`
   - `src/domain/print-ui.ts`
@@ -147,6 +148,10 @@ and Supabase adapters happen against stable interfaces.
   - contractor summary, filters, table headers, and selection labels
   - baseline dialogs/toasts
   - access-guard capability labels and denial toast copy
+- `js/api.js` now uses the generated helper layer for:
+  - auth modal labels and submit copy
+  - auth success/error/logout prompt copy
+  - share modal titles, empty states, and validation copy
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape

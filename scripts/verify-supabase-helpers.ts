@@ -27,6 +27,7 @@ import {
   buildTableLabels,
 } from "../src/domain/render-ui";
 import { buildAppUiModel } from "../src/domain/app-ui";
+import { buildApiUiModel } from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
 import { buildPrintUiModel } from "../src/domain/print-ui";
@@ -493,6 +494,12 @@ assert.equal(appUi.numberedCopySuffix(3), " (копія 3)");
 assert.equal(appUi.importSuccessTitle("Alpha"), "Імпортовано: «Alpha»");
 assert.equal(appUi.workbookSheets.schedule, "Графік");
 assert.equal(appUi.overdueShowMoreLabel(2), "▼ Показати ще 2");
+
+const apiUi = buildApiUiModel();
+assert.equal(apiUi.sessionExpiredTitle, "Сесія закінчилась — увійдіть знову");
+assert.equal(apiUi.share.confirmButtonText, "Надати доступ");
+assert.equal(apiUi.auth.loginTabLabel, "Увійти");
+assert.equal(apiUi.auth.loginSuccessTitle("Ігор"), "Вітаємо, Ігор! ☁ Синхронізацію увімкнено");
 
 const chartsUi = buildChartsUiModel();
 assert.equal(chartsUi.axisLabels.prog, "Виконання (%)");

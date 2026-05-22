@@ -28,6 +28,7 @@ import {
   buildTableLabels,
 } from "../domain/render-ui";
 import { buildAppUiModel } from "../domain/app-ui";
+import { buildApiUiModel } from "../domain/api-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
 import { buildFinanceUiModel } from "../domain/finance-ui";
 import { buildPrintUiModel } from "../domain/print-ui";
@@ -241,6 +242,7 @@ const runtimeHelpers = {
   buildRuntimeGanttToolbarLabels: buildGanttToolbarLabels,
   buildRuntimeTableLabels: buildTableLabels,
   buildRuntimeAppUiModel: buildAppUiModel,
+  buildRuntimeApiUiModel: buildApiUiModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,
   buildRuntimeFinanceUiModel: buildFinanceUiModel,
   buildRuntimePrintUiModel: buildPrintUiModel,

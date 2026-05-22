@@ -1,0 +1,65 @@
+export interface ApiUiModel {
+  sessionExpiredTitle: string;
+  share: {
+    accessDeniedTitle: string;
+    emptyText: string;
+    modalTitle: string;
+    projectLabel: string;
+    grantSectionTitle: string;
+    confirmButtonText: string;
+    cancelButtonText: string;
+    emailRequiredMessage: string;
+  };
+  auth: {
+    loginTabLabel: string;
+    registerTabLabel: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    loginSubmitLabel: string;
+    registerSubmitLabel: string;
+    nameRequiredMessage: string;
+    loginSuccessTitle: (name: string) => string;
+    authErrorFallback: string;
+    syncedTitle: string;
+    syncedLogoutPromptTitle: string;
+    syncedLogoutPromptText: string;
+    logoutConfirmButtonText: string;
+    loginButtonLabel: string;
+  };
+}
+
+export function buildApiUiModel(): ApiUiModel {
+  return {
+    sessionExpiredTitle: "Сесія закінчилась — увійдіть знову",
+    share: {
+      accessDeniedTitle: "У вас немає прав на керування доступом",
+      emptyText: "Нікому не надано доступ",
+      modalTitle: "👥 Спільний доступ",
+      projectLabel: "Проєкт",
+      grantSectionTitle: "Надати доступ:",
+      confirmButtonText: "Надати доступ",
+      cancelButtonText: "Закрити",
+      emailRequiredMessage: "Введіть email",
+    },
+    auth: {
+      loginTabLabel: "Увійти",
+      registerTabLabel: "Реєстрація",
+      nameLabel: "Ім'я",
+      namePlaceholder: "Ваше ім'я",
+      passwordLabel: "Пароль",
+      passwordPlaceholder: "Мінімум 6 символів",
+      loginSubmitLabel: "Увійти",
+      registerSubmitLabel: "Зареєструватись",
+      nameRequiredMessage: "Введіть ім'я",
+      loginSuccessTitle: (name: string) => `Вітаємо, ${name}! ☁ Синхронізацію увімкнено`,
+      authErrorFallback: "Помилка авторизації",
+      syncedTitle: "Синхронізовано. Клік — вийти",
+      syncedLogoutPromptTitle: "Вийти?",
+      syncedLogoutPromptText: "Дані залишаться в браузері.",
+      logoutConfirmButtonText: "Вийти",
+      loginButtonLabel: "☁ Увійти",
+    },
+  };
+}
