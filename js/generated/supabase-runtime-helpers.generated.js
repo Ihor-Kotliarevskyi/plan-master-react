@@ -2635,11 +2635,7 @@
     ];
   }
 
-  // src/runtime/supabase-runtime-helpers.ts
-  function getStoredRole(localId, role) {
-    const scope = globalThis;
-    return typeof scope.getStoredProjectRole === "function" ? scope.getStoredProjectRole(localId, role) : role;
-  }
+  // src/services/supabase/runtime.ts
   function mergeAccessibleProjectsIntoLocalState(offlineNew, localSynced, accessibleProjects, authUserId) {
     const mergedProjects = { ...offlineNew };
     for (const item of accessibleProjects || []) {
@@ -2654,7 +2650,9 @@
         invited_by_name: item.invited_by_name || "",
         invited_by_email: item.invited_by_email || ""
       };
-      const localMatch = Object.entries(localSynced).find(([, localProject]) => localProject?._serverId === item.project_id);
+      const localMatch = Object.entries(localSynced).find(
+        ([, localProject]) => localProject?._serverId === item.project_id
+      );
       if (localMatch) {
         const [localId, localProject] = localMatch;
         mergedProjects[localId] = {
@@ -2671,7 +2669,7 @@
     }
     return mergedProjects;
   }
-  function buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role) {
+  function buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole2) {
     const snapshot = mapProjectRowToSnapshot(projectRow, taskRows, role, {
       _access: previousSnapshot?._access,
       _localVersion: previousSnapshot?._localVersion,
@@ -2680,8 +2678,40 @@
     });
     return {
       ...snapshot,
-      _role: getStoredRole(localId, role)
+      _role: typeof getStoredRole2 === "function" ? getStoredRole2(localId, role) : role
     };
+  }
+  function resolveProjectLoadDecision(snapshot) {
+    return {
+      shouldSyncFirst: (snapshot?._localVersion || 0) > (snapshot?._serverVersion || 0),
+      serverId: snapshot?._serverId || null,
+      localVersion: snapshot?._localVersion || 0,
+      serverVersion: snapshot?._serverVersion || 0
+    };
+  }
+  function buildProjectSyncSuccessSnapshot(snapshot) {
+    return {
+      ...snapshot,
+      _serverVersion: snapshot._localVersion || 0
+    };
+  }
+  function buildProjectCreateSuccessSnapshot(snapshot, serverId) {
+    return {
+      ...snapshot,
+      _serverId: serverId,
+      _role: "owner"
+    };
+  }
+  function resolveCurrentProjectId(projects, currentId, bufferCurrentId) {
+    if (bufferCurrentId && projects[bufferCurrentId]) return bufferCurrentId;
+    if (currentId && projects[currentId]) return currentId;
+    return Object.keys(projects)[0] || null;
+  }
+
+  // src/runtime/supabase-runtime-helpers.ts
+  function getStoredRole(localId, role) {
+    const scope = globalThis;
+    return typeof scope.getStoredProjectRole === "function" ? scope.getStoredProjectRole(localId, role) : role;
   }
   function mapSupabaseShareRecord(shareRow) {
     return mapProjectShareRow(shareRow);
@@ -2705,8 +2735,12 @@
   var runtimeHelpers = {
     analyzeBufferedProjectsForUser: analyzeBufferedProjects,
     mergeAccessibleProjectsIntoLocalState,
+    buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
+    buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
     mapSupabaseTaskRow: mapTaskRowToTask,
-    buildSupabaseProjectSnapshot,
+    buildSupabaseProjectSnapshot: (localId, projectRow, taskRows, previousSnapshot, role) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole),
+    buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,
+    buildRuntimeProjectCreateSuccessSnapshot: buildProjectCreateSuccessSnapshot,
     buildSupabaseTasksPayload: buildUpsertTasksPayload,
     buildSupabaseProjectMutationPayload: buildProjectMutationPayload,
     buildSupabaseProjectInsertPayload: buildProjectInsertPayload,

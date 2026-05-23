@@ -168,12 +168,16 @@ async function apiLoadProject(localId) {
   if (!authUser) return;
 
   const localProject = getProjectSnapshot(localId);
-  const serverId = getProjectServerId(localId);
+  const loadDecision = typeof buildRuntimeResolveProjectLoadDecision === "function"
+    ? buildRuntimeResolveProjectLoadDecision(localProject)
+    : {
+        shouldSyncFirst: (localProject?._localVersion || 0) > (localProject?._serverVersion || 0),
+        serverId: getProjectServerId(localId),
+      };
+  const serverId = loadDecision.serverId || getProjectServerId(localId);
   if (!serverId) return;
 
-  const localVersion = localProject?._localVersion || 0;
-  const serverVersion = localProject?._serverVersion || 0;
-  if (localVersion > serverVersion) {
+  if (loadDecision.shouldSyncFirst) {
     await apiSyncProject(localId);
     return;
   }
@@ -296,8 +300,11 @@ async function apiLoadProjects() {
     );
 
     if (!Object.keys(allProjects).length) initDefaultProject();
-    if (bufferCurrentId && allProjects[bufferCurrentId]) currentId = bufferCurrentId;
-    else if (!currentId || !allProjects[currentId]) currentId = Object.keys(allProjects)[0];
+    currentId = typeof buildRuntimeResolveCurrentProjectId === "function"
+      ? buildRuntimeResolveCurrentProjectId(allProjects, currentId, bufferCurrentId)
+      : (bufferCurrentId && allProjects[bufferCurrentId]
+          ? bufferCurrentId
+          : ((!currentId || !allProjects[currentId]) ? Object.keys(allProjects)[0] : currentId));
 
     updateProjSel();
     loadCurrent();
@@ -362,7 +369,12 @@ async function apiSyncProject(idToSync) {
     await _assertSyncedTaskCount(serverId, (projectSnapshot.tasks || []).length);
 
     if (allProjects[snapId]) {
-      allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+      allProjects[snapId] = typeof buildRuntimeProjectSyncSuccessSnapshot === "function"
+        ? buildRuntimeProjectSyncSuccessSnapshot(allProjects[snapId])
+        : {
+            ...allProjects[snapId],
+            _serverVersion: allProjects[snapId]._localVersion,
+          };
       _saveBuffer();
     }
     _showSyncIndicator();
@@ -415,7 +427,9 @@ async function apiCreateProject(idToCreate) {
     return;
   }
 
-  projectSnapshot._serverId = data.id;
+  allProjects[snapId] = typeof buildRuntimeProjectCreateSuccessSnapshot === "function"
+    ? buildRuntimeProjectCreateSuccessSnapshot(projectSnapshot, data.id)
+    : { ...projectSnapshot, _serverId: data.id, _role: "owner" };
   setProjectOwnerRole(snapId);
   _saveBuffer();
 
@@ -429,7 +443,12 @@ async function apiCreateProject(idToCreate) {
     }
     await _assertSyncedTaskCount(data.id, (projectSnapshot.tasks || []).length);
 
-    allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+    allProjects[snapId] = typeof buildRuntimeProjectSyncSuccessSnapshot === "function"
+      ? buildRuntimeProjectSyncSuccessSnapshot(allProjects[snapId])
+      : {
+          ...allProjects[snapId],
+          _serverVersion: allProjects[snapId]._localVersion,
+        };
     _saveBuffer();
     _showSyncIndicator();
   } catch (_) {

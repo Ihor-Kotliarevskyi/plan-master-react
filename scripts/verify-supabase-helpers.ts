@@ -209,6 +209,14 @@ import {
   mergeAccessibleProjectsIntoLocalMap,
 } from "../src/services/supabase/project-list";
 import {
+  buildProjectCreateSuccessSnapshot,
+  buildProjectSyncSuccessSnapshot,
+  buildSupabaseProjectSnapshot as buildSupabaseRuntimeProjectSnapshot,
+  mergeAccessibleProjectsIntoLocalState,
+  resolveCurrentProjectId,
+  resolveProjectLoadDecision,
+} from "../src/services/supabase/runtime";
+import {
   buildProjectInsertPayload,
   buildActivityInsertPayload,
   buildProjectShareRoleUpdatePayload,
@@ -430,6 +438,38 @@ const merged = mergeAccessibleProjectsIntoLocalMap(analysis.offlineNew, [accessi
 assert.ok(merged.localOnly);
 assert.ok(merged["project-1"]);
 assert.equal(merged["project-1"]?._role, "editor");
+const mergedRuntimeState = mergeAccessibleProjectsIntoLocalState(
+  analysis.offlineNew,
+  analysis.localSynced,
+  [accessibleRow],
+  "user-1",
+);
+assert.ok(mergedRuntimeState.localOnly);
+assert.ok(mergedRuntimeState.synced);
+assert.equal(mergedRuntimeState.synced?._role, "editor");
+const projectLoadDecision = resolveProjectLoadDecision({
+  ...shell,
+  _serverId: "project-1",
+  _localVersion: 4,
+  _serverVersion: 2,
+});
+assert.equal(projectLoadDecision.shouldSyncFirst, true);
+assert.equal(projectLoadDecision.serverId, "project-1");
+assert.equal(resolveCurrentProjectId({ a: shell, b: snapshot }, null, "b"), "b");
+assert.equal(resolveCurrentProjectId({ a: shell }, "missing", null), "a");
+const runtimeProjectSnapshot = buildSupabaseRuntimeProjectSnapshot(
+  "local-1",
+  projectRow,
+  [taskRow],
+  shell,
+  "manager",
+  (_localId, role) => role,
+);
+assert.equal(runtimeProjectSnapshot._serverId, "project-1");
+assert.equal(runtimeProjectSnapshot._role, "manager");
+assert.equal(buildProjectSyncSuccessSnapshot(runtimeProjectSnapshot)._serverVersion, runtimeProjectSnapshot._localVersion || 0);
+assert.equal(buildProjectCreateSuccessSnapshot(runtimeProjectSnapshot, "project-2")._serverId, "project-2");
+assert.equal(buildProjectCreateSuccessSnapshot(runtimeProjectSnapshot, "project-2")._role, "owner");
 
 const groupedProjects = groupProjectEntriesByAccess([
   ["local-only", buffered.localOnly],

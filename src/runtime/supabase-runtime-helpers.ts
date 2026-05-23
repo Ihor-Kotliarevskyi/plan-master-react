@@ -1,5 +1,5 @@
 import { normalizeProjectRole } from "../domain/permissions";
-import type { ProjectRole } from "../domain/types";
+import type { ProjectRole, ProjectSnapshot } from "../domain/types";
 import {
   getSharedProjectLabels,
   groupProjectEntriesByAccess,
@@ -194,10 +194,8 @@ import {
   resolveUniqueProjectName,
 } from "../domain/project-import";
 import {
-  mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
-  mapProjectRowToSnapshot,
   mapProjectShareRow,
   mapTaskRowToTask,
 } from "../services/supabase/mappers";
@@ -214,6 +212,14 @@ import {
   analyzeBufferedProjects,
   buildAccessibleProjectsFromFallback,
 } from "../services/supabase/project-list";
+import {
+  buildProjectCreateSuccessSnapshot,
+  buildProjectSyncSuccessSnapshot,
+  buildSupabaseProjectSnapshot,
+  mergeAccessibleProjectsIntoLocalState,
+  resolveCurrentProjectId,
+  resolveProjectLoadDecision,
+} from "../services/supabase/runtime";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -231,69 +237,6 @@ function getStoredRole(localId: string, role: ProjectRole): ProjectRole {
   return typeof scope.getStoredProjectRole === "function"
     ? scope.getStoredProjectRole(localId, role)
     : role;
-}
-
-function mergeAccessibleProjectsIntoLocalState(
-  offlineNew: AnyRecord,
-  localSynced: AnyRecord,
-  accessibleProjects: AccessibleProjectRow[],
-  authUserId: string,
-) {
-  const mergedProjects: AnyRecord = { ...offlineNew };
-
-  for (const item of accessibleProjects || []) {
-    if (!item?.project_id) continue;
-
-    const normalizedRole = normalizeProjectRole(item.role || (item.source === "own" ? "owner" : "viewer"));
-    const fallbackMeta = {
-      source: item.source || "own",
-      owner_id: item.owner_id || (item.source === "own" ? authUserId : null),
-      owner_name: item.owner_name || "",
-      owner_email: item.owner_email || "",
-      invited_by: item.invited_by || null,
-      invited_by_name: item.invited_by_name || "",
-      invited_by_email: item.invited_by_email || "",
-    };
-
-    const localMatch = Object.entries(localSynced)
-      .find(([, localProject]) => (localProject as AnyRecord)?._serverId === item.project_id);
-
-    if (localMatch) {
-      const [localId, localProject] = localMatch;
-      mergedProjects[localId] = {
-        ...(localProject as AnyRecord),
-        _role: normalizedRole,
-        _access: mapAccessibleProjectAccess({
-          ...item,
-          ...fallbackMeta,
-        }),
-      };
-      continue;
-    }
-
-    mergedProjects[item.project_id] = mapAccessibleProjectToSnapshotShell(item);
-  }
-
-  return mergedProjects;
-}
-
-function buildSupabaseProjectSnapshot(
-  localId: string,
-  projectRow: ProjectRow,
-  taskRows: TaskRow[],
-  previousSnapshot: AnyRecord | undefined,
-  role: ProjectRole,
-) {
-  const snapshot = mapProjectRowToSnapshot(projectRow, taskRows, role, {
-    _access: previousSnapshot?._access,
-    _localVersion: previousSnapshot?._localVersion,
-    _serverVersion: previousSnapshot?._serverVersion,
-    _localUpdatedAt: previousSnapshot?._localUpdatedAt,
-  });
-  return {
-    ...snapshot,
-    _role: getStoredRole(localId, role),
-  };
 }
 
 function mapSupabaseShareRecord(shareRow: ProjectShareRow) {
@@ -325,8 +268,18 @@ function mapSupabaseActivityRow(activityRow: ActivityLogRow) {
 const runtimeHelpers = {
   analyzeBufferedProjectsForUser: analyzeBufferedProjects,
   mergeAccessibleProjectsIntoLocalState,
+  buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
+  buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
   mapSupabaseTaskRow: mapTaskRowToTask,
-  buildSupabaseProjectSnapshot,
+  buildSupabaseProjectSnapshot: (
+    localId: string,
+    projectRow: ProjectRow,
+    taskRows: TaskRow[],
+    previousSnapshot: AnyRecord | undefined,
+    role: ProjectRole,
+  ) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot as ProjectSnapshot | undefined, role, getStoredRole),
+  buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,
+  buildRuntimeProjectCreateSuccessSnapshot: buildProjectCreateSuccessSnapshot,
   buildSupabaseTasksPayload: buildUpsertTasksPayload,
   buildSupabaseProjectMutationPayload: buildProjectMutationPayload,
   buildSupabaseProjectInsertPayload: buildProjectInsertPayload,

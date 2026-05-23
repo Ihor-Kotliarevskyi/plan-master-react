@@ -56,6 +56,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/mappers.ts`
   - `src/services/supabase/payloads.ts`
   - `src/services/supabase/project-list.ts`
+  - `src/services/supabase/runtime.ts`
 - fixture-based verification script:
   - `npm run verify:supabase-helpers`
   - `scripts/verify-supabase-helpers.ts`
@@ -102,6 +103,10 @@ and Supabase adapters happen against stable interfaces.
   - `apiShareProject()`
   - `apiUpdateShareRole()`
   - `_buildTasksPayload()`
+  - project load-vs-sync decision
+  - current project resolution after bootstrap
+  - synced snapshot version update
+  - created snapshot server-id/owner-role update
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels
