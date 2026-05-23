@@ -37,6 +37,46 @@
     return PROJECT_ROLE_HINTS[normalizeProjectRole(role)];
   }
 
+  // src/services/api/account-runtime.ts
+  function resetFallbackAuthState() {
+    return {
+      token: null,
+      user: null,
+      projectRole: null
+    };
+  }
+  function buildFallbackRegisterRequest(name, email, password) {
+    return {
+      name,
+      email,
+      password
+    };
+  }
+  function buildFallbackLoginRequest(email, password) {
+    return {
+      email,
+      password
+    };
+  }
+  function buildFallbackProfileUpdateRequest(updates) {
+    return {
+      body: { ...updates || {} }
+    };
+  }
+  function buildFallbackAuthHydratedState(token, user) {
+    return {
+      token,
+      user,
+      projectRole: null
+    };
+  }
+  function buildFallbackSyncIndicatorPlan(timeoutMs = 1800) {
+    return {
+      status: "syncing",
+      timeoutMs
+    };
+  }
+
   // src/services/api/fallback-runtime.ts
   function buildFallbackProjectShell(project) {
     const normalizedRole = normalizeProjectRole(project.role || "owner");
@@ -3142,6 +3182,12 @@
     return mapActivityLogRow(activityRow);
   }
   var runtimeHelpers = {
+    buildRuntimeResetFallbackAuthState: resetFallbackAuthState,
+    buildRuntimeFallbackRegisterRequest: buildFallbackRegisterRequest,
+    buildRuntimeFallbackLoginRequest: buildFallbackLoginRequest,
+    buildRuntimeFallbackProfileUpdateRequest: buildFallbackProfileUpdateRequest,
+    buildRuntimeFallbackAuthHydratedState: buildFallbackAuthHydratedState,
+    buildRuntimeFallbackSyncIndicatorPlan: buildFallbackSyncIndicatorPlan,
     buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
     buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
     buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,

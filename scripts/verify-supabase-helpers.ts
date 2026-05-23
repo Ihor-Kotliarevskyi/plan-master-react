@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 
 import {
+  buildFallbackAuthHydratedState,
+  buildFallbackLoginRequest,
+  buildFallbackProfileUpdateRequest,
+  buildFallbackRegisterRequest,
+  buildFallbackSyncIndicatorPlan,
+  resetFallbackAuthState,
+} from "../src/services/api/account-runtime";
+import {
   buildFallbackLoadedProjectSnapshot,
   buildFallbackProjectCreateRequest,
   buildFallbackProjectDeleteRequest,
@@ -358,6 +366,14 @@ const activityRow: ActivityLogRow = {
   payload: { field: "name" },
   created_at: "2026-05-19T10:30:00.000Z",
 };
+
+const fallbackAuthResetState = resetFallbackAuthState();
+assert.equal(fallbackAuthResetState.token, null);
+assert.equal(buildFallbackRegisterRequest("Ihor", "mail@example.com", "secret").name, "Ihor");
+assert.equal(buildFallbackLoginRequest("mail@example.com", "secret").password, "secret");
+assert.equal(buildFallbackProfileUpdateRequest({ theme: "dark" }).body.theme, "dark");
+assert.equal(buildFallbackAuthHydratedState("token-1", { name: "Ihor" }).token, "token-1");
+assert.equal(buildFallbackSyncIndicatorPlan().timeoutMs, 1800);
 
 const fallbackProjectShell = buildFallbackProjectShell({
   id: "fallback-1",

@@ -85,29 +85,48 @@ async function _fetch(path, options = {}) {
 }
 
 async function apiRegister(name, email, password) {
+  const registerRequest = typeof buildRuntimeFallbackRegisterRequest === "function"
+    ? buildRuntimeFallbackRegisterRequest(name, email, password)
+    : { name, email, password };
   const data = await _fetch("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify(registerRequest),
   });
-  _authToken = data.token;
-  _apiUser = data.user;
+  const hydratedState = typeof buildRuntimeFallbackAuthHydratedState === "function"
+    ? buildRuntimeFallbackAuthHydratedState(data.token, data.user)
+    : { token: data.token, user: data.user, projectRole: null };
+  _authToken = hydratedState.token;
+  _apiUser = hydratedState.user;
+  _projectRole = hydratedState.projectRole;
   localStorage.setItem("gantt_token", _authToken);
   return data;
 }
 
 async function apiLogin(email, password) {
+  const loginRequest = typeof buildRuntimeFallbackLoginRequest === "function"
+    ? buildRuntimeFallbackLoginRequest(email, password)
+    : { email, password };
   const data = await _fetch("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(loginRequest),
   });
-  _authToken = data.token;
-  _apiUser = data.user;
+  const hydratedState = typeof buildRuntimeFallbackAuthHydratedState === "function"
+    ? buildRuntimeFallbackAuthHydratedState(data.token, data.user)
+    : { token: data.token, user: data.user, projectRole: null };
+  _authToken = hydratedState.token;
+  _apiUser = hydratedState.user;
+  _projectRole = hydratedState.projectRole;
   localStorage.setItem("gantt_token", _authToken);
   return data;
 }
 
 function apiLogout() {
-  _authToken = _apiUser = _projectRole = null;
+  const resetState = typeof buildRuntimeResetFallbackAuthState === "function"
+    ? buildRuntimeResetFallbackAuthState()
+    : { token: null, user: null, projectRole: null };
+  _authToken = resetState.token;
+  _apiUser = resetState.user;
+  _projectRole = resetState.projectRole;
   localStorage.removeItem("gantt_token");
   updateUserBtn?.();
 }
@@ -123,9 +142,12 @@ async function apiGetMe() {
 
 async function apiUpdateProfile(updates) {
   if (!_authToken) return;
+  const updateRequest = typeof buildRuntimeFallbackProfileUpdateRequest === "function"
+    ? buildRuntimeFallbackProfileUpdateRequest(updates)
+    : { body: updates };
   return _fetch("/auth/profile", {
     method: "PATCH",
-    body: JSON.stringify(updates),
+    body: JSON.stringify(updateRequest.body),
   });
 }
 
@@ -472,12 +494,15 @@ async function openShareModal() {
 let _syncTimer = null;
 function _showSyncIndicator() {
   if (typeof setUserSyncStatus === "function") {
-    setUserSyncStatus("syncing");
+    const plan = typeof buildRuntimeFallbackSyncIndicatorPlan === "function"
+      ? buildRuntimeFallbackSyncIndicatorPlan()
+      : { status: "syncing", timeoutMs: 1800 };
+    setUserSyncStatus(plan.status);
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => {
       if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
       else setUserSyncStatus("ok");
-    }, 1800);
+    }, plan.timeoutMs);
     return;
   }
   const el = document.getElementById("sync-indicator");

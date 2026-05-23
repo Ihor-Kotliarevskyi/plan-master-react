@@ -1,6 +1,14 @@
 import { normalizeProjectRole } from "../domain/permissions";
 import type { ProjectRole, ProjectSnapshot } from "../domain/types";
 import {
+  buildFallbackAuthHydratedState,
+  buildFallbackLoginRequest,
+  buildFallbackProfileUpdateRequest,
+  buildFallbackRegisterRequest,
+  buildFallbackSyncIndicatorPlan,
+  resetFallbackAuthState,
+} from "../services/api/account-runtime";
+import {
   buildFallbackLoadedProjectSnapshot,
   buildFallbackProjectCreateRequest,
   buildFallbackProjectDeleteRequest,
@@ -324,6 +332,12 @@ function mapSupabaseActivityRow(activityRow: ActivityLogRow) {
 }
 
 const runtimeHelpers = {
+  buildRuntimeResetFallbackAuthState: resetFallbackAuthState,
+  buildRuntimeFallbackRegisterRequest: buildFallbackRegisterRequest,
+  buildRuntimeFallbackLoginRequest: buildFallbackLoginRequest,
+  buildRuntimeFallbackProfileUpdateRequest: buildFallbackProfileUpdateRequest,
+  buildRuntimeFallbackAuthHydratedState: buildFallbackAuthHydratedState,
+  buildRuntimeFallbackSyncIndicatorPlan: buildFallbackSyncIndicatorPlan,
   buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
   buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
   buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,

@@ -53,6 +53,7 @@ and Supabase adapters happen against stable interfaces.
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
 - typed fallback API helpers in:
+  - `src/services/api/account-runtime.ts`
   - `src/services/api/fallback-runtime.ts`
 - typed Supabase extraction helpers in:
   - `src/services/supabase/mappers.ts`
@@ -254,6 +255,10 @@ and Supabase adapters happen against stable interfaces.
   - auth modal labels and submit copy
   - auth success/error/logout prompt copy
   - share modal titles, empty states, and validation copy
+  - fallback auth reset and hydration state
+  - fallback register/login request construction
+  - fallback profile update request construction
+  - fallback sync-indicator plan
   - fallback project shell projection
   - fallback loaded-project snapshot projection
   - fallback project sync/create/delete request construction
