@@ -2708,6 +2708,57 @@
     return Object.keys(projects)[0] || null;
   }
 
+  // src/services/supabase/auth-runtime.ts
+  function resetSupabaseAuthState() {
+    return {
+      user: null,
+      profile: null,
+      projectRole: null
+    };
+  }
+  function buildLogoutSyncDecision(snapshot) {
+    return {
+      shouldSync: (snapshot?._localVersion || 0) > (snapshot?._serverVersion || 0)
+    };
+  }
+  function buildHydratedAuthState(user, profile) {
+    return {
+      user,
+      profile
+    };
+  }
+  function resolveSupabaseAuthEventPlan(event, hasSessionUser) {
+    if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && hasSessionUser) {
+      return {
+        kind: "hydrate",
+        loadProjects: true
+      };
+    }
+    if (event === "TOKEN_REFRESHED" && hasSessionUser) {
+      return {
+        kind: "refresh",
+        loadProjects: false
+      };
+    }
+    if (event === "USER_UPDATED" && hasSessionUser) {
+      return {
+        kind: "hydrate",
+        loadProjects: false
+      };
+    }
+    if (event === "SIGNED_OUT") {
+      return {
+        kind: "signed_out",
+        loadProjects: false,
+        refreshStatus: "offline"
+      };
+    }
+    return {
+      kind: "noop",
+      loadProjects: false
+    };
+  }
+
   // src/runtime/supabase-runtime-helpers.ts
   function getStoredRole(localId, role) {
     const scope = globalThis;
@@ -2737,6 +2788,10 @@
     mergeAccessibleProjectsIntoLocalState,
     buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
     buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
+    buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
+    buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
+    buildRuntimeHydratedAuthState: buildHydratedAuthState,
+    buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
     mapSupabaseTaskRow: mapTaskRowToTask,
     buildSupabaseProjectSnapshot: (localId, projectRow, taskRows, previousSnapshot, role) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole),
     buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,

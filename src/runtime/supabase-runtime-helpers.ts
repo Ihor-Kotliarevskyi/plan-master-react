@@ -220,6 +220,12 @@ import {
   resolveCurrentProjectId,
   resolveProjectLoadDecision,
 } from "../services/supabase/runtime";
+import {
+  buildHydratedAuthState,
+  buildLogoutSyncDecision,
+  resetSupabaseAuthState,
+  resolveSupabaseAuthEventPlan,
+} from "../services/supabase/auth-runtime";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -270,6 +276,10 @@ const runtimeHelpers = {
   mergeAccessibleProjectsIntoLocalState,
   buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
   buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
+  buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
+  buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
+  buildRuntimeHydratedAuthState: buildHydratedAuthState,
+  buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
   mapSupabaseTaskRow: mapTaskRowToTask,
   buildSupabaseProjectSnapshot: (
     localId: string,

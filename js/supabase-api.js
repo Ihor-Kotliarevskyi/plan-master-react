@@ -44,7 +44,12 @@ async function _getCurrentAuthUser() {
 }
 
 async function apiRegister(name, email, password) {
-  _sbUser = _sbProfile = _projectRole = null;
+  const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+    ? buildRuntimeResetSupabaseAuthState()
+    : { user: null, profile: null, projectRole: null };
+  _sbUser = resetState.user;
+  _sbProfile = resetState.profile;
+  _projectRole = resetState.projectRole;
   const { data, error } = await sb.auth.signUp({
     email,
     password,
@@ -56,17 +61,32 @@ async function apiRegister(name, email, password) {
   if (error) throw new Error(error.message);
   if (!data.user) throw new Error("Check your email to confirm registration.");
   _sbUser = data.user;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(data.user, profile)
+    : { user: data.user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   updateUserBtn();
   return data;
 }
 
 async function apiLogin(email, password) {
-  _sbUser = _sbProfile = _projectRole = null;
+  const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+    ? buildRuntimeResetSupabaseAuthState()
+    : { user: null, profile: null, projectRole: null };
+  _sbUser = resetState.user;
+  _sbProfile = resetState.profile;
+  _projectRole = resetState.projectRole;
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) throw new Error(error.message);
   _sbUser = data.user;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(data.user, profile)
+    : { user: data.user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   updateUserBtn();
   return data;
 }
@@ -74,9 +94,10 @@ async function apiLogin(email, password) {
 async function apiLogout() {
   if (currentId && isLoggedIn()) {
     const currentProject = getCurrentProjectSnapshot();
-    const localVersion = currentProject?._localVersion || 0;
-    const serverVersion = currentProject?._serverVersion || 0;
-    if (localVersion > serverVersion) {
+    const logoutSyncDecision = typeof buildRuntimeLogoutSyncDecision === "function"
+      ? buildRuntimeLogoutSyncDecision(currentProject)
+      : { shouldSync: (currentProject?._localVersion || 0) > (currentProject?._serverVersion || 0) };
+    if (logoutSyncDecision.shouldSync) {
       try {
         await apiSyncProject(currentId);
       } catch (_) {}
@@ -84,7 +105,12 @@ async function apiLogout() {
   }
 
   await sb.auth.signOut({ scope: "local" });
-  _sbUser = _sbProfile = _projectRole = null;
+  const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+    ? buildRuntimeResetSupabaseAuthState()
+    : { user: null, profile: null, projectRole: null };
+  _sbUser = resetState.user;
+  _sbProfile = resetState.profile;
+  _projectRole = resetState.projectRole;
 
   try {
     localStorage.removeItem(SK_BUF);
@@ -100,7 +126,12 @@ async function apiLogout() {
 async function apiGetMe() {
   const user = await _getCurrentAuthUser();
   if (!user) return null;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(user, profile)
+    : { user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   return _sbProfile;
 }
 
@@ -781,49 +812,64 @@ function _showSyncIndicator() {
 async function _hydrateSession(session, { loadProjects = true } = {}) {
   if (!session?.user) return;
   _sbUser = session.user;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(session.user, profile)
+    : { user: session.user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
   else updateUserBtn();
   if (loadProjects) await apiLoadProjects();
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session?.user) {
+  const plan = typeof buildRuntimeResolveSupabaseAuthEventPlan === "function"
+    ? buildRuntimeResolveSupabaseAuthEventPlan(event, !!session?.user)
+    : {
+        kind: (event === "INITIAL_SESSION" || event === "SIGNED_IN") && session?.user
+          ? "hydrate"
+          : event === "TOKEN_REFRESHED" && session?.user
+            ? "refresh"
+            : event === "SIGNED_OUT"
+              ? "signed_out"
+              : event === "USER_UPDATED" && session?.user
+                ? "hydrate"
+                : "noop",
+        loadProjects: event === "INITIAL_SESSION" || event === "SIGNED_IN",
+        refreshStatus: event === "SIGNED_OUT" ? "offline" : undefined,
+      };
+
+  if (plan.kind === "hydrate" && session?.user) {
     queueMicrotask(() => {
-      _hydrateSession(session, { loadProjects: true }).catch((err) => {
+      _hydrateSession(session, { loadProjects: plan.loadProjects }).catch((err) => {
         console.error("[auth] hydrate session failed", err);
       });
     });
     return;
   }
 
-  if (event === "TOKEN_REFRESHED" && session?.user) {
+  if (plan.kind === "refresh" && session?.user) {
     _sbUser = session.user;
     if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
     else updateUserBtn();
     return;
   }
 
-  if (event === "SIGNED_OUT") {
-    _sbUser = _sbProfile = _projectRole = null;
-    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus("offline");
+  if (plan.kind === "signed_out") {
+    const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+      ? buildRuntimeResetSupabaseAuthState()
+      : { user: null, profile: null, projectRole: null };
+    _sbUser = resetState.user;
+    _sbProfile = resetState.profile;
+    _projectRole = resetState.projectRole;
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus(plan.refreshStatus || "offline");
     else updateUserBtn();
     _updateReadOnlyUI();
     return;
   }
 
-  if (event === "USER_UPDATED" && session?.user) {
-    queueMicrotask(() => {
-      (async () => {
-        _sbUser = session.user;
-        _sbProfile = await _loadProfile();
-        if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
-        else updateUserBtn();
-      })().catch((err) => {
-        console.error("[auth] user update hydration failed", err);
-      });
-    });
-  }
+  if (plan.kind === "noop") return;
 });
 
 document.addEventListener("DOMContentLoaded", () => {

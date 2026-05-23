@@ -217,6 +217,12 @@ import {
   resolveProjectLoadDecision,
 } from "../src/services/supabase/runtime";
 import {
+  buildHydratedAuthState,
+  buildLogoutSyncDecision,
+  resetSupabaseAuthState,
+  resolveSupabaseAuthEventPlan,
+} from "../src/services/supabase/auth-runtime";
+import {
   buildProjectInsertPayload,
   buildActivityInsertPayload,
   buildProjectShareRoleUpdatePayload,
@@ -470,6 +476,26 @@ assert.equal(runtimeProjectSnapshot._role, "manager");
 assert.equal(buildProjectSyncSuccessSnapshot(runtimeProjectSnapshot)._serverVersion, runtimeProjectSnapshot._localVersion || 0);
 assert.equal(buildProjectCreateSuccessSnapshot(runtimeProjectSnapshot, "project-2")._serverId, "project-2");
 assert.equal(buildProjectCreateSuccessSnapshot(runtimeProjectSnapshot, "project-2")._role, "owner");
+const resetAuthState = resetSupabaseAuthState();
+assert.equal(resetAuthState.user, null);
+assert.equal(resetAuthState.profile, null);
+assert.equal(resetAuthState.projectRole, null);
+const logoutDecision = buildLogoutSyncDecision({
+  ...runtimeProjectSnapshot,
+  _localVersion: 5,
+  _serverVersion: 4,
+});
+assert.equal(logoutDecision.shouldSync, true);
+const hydratedAuthState = buildHydratedAuthState({ id: "user-1" }, { name: "Ihor" });
+assert.equal((hydratedAuthState.user as { id: string }).id, "user-1");
+assert.equal((hydratedAuthState.profile as { name: string }).name, "Ihor");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_IN", true).kind, "hydrate");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_IN", true).loadProjects, true);
+assert.equal(resolveSupabaseAuthEventPlan("USER_UPDATED", true).kind, "hydrate");
+assert.equal(resolveSupabaseAuthEventPlan("USER_UPDATED", true).loadProjects, false);
+assert.equal(resolveSupabaseAuthEventPlan("TOKEN_REFRESHED", true).kind, "refresh");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_OUT", false).kind, "signed_out");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_OUT", false).refreshStatus, "offline");
 
 const groupedProjects = groupProjectEntriesByAccess([
   ["local-only", buffered.localOnly],
