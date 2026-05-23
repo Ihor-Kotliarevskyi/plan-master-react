@@ -1,5 +1,28 @@
 import { normalizeProjectRole } from "../domain/permissions";
-import type { ProjectRole } from "../domain/types";
+import type { ProjectRole, ProjectSnapshot } from "../domain/types";
+import {
+  buildFallbackAuthHydratedState,
+  buildFallbackLoginRequest,
+  buildFallbackProfileUpdateRequest,
+  buildFallbackRegisterRequest,
+  buildFallbackSyncIndicatorPlan,
+  resetFallbackAuthState,
+} from "../services/api/account-runtime";
+import {
+  buildFallbackHttpRequestOptions,
+  resolveFallbackHttpOutcome,
+} from "../services/api/http-runtime";
+import {
+  buildFallbackLoadedProjectSnapshot,
+  buildFallbackProjectCreateRequest,
+  buildFallbackProjectDeleteRequest,
+  buildFallbackProjectShell,
+  buildFallbackProjectSyncRequest,
+  buildFallbackShareGrantRequest,
+  buildFallbackShareModalState,
+  buildFallbackShareRemoveRequest,
+  buildFallbackShareRoleUpdateRequest,
+} from "../services/api/fallback-runtime";
 import {
   getSharedProjectLabels,
   groupProjectEntriesByAccess,
@@ -64,6 +87,39 @@ import {
   resolvePrintSettings,
 } from "../domain/print";
 import {
+  buildApiUiModel,
+  buildFallbackAuthButtonModel,
+  buildFallbackAuthModalRenderModel,
+} from "../domain/api-ui";
+import { buildChartsUiModel } from "../domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../domain/charts";
+import { buildFinanceUiModel } from "../domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../domain/finance";
+import { buildPrintUiModel } from "../domain/print-ui";
+import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../domain/print";
+import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
   buildContractorSummaryLabels,
@@ -81,6 +137,16 @@ import {
   selectedContractorKeys,
   summarizeContractorBulkDelete,
 } from "../domain/contractors";
+import {
+  buildContractorBulkDeleteModel,
+  buildContractorSummaryModel,
+  buildPaymentRegisterCurrentState,
+  buildPaymentRegisterListItems,
+  buildSavedPaymentRegister,
+  findPaymentRegisterById,
+  getVisibleDeletableContractorRows,
+  hasContractorFilters,
+} from "../domain/contractors-panel";
 import { buildCostUiModel } from "../domain/costs-ui";
 import {
   addPaymentToCostItem,
@@ -127,6 +193,26 @@ import {
   snapToHalfWeek,
 } from "../domain/modal";
 import {
+  applyTaskSave,
+  buildTaskModalEditState,
+  buildTaskModalSaveModel,
+  cloneModalCostItems,
+  cloneModalPhasesFromTask,
+  removeTaskAt,
+} from "../domain/modal-orchestration";
+import {
+  addTaskNote,
+  buildProjectManagerGroupModel,
+  cloneCategoryDrafts,
+  cloneTaskNotes,
+  countVisibleTaskNotes,
+  createNextCategoryDraft,
+  deleteTaskNote,
+  editTaskNote,
+  isCategoryUsedByTasks,
+  removeCategoryDraftAt,
+} from "../domain/modal-panels";
+import {
   buildAuditEntryViewModel,
   buildAuditLogModalModel,
   getAuditActorLabel,
@@ -164,10 +250,8 @@ import {
   resolveUniqueProjectName,
 } from "../domain/project-import";
 import {
-  mapAccessibleProjectAccess,
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
-  mapProjectRowToSnapshot,
   mapProjectShareRow,
   mapTaskRowToTask,
 } from "../services/supabase/mappers";
@@ -184,6 +268,65 @@ import {
   analyzeBufferedProjects,
   buildAccessibleProjectsFromFallback,
 } from "../services/supabase/project-list";
+import {
+  buildProjectCreateSuccessSnapshot,
+  buildProjectSyncSuccessSnapshot,
+  buildSupabaseProjectSnapshot,
+  mergeAccessibleProjectsIntoLocalState,
+  resolveCurrentProjectId,
+  resolveProjectLoadDecision,
+} from "../services/supabase/runtime";
+import {
+  buildAuthRedirectUrl,
+  buildSupabaseLoginRequest,
+  buildSupabaseAccountErrorMessages,
+  buildSupabaseProfileSelectRequest,
+  buildSupabaseProfileUpdatePayload,
+  buildSupabaseRegisterRequest,
+} from "../services/supabase/account-runtime";
+import {
+  buildHydratedAuthState,
+  buildLogoutSyncDecision,
+  resetSupabaseAuthState,
+  resolveSupabaseAuthEventPlan,
+} from "../services/supabase/auth-runtime";
+import {
+  bindProjectCreateTasksRpcRequest,
+  buildProjectCreateMutationRequest,
+  buildProjectDeleteRequest,
+  buildProjectSyncMutationRequest,
+  buildProjectTasksRpcRequest,
+  resolveLoadedProjectRole,
+} from "../services/supabase/project-runtime";
+import {
+  buildActivityLogReadRequest,
+  buildActivityWriteRequest,
+  buildShareListFallbackRequest,
+  buildShareListRpcRequest,
+  buildShareGrantRequest,
+  buildShareGrantResult,
+  buildShareLookupRequest,
+  buildSupabaseCollaborationErrorMessages,
+  buildShareRemoveRequest,
+  buildShareRoleUpdateRequest,
+  buildShareRoleUpdateResult,
+  buildShareUpsertOptions,
+  normalizeShareGrantInput,
+  resolveActivityLogLimit,
+  resolveShareTargetUser,
+} from "../services/supabase/collaboration-runtime";
+import {
+  buildSupabaseReadOnlyUiState,
+  buildSupabaseShareDialogModel,
+  buildSupabaseShareErrorMessages,
+  buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleOptions,
+  buildSupabaseRoleUpdatedToast,
+  buildSupabaseShareGrantedToast,
+  buildSupabaseShareModalState,
+  buildSupabaseShareRemovedToast,
+  buildSupabaseSyncIndicatorPlan,
+} from "../services/supabase/ui-runtime";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -201,69 +344,6 @@ function getStoredRole(localId: string, role: ProjectRole): ProjectRole {
   return typeof scope.getStoredProjectRole === "function"
     ? scope.getStoredProjectRole(localId, role)
     : role;
-}
-
-function mergeAccessibleProjectsIntoLocalState(
-  offlineNew: AnyRecord,
-  localSynced: AnyRecord,
-  accessibleProjects: AccessibleProjectRow[],
-  authUserId: string,
-) {
-  const mergedProjects: AnyRecord = { ...offlineNew };
-
-  for (const item of accessibleProjects || []) {
-    if (!item?.project_id) continue;
-
-    const normalizedRole = normalizeProjectRole(item.role || (item.source === "own" ? "owner" : "viewer"));
-    const fallbackMeta = {
-      source: item.source || "own",
-      owner_id: item.owner_id || (item.source === "own" ? authUserId : null),
-      owner_name: item.owner_name || "",
-      owner_email: item.owner_email || "",
-      invited_by: item.invited_by || null,
-      invited_by_name: item.invited_by_name || "",
-      invited_by_email: item.invited_by_email || "",
-    };
-
-    const localMatch = Object.entries(localSynced)
-      .find(([, localProject]) => (localProject as AnyRecord)?._serverId === item.project_id);
-
-    if (localMatch) {
-      const [localId, localProject] = localMatch;
-      mergedProjects[localId] = {
-        ...(localProject as AnyRecord),
-        _role: normalizedRole,
-        _access: mapAccessibleProjectAccess({
-          ...item,
-          ...fallbackMeta,
-        }),
-      };
-      continue;
-    }
-
-    mergedProjects[item.project_id] = mapAccessibleProjectToSnapshotShell(item);
-  }
-
-  return mergedProjects;
-}
-
-function buildSupabaseProjectSnapshot(
-  localId: string,
-  projectRow: ProjectRow,
-  taskRows: TaskRow[],
-  previousSnapshot: AnyRecord | undefined,
-  role: ProjectRole,
-) {
-  const snapshot = mapProjectRowToSnapshot(projectRow, taskRows, role, {
-    _access: previousSnapshot?._access,
-    _localVersion: previousSnapshot?._localVersion,
-    _serverVersion: previousSnapshot?._serverVersion,
-    _localUpdatedAt: previousSnapshot?._localUpdatedAt,
-  });
-  return {
-    ...snapshot,
-    _role: getStoredRole(localId, role),
-  };
 }
 
 function mapSupabaseShareRecord(shareRow: ProjectShareRow) {
@@ -293,10 +373,78 @@ function mapSupabaseActivityRow(activityRow: ActivityLogRow) {
 }
 
 const runtimeHelpers = {
+  buildRuntimeResetFallbackAuthState: resetFallbackAuthState,
+  buildRuntimeFallbackRegisterRequest: buildFallbackRegisterRequest,
+  buildRuntimeFallbackLoginRequest: buildFallbackLoginRequest,
+  buildRuntimeFallbackProfileUpdateRequest: buildFallbackProfileUpdateRequest,
+  buildRuntimeFallbackAuthHydratedState: buildFallbackAuthHydratedState,
+  buildRuntimeFallbackSyncIndicatorPlan: buildFallbackSyncIndicatorPlan,
+  buildRuntimeFallbackHttpRequestOptions: buildFallbackHttpRequestOptions,
+  buildRuntimeFallbackHttpOutcome: resolveFallbackHttpOutcome,
+  buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
+  buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
+  buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,
+  buildRuntimeFallbackProjectCreateRequest: buildFallbackProjectCreateRequest,
+  buildRuntimeFallbackProjectDeleteRequest: buildFallbackProjectDeleteRequest,
+  buildRuntimeFallbackShareGrantRequest: buildFallbackShareGrantRequest,
+  buildRuntimeFallbackShareRoleUpdateRequest: buildFallbackShareRoleUpdateRequest,
+  buildRuntimeFallbackShareRemoveRequest: buildFallbackShareRemoveRequest,
+  buildRuntimeFallbackShareModalState: buildFallbackShareModalState,
   analyzeBufferedProjectsForUser: analyzeBufferedProjects,
   mergeAccessibleProjectsIntoLocalState,
+  buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
+  buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
+  buildRuntimeAuthRedirectUrl: buildAuthRedirectUrl,
+  buildRuntimeSupabaseRegisterRequest: buildSupabaseRegisterRequest,
+  buildRuntimeSupabaseLoginRequest: buildSupabaseLoginRequest,
+  buildRuntimeSupabaseAccountErrorMessages: buildSupabaseAccountErrorMessages,
+  buildRuntimeSupabaseProfileSelectRequest: buildSupabaseProfileSelectRequest,
+  buildRuntimeSupabaseProfileUpdatePayload: buildSupabaseProfileUpdatePayload,
+  buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
+  buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
+  buildRuntimeHydratedAuthState: buildHydratedAuthState,
+  buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+  buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
+  buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
+  buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
+  buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+  buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
+  buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
+  buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
+  buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
+  buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
+  buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
+  buildRuntimeSupabaseActivityWriteRequest: buildActivityWriteRequest,
+  buildRuntimeSupabaseActivityLogReadRequest: buildActivityLogReadRequest,
+  buildRuntimeNormalizeShareGrantInput: normalizeShareGrantInput,
+  buildRuntimeBuildShareLookupRequest: buildShareLookupRequest,
+  buildRuntimeResolveShareTargetUser: resolveShareTargetUser,
+  buildRuntimeBuildShareGrantRequest: buildShareGrantRequest,
+  buildRuntimeBuildShareGrantResult: buildShareGrantResult,
+  buildRuntimeBuildShareUpsertOptions: buildShareUpsertOptions,
+  buildRuntimeSupabaseCollaborationErrorMessages: buildSupabaseCollaborationErrorMessages,
+  buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
+  buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
+  buildRuntimeBuildShareListRpcRequest: buildShareListRpcRequest,
+  buildRuntimeBuildShareListFallbackRequest: buildShareListFallbackRequest,
+  buildRuntimeBuildShareRemoveRequest: buildShareRemoveRequest,
+  buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
+  buildRuntimeResolveLoadedProjectRole: resolveLoadedProjectRole,
+  buildRuntimeProjectTasksRpcRequest: buildProjectTasksRpcRequest,
+  buildRuntimeProjectSyncMutationRequest: buildProjectSyncMutationRequest,
+  buildRuntimeProjectCreateMutationRequest: buildProjectCreateMutationRequest,
+  buildRuntimeBindProjectCreateTasksRpcRequest: bindProjectCreateTasksRpcRequest,
+  buildRuntimeProjectDeleteRequest: buildProjectDeleteRequest,
   mapSupabaseTaskRow: mapTaskRowToTask,
-  buildSupabaseProjectSnapshot,
+  buildSupabaseProjectSnapshot: (
+    localId: string,
+    projectRow: ProjectRow,
+    taskRows: TaskRow[],
+    previousSnapshot: AnyRecord | undefined,
+    role: ProjectRole,
+  ) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot as ProjectSnapshot | undefined, role, getStoredRole),
+  buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,
+  buildRuntimeProjectCreateSuccessSnapshot: buildProjectCreateSuccessSnapshot,
   buildSupabaseTasksPayload: buildUpsertTasksPayload,
   buildSupabaseProjectMutationPayload: buildProjectMutationPayload,
   buildSupabaseProjectInsertPayload: buildProjectInsertPayload,
@@ -340,6 +488,8 @@ const runtimeHelpers = {
   buildRuntimeTaskWindowModel: buildTaskWindowModel,
   buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeApiUiModel: buildApiUiModel,
+  buildRuntimeFallbackAuthModalRenderModel: buildFallbackAuthModalRenderModel,
+  buildRuntimeFallbackAuthButtonModel: buildFallbackAuthButtonModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,
   buildRuntimeChartData: buildChartData,
   buildRuntimeChartColors: buildChartColors,
@@ -376,6 +526,14 @@ const runtimeHelpers = {
   buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
   buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
   buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
+  buildRuntimeContractorSummaryModel: buildContractorSummaryModel,
+  buildRuntimeHasContractorFilters: hasContractorFilters,
+  buildRuntimeVisibleDeletableContractorRows: getVisibleDeletableContractorRows,
+  buildRuntimeContractorBulkDeleteModel: buildContractorBulkDeleteModel,
+  buildRuntimePaymentRegisterCurrentState: buildPaymentRegisterCurrentState,
+  buildRuntimePaymentRegisterListItems: buildPaymentRegisterListItems,
+  buildRuntimeSavedPaymentRegister: buildSavedPaymentRegister,
+  buildRuntimeFindPaymentRegisterById: findPaymentRegisterById,
   buildRuntimeCostUiModel: buildCostUiModel,
   buildRuntimeCreateCostItem: createCostItem,
   buildRuntimeCreateCostPayment: createCostPayment,
@@ -427,6 +585,22 @@ const runtimeHelpers = {
   buildRuntimeRemWeeks: remWeeks,
   buildRuntimeTaskCalcModel: buildTaskCalcModel,
   buildRuntimeDependencyListState: buildDependencyListState,
+  buildRuntimeCloneModalCostItems: cloneModalCostItems,
+  buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+  buildRuntimeTaskModalEditState: buildTaskModalEditState,
+  buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
+  buildRuntimeApplyTaskSave: applyTaskSave,
+  buildRuntimeRemoveTaskAt: removeTaskAt,
+  buildRuntimeCloneTaskNotes: cloneTaskNotes,
+  buildRuntimeAddTaskNote: addTaskNote,
+  buildRuntimeEditTaskNote: editTaskNote,
+  buildRuntimeDeleteTaskNote: deleteTaskNote,
+  buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
+  buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
+  buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
+  buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,
+  buildRuntimeIsCategoryUsedByTasks: isCategoryUsedByTasks,
+  buildRuntimeProjectManagerGroupModel: buildProjectManagerGroupModel,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

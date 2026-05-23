@@ -65,13 +65,26 @@ function canEdit() {
 }
 
 async function _fetch(path, options = {}) {
-  const headers = { "Content-Type": "application/json" };
-  if (_authToken) headers["Authorization"] = `Bearer ${_authToken}`;
-
-  const res = await fetch(`${V1}${path}`, { ...options, headers });
+  const requestOptions = typeof buildRuntimeFallbackHttpRequestOptions === "function"
+    ? buildRuntimeFallbackHttpRequestOptions(_authToken)
+    : {
+        headers: {
+          "Content-Type": "application/json",
+          ...(_authToken ? { Authorization: `Bearer ${_authToken}` } : {}),
+        },
+      };
+  const res = await fetch(`${V1}${path}`, { ...options, headers: requestOptions.headers });
   const data = await res.json().catch(() => ({}));
 
-  if (res.status === 401 && data.expired) {
+  const outcome = typeof buildRuntimeFallbackHttpOutcome === "function"
+    ? buildRuntimeFallbackHttpOutcome(res.status, data)
+    : (() => {
+        if (res.status === 401 && data.expired) return { kind: "session_expired" };
+        if (res.ok) return { kind: "ok" };
+        return { kind: "error", message: data.error || `HTTP ${res.status}` };
+      })();
+
+  if (outcome.kind === "session_expired") {
     apiLogout();
     Swal.fire({
       toast: true, position: "top-end", icon: "warning",
@@ -80,34 +93,53 @@ async function _fetch(path, options = {}) {
     });
     return null;
   }
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (outcome.kind === "error") throw new Error(outcome.message);
   return data;
 }
 
 async function apiRegister(name, email, password) {
+  const registerRequest = typeof buildRuntimeFallbackRegisterRequest === "function"
+    ? buildRuntimeFallbackRegisterRequest(name, email, password)
+    : { name, email, password };
   const data = await _fetch("/auth/register", {
     method: "POST",
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify(registerRequest),
   });
-  _authToken = data.token;
-  _apiUser = data.user;
+  const hydratedState = typeof buildRuntimeFallbackAuthHydratedState === "function"
+    ? buildRuntimeFallbackAuthHydratedState(data.token, data.user)
+    : { token: data.token, user: data.user, projectRole: null };
+  _authToken = hydratedState.token;
+  _apiUser = hydratedState.user;
+  _projectRole = hydratedState.projectRole;
   localStorage.setItem("gantt_token", _authToken);
   return data;
 }
 
 async function apiLogin(email, password) {
+  const loginRequest = typeof buildRuntimeFallbackLoginRequest === "function"
+    ? buildRuntimeFallbackLoginRequest(email, password)
+    : { email, password };
   const data = await _fetch("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify(loginRequest),
   });
-  _authToken = data.token;
-  _apiUser = data.user;
+  const hydratedState = typeof buildRuntimeFallbackAuthHydratedState === "function"
+    ? buildRuntimeFallbackAuthHydratedState(data.token, data.user)
+    : { token: data.token, user: data.user, projectRole: null };
+  _authToken = hydratedState.token;
+  _apiUser = hydratedState.user;
+  _projectRole = hydratedState.projectRole;
   localStorage.setItem("gantt_token", _authToken);
   return data;
 }
 
 function apiLogout() {
-  _authToken = _apiUser = _projectRole = null;
+  const resetState = typeof buildRuntimeResetFallbackAuthState === "function"
+    ? buildRuntimeResetFallbackAuthState()
+    : { token: null, user: null, projectRole: null };
+  _authToken = resetState.token;
+  _apiUser = resetState.user;
+  _projectRole = resetState.projectRole;
   localStorage.removeItem("gantt_token");
   updateUserBtn?.();
 }
@@ -123,9 +155,12 @@ async function apiGetMe() {
 
 async function apiUpdateProfile(updates) {
   if (!_authToken) return;
+  const updateRequest = typeof buildRuntimeFallbackProfileUpdateRequest === "function"
+    ? buildRuntimeFallbackProfileUpdateRequest(updates)
+    : { body: updates };
   return _fetch("/auth/profile", {
     method: "PATCH",
-    body: JSON.stringify(updates),
+    body: JSON.stringify(updateRequest.body),
   });
 }
 
@@ -137,14 +172,16 @@ async function apiLoadProjects() {
 
     data.projects.forEach((sp) => {
       if (!allProjects[sp.id]) {
-        allProjects[sp.id] = {
-          proj: { name: sp.name, sm: sp.sm, sy: sp.sy, nm: sp.nm },
-          cats: [],
-          tasks: [],
-          nextN: 1,
-          _serverId: sp.id,
-          _role: typeof normalizeProjectRole === "function" ? normalizeProjectRole(sp.role || "owner") : (sp.role || "owner"),
-        };
+        allProjects[sp.id] = typeof buildRuntimeFallbackProjectShell === "function"
+          ? buildRuntimeFallbackProjectShell(sp)
+          : {
+              proj: { name: sp.name, sm: sp.sm, sy: sp.sy, nm: sp.nm },
+              cats: [],
+              tasks: [],
+              nextN: 1,
+              _serverId: sp.id,
+              _role: typeof normalizeProjectRole === "function" ? normalizeProjectRole(sp.role || "owner") : (sp.role || "owner"),
+            };
       }
     });
     updateProjSel?.();
@@ -172,23 +209,31 @@ async function apiLoadProject(localId) {
     const taskData = await _fetch(`/projects/${serverId}/tasks`);
     const tasks = taskData?.tasks || [];
 
-    allProjects[localId] = {
-      proj: {
-        name: p.name,
-        sm: p.sm,
-        sy: p.sy,
-        nm: p.nm,
-        baseline: p.baseline,
-        baselineDate: p.baselineDate,
-      },
-      cats: p.cats || [],
-      tasks,
-      nextN: p.nextN || 1,
-      _serverId: p._id,
-      _role: typeof getStoredProjectRole === "function"
-        ? getStoredProjectRole(localId, resolvedRole)
-        : (typeof normalizeProjectRole === "function" ? normalizeProjectRole(_projectRole, _projectRole) : _projectRole),
-    };
+    allProjects[localId] = typeof buildRuntimeFallbackLoadedProjectSnapshot === "function"
+      ? buildRuntimeFallbackLoadedProjectSnapshot(
+          localId,
+          p,
+          tasks,
+          resolvedRole,
+          typeof getStoredProjectRole === "function" ? getStoredProjectRole : undefined,
+        )
+      : {
+          proj: {
+            name: p.name,
+            sm: p.sm,
+            sy: p.sy,
+            nm: p.nm,
+            baseline: p.baseline,
+            baselineDate: p.baselineDate,
+          },
+          cats: p.cats || [],
+          tasks,
+          nextN: p.nextN || 1,
+          _serverId: p._id,
+          _role: typeof getStoredProjectRole === "function"
+            ? getStoredProjectRole(localId, resolvedRole)
+            : (typeof normalizeProjectRole === "function" ? normalizeProjectRole(_projectRole, _projectRole) : _projectRole),
+        };
 
     loadCurrent();
     render();
@@ -209,18 +254,24 @@ async function apiSyncProject() {
   clearTimeout(_syncProjTimer);
   _syncProjTimer = setTimeout(async () => {
     try {
+      const syncRequest = typeof buildRuntimeFallbackProjectSyncRequest === "function"
+        ? buildRuntimeFallbackProjectSyncRequest(p)
+        : {
+            projectPayload: {
+              name: p.proj.name,
+              sm: p.proj.sm,
+              sy: p.proj.sy,
+              nm: p.proj.nm,
+              cats: p.cats,
+              nextN: p.nextN,
+              baseline: p.proj.baseline || null,
+              baselineDate: p.proj.baselineDate || null,
+            },
+            tasksPayload: { tasks: p.tasks },
+          };
       await _fetch(`/projects/${serverId}`, {
         method: "PUT",
-        body: JSON.stringify({
-          name: p.proj.name,
-          sm: p.proj.sm,
-          sy: p.proj.sy,
-          nm: p.proj.nm,
-          cats: p.cats,
-          nextN: p.nextN,
-          baseline: p.proj.baseline || null,
-          baselineDate: p.proj.baselineDate || null,
-        }),
+        body: JSON.stringify(syncRequest.projectPayload),
       });
       _showSyncIndicator();
     } catch (_) {}
@@ -229,9 +280,15 @@ async function apiSyncProject() {
   clearTimeout(_syncTasksTimer);
   _syncTasksTimer = setTimeout(async () => {
     try {
+      const syncRequest = typeof buildRuntimeFallbackProjectSyncRequest === "function"
+        ? buildRuntimeFallbackProjectSyncRequest(p)
+        : {
+            projectPayload: {},
+            tasksPayload: { tasks: p.tasks },
+          };
       await _fetch(`/projects/${serverId}/tasks/bulk`, {
         method: "PUT",
-        body: JSON.stringify({ tasks: p.tasks }),
+        body: JSON.stringify(syncRequest.tasksPayload),
       });
     } catch (_) {}
   }, 800);
@@ -241,17 +298,22 @@ async function apiCreateProject() {
   if (!_authToken || !currentId) return;
   const p = typeof getCurrentProjectSnapshot === "function" ? getCurrentProjectSnapshot() : allProjects[currentId];
   try {
+    const createRequest = typeof buildRuntimeFallbackProjectCreateRequest === "function"
+      ? buildRuntimeFallbackProjectCreateRequest(p)
+      : {
+          payload: {
+            name: p.proj.name,
+            sm: p.proj.sm,
+            sy: p.proj.sy,
+            nm: p.proj.nm,
+            cats: p.cats,
+            tasks: p.tasks,
+            nextN: p.nextN,
+          },
+        };
     const data = await _fetch("/projects", {
       method: "POST",
-      body: JSON.stringify({
-        name: p.proj.name,
-        sm: p.proj.sm,
-        sy: p.proj.sy,
-        nm: p.proj.nm,
-        cats: p.cats,
-        tasks: p.tasks,
-        nextN: p.nextN,
-      }),
+      body: JSON.stringify(createRequest.payload),
     });
     if (data?.project) {
       if (p) p._serverId = data.project.id;
@@ -275,7 +337,10 @@ async function apiDeleteProject(localId) {
     : allProjects[localId]?._serverId;
   if (!serverId) return;
   try {
-    await _fetch(`/projects/${serverId}`, { method: "DELETE" });
+    const deleteRequest = typeof buildRuntimeFallbackProjectDeleteRequest === "function"
+      ? buildRuntimeFallbackProjectDeleteRequest(serverId)
+      : { projectId: serverId };
+    await _fetch(`/projects/${deleteRequest.projectId}`, { method: "DELETE" });
   } catch (_) {}
 }
 
@@ -442,12 +507,15 @@ async function openShareModal() {
 let _syncTimer = null;
 function _showSyncIndicator() {
   if (typeof setUserSyncStatus === "function") {
-    setUserSyncStatus("syncing");
+    const plan = typeof buildRuntimeFallbackSyncIndicatorPlan === "function"
+      ? buildRuntimeFallbackSyncIndicatorPlan()
+      : { status: "syncing", timeoutMs: 1800 };
+    setUserSyncStatus(plan.status);
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => {
       if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
       else setUserSyncStatus("ok");
-    }, 1800);
+    }, plan.timeoutMs);
     return;
   }
   const el = document.getElementById("sync-indicator");
@@ -468,18 +536,26 @@ function closeAuthModal() {
 }
 
 function _renderAuthModal(tab) {
-  const isLogin = tab === "login";
+  const modalModel = typeof buildRuntimeFallbackAuthModalRenderModel === "function"
+    ? buildRuntimeFallbackAuthModalRenderModel(tab, API_UI.auth)
+    : {
+        isLogin: tab === "login",
+        loginTabClassName: `auth-tab${tab === "login" ? " active" : ""}`,
+        registerTabClassName: `auth-tab${tab !== "login" ? " active" : ""}`,
+        submitLabel: tab === "login" ? API_UI.auth.loginSubmitLabel : API_UI.auth.registerSubmitLabel,
+        showNameField: tab !== "login",
+      };
   document.getElementById("auth-modal-body").innerHTML = `
     <div class="auth-tabs">
-      <button class="auth-tab${isLogin ? " active" : ""}" onclick="_renderAuthModal('login')">${API_UI.auth.loginTabLabel}</button>
-      <button class="auth-tab${!isLogin ? " active" : ""}" onclick="_renderAuthModal('register')">${API_UI.auth.registerTabLabel}</button>
+      <button class="${modalModel.loginTabClassName}" onclick="_renderAuthModal('login')">${API_UI.auth.loginTabLabel}</button>
+      <button class="${modalModel.registerTabClassName}" onclick="_renderAuthModal('register')">${API_UI.auth.registerTabLabel}</button>
     </div>
-    ${!isLogin ? `<div class="fg"><label>${API_UI.auth.nameLabel}</label><input id="auth-name" placeholder="${API_UI.auth.namePlaceholder}"/></div>` : ""}
+    ${modalModel.showNameField ? `<div class="fg"><label>${API_UI.auth.nameLabel}</label><input id="auth-name" placeholder="${API_UI.auth.namePlaceholder}"/></div>` : ""}
     <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
     <div class="fg"><label>${API_UI.auth.passwordLabel}</label><input id="auth-pass" type="password" placeholder="${API_UI.auth.passwordPlaceholder}"/></div>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="btn btn-acc auth-submit-btn" onclick="_submitAuth('${tab}')">
-      ${isLogin ? API_UI.auth.loginSubmitLabel : API_UI.auth.registerSubmitLabel}</button>`;
+      ${modalModel.submitLabel}</button>`;
 }
 
 async function _submitAuth(tab) {
@@ -546,6 +622,130 @@ function updateAuthBtn() {
   _updateReadOnlyUI();
 }
 
+async function _legacyApiShareProject(email, role = "viewer") {
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
+  if (!sid) return;
+  if (!canInviteUsers()) throw new Error("У вас немає прав на запрошення користувачів");
+  const shareRequest = typeof buildRuntimeFallbackShareGrantRequest === "function"
+    ? buildRuntimeFallbackShareGrantRequest(email, role, isShareableProjectRole)
+    : (() => {
+        const shareRole = normalizeProjectRole(role);
+        if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+        return { email, role: shareRole };
+      })();
+  return _fetch(`/projects/${sid}/shares`, {
+    method: "POST",
+    body: JSON.stringify(shareRequest),
+  });
+}
+
+async function _legacyApiUpdateShareRole(userId, role) {
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
+  if (!sid) return;
+  if (!canManageShares()) throw new Error("У вас немає прав на зміну доступу");
+  const shareRequest = typeof buildRuntimeFallbackShareRoleUpdateRequest === "function"
+    ? buildRuntimeFallbackShareRoleUpdateRequest(role, isShareableProjectRole)
+    : (() => {
+        const shareRole = normalizeProjectRole(role);
+        if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+        return { role: shareRole };
+      })();
+  return _fetch(`/projects/${sid}/shares/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(shareRequest),
+  });
+}
+
+async function _legacyApiRemoveShare(userId) {
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
+  if (!sid) return;
+  if (!canManageShares()) throw new Error("У вас немає прав на видалення доступу");
+  const removeRequest = typeof buildRuntimeFallbackShareRemoveRequest === "function"
+    ? buildRuntimeFallbackShareRemoveRequest(userId)
+    : { userId };
+  return _fetch(`/projects/${sid}/shares/${removeRequest.userId}`, { method: "DELETE" });
+}
+
+async function _legacyOpenShareModal() {
+  if (!canManageShares()) {
+    Swal.fire({ icon: "info", title: API_UI.share.accessDeniedTitle });
+    return;
+  }
+  const shares = await apiGetShares();
+  const getRoleLabel = (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
+  const roleOptions = typeof buildRuntimeSupabaseShareRoleOptions === "function"
+    ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, "viewer")
+    : SHAREABLE_PROJECT_ROLES.map(
+        (role) => `<option value="${role}">${getRoleLabel(role)}</option>`,
+      ).join("");
+  const shareModalState = typeof buildRuntimeFallbackShareModalState === "function"
+    ? buildRuntimeFallbackShareModalState(shares, getRoleLabel)
+    : {
+        items: shares.map((share) => {
+          const normalizedRole = normalizeProjectRole(share.role);
+          return {
+            userId: share.userId?._id || "",
+            displayName: share.userId?.name || "-",
+            displayEmail: share.userId?.email || "",
+            normalizedRole,
+            roleLabel: getRoleLabel(normalizedRole),
+          };
+        }),
+      };
+  const list = shareModalState.items.length
+    ? shareModalState.items.map((share) => `
+        <div class="share-row">
+          <span class="share-name">${share.displayName}
+            <span class="share-email">${share.displayEmail}</span>
+          </span>
+          <select class="cost-sel" onchange="apiUpdateShareRole('${share.userId}',this.value)">
+            ${typeof buildRuntimeSupabaseShareRoleOptions === "function"
+              ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, share.normalizedRole)
+              : SHAREABLE_PROJECT_ROLES.map(
+                  (role) => `<option value="${role}"${share.normalizedRole === role ? " selected" : ""}>${getRoleLabel(role)}</option>`,
+                ).join("")}
+          </select>
+          <button class="cost-act-btn del" onclick="apiRemoveShare('${share.userId}');openShareModal()">✕</button>
+        </div>`)
+        .join("")
+    : `<div class="share-empty">${API_UI.share.emptyText}</div>`;
+
+  Swal.fire({
+    title: API_UI.share.modalTitle,
+    html: `<div class="share-modal-body">
+      <p class="share-proj-name">${API_UI.share.projectLabel}: <b>${proj.name}</b></p>
+      <div class="share-list">${list}</div>
+      <hr class="share-divider">
+      <div class="share-add-title">${API_UI.share.grantSectionTitle}</div>
+      <div class="share-add-row">
+        <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
+        <select id="share-role" class="share-role-sel">
+          ${roleOptions}
+        </select>
+      </div></div>`,
+    showCancelButton: true,
+    confirmButtonText: "Надати доступ",
+    cancelButtonText: "Закрити",
+    preConfirm: async () => {
+      const email = document.getElementById("share-email").value.trim();
+      const role = document.getElementById("share-role").value;
+      if (!email) { Swal.showValidationMessage(API_UI.share.emailRequiredMessage); return false; }
+      try {
+        await apiShareProject(email, role);
+      } catch (err) {
+        Swal.showValidationMessage(err.message);
+        return false;
+      }
+    },
+  });
+}
+
 (async () => {
   if (_authToken) {
     _apiUser = await apiGetMe();
@@ -558,3 +758,39 @@ function updateAuthBtn() {
   }
   updateAuthBtn();
 })();
+
+function _legacyUpdateAuthBtn() {
+  const btn = document.getElementById("auth-status-btn");
+  if (!btn) return;
+  const buttonModel = typeof buildRuntimeFallbackAuthButtonModel === "function"
+    ? buildRuntimeFallbackAuthButtonModel(isLoggedIn(), _apiUser?.name, API_UI.auth)
+    : (isLoggedIn() && _apiUser
+        ? { text: `вЃ ${_apiUser.name}`, title: API_UI.auth.syncedTitle, mode: "logout" }
+        : { text: API_UI.auth.loginButtonLabel, title: "", mode: "login" });
+
+  if (buttonModel.mode === "logout") {
+    btn.textContent = buttonModel.text;
+    btn.title = buttonModel.title;
+    btn.onclick = async () => {
+      const r = await Swal.fire({
+        icon: "question",
+        title: API_UI.auth.syncedLogoutPromptTitle,
+        text: API_UI.auth.syncedLogoutPromptText,
+        showCancelButton: true,
+        confirmButtonText: API_UI.auth.logoutConfirmButtonText,
+        cancelButtonText: API_UI.share.cancelButtonText,
+      });
+      if (r.isConfirmed) {
+        apiLogout();
+        _projectRole = null;
+        updateAuthBtn();
+        _updateReadOnlyUI();
+      }
+    };
+  } else {
+    btn.textContent = buttonModel.text;
+    btn.title = buttonModel.title;
+    btn.onclick = () => openAuthModal("login");
+  }
+  _updateReadOnlyUI();
+}

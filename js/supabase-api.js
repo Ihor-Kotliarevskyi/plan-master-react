@@ -10,7 +10,12 @@ const SUPABASE_URL = SUPABASE_ENV.SUPABASE_URL || "";
 const SUPABASE_KEY = SUPABASE_ENV.SUPABASE_PUBLISHABLE_KEY || "";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  throw new Error("Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.");
+  const accountErrors = typeof buildRuntimeSupabaseAccountErrorMessages === "function"
+    ? buildRuntimeSupabaseAccountErrorMessages()
+    : {
+        missingConfig: "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+      };
+  throw new Error(accountErrors.missingConfig);
 }
 
 const { createClient } = supabase;
@@ -23,7 +28,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 function _getAuthRedirectUrl() {
-  return `${window.location.origin}${window.location.pathname}`;
+  return typeof buildRuntimeAuthRedirectUrl === "function"
+    ? buildRuntimeAuthRedirectUrl(window.location.origin, window.location.pathname)
+    : `${window.location.origin}${window.location.pathname}`;
 }
 
 let _sbUser = null;
@@ -44,29 +51,62 @@ async function _getCurrentAuthUser() {
 }
 
 async function apiRegister(name, email, password) {
-  _sbUser = _sbProfile = _projectRole = null;
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name },
-      emailRedirectTo: _getAuthRedirectUrl(),
-    },
-  });
+  const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+    ? buildRuntimeResetSupabaseAuthState()
+    : { user: null, profile: null, projectRole: null };
+  _sbUser = resetState.user;
+  _sbProfile = resetState.profile;
+  _projectRole = resetState.projectRole;
+  const registerRequest = typeof buildRuntimeSupabaseRegisterRequest === "function"
+    ? buildRuntimeSupabaseRegisterRequest(name, email, password, _getAuthRedirectUrl())
+    : {
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: _getAuthRedirectUrl(),
+        },
+      };
+  const { data, error } = await sb.auth.signUp(registerRequest);
   if (error) throw new Error(error.message);
-  if (!data.user) throw new Error("Check your email to confirm registration.");
+  if (!data.user) {
+    const accountErrors = typeof buildRuntimeSupabaseAccountErrorMessages === "function"
+      ? buildRuntimeSupabaseAccountErrorMessages()
+      : {
+          emailConfirmationRequired: "Check your email to confirm registration.",
+        };
+    throw new Error(accountErrors.emailConfirmationRequired);
+  }
   _sbUser = data.user;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(data.user, profile)
+    : { user: data.user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   updateUserBtn();
   return data;
 }
 
 async function apiLogin(email, password) {
-  _sbUser = _sbProfile = _projectRole = null;
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+    ? buildRuntimeResetSupabaseAuthState()
+    : { user: null, profile: null, projectRole: null };
+  _sbUser = resetState.user;
+  _sbProfile = resetState.profile;
+  _projectRole = resetState.projectRole;
+  const loginRequest = typeof buildRuntimeSupabaseLoginRequest === "function"
+    ? buildRuntimeSupabaseLoginRequest(email, password)
+    : { email, password };
+  const { data, error } = await sb.auth.signInWithPassword(loginRequest);
   if (error) throw new Error(error.message);
   _sbUser = data.user;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(data.user, profile)
+    : { user: data.user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   updateUserBtn();
   return data;
 }
@@ -74,9 +114,10 @@ async function apiLogin(email, password) {
 async function apiLogout() {
   if (currentId && isLoggedIn()) {
     const currentProject = getCurrentProjectSnapshot();
-    const localVersion = currentProject?._localVersion || 0;
-    const serverVersion = currentProject?._serverVersion || 0;
-    if (localVersion > serverVersion) {
+    const logoutSyncDecision = typeof buildRuntimeLogoutSyncDecision === "function"
+      ? buildRuntimeLogoutSyncDecision(currentProject)
+      : { shouldSync: (currentProject?._localVersion || 0) > (currentProject?._serverVersion || 0) };
+    if (logoutSyncDecision.shouldSync) {
       try {
         await apiSyncProject(currentId);
       } catch (_) {}
@@ -84,7 +125,12 @@ async function apiLogout() {
   }
 
   await sb.auth.signOut({ scope: "local" });
-  _sbUser = _sbProfile = _projectRole = null;
+  const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+    ? buildRuntimeResetSupabaseAuthState()
+    : { user: null, profile: null, projectRole: null };
+  _sbUser = resetState.user;
+  _sbProfile = resetState.profile;
+  _projectRole = resetState.projectRole;
 
   try {
     localStorage.removeItem(SK_BUF);
@@ -100,17 +146,25 @@ async function apiLogout() {
 async function apiGetMe() {
   const user = await _getCurrentAuthUser();
   if (!user) return null;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(user, profile)
+    : { user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   return _sbProfile;
 }
 
 async function _loadProfile() {
   if (!_sbUser) return null;
+  const profileSelectRequest = typeof buildRuntimeSupabaseProfileSelectRequest === "function"
+    ? buildRuntimeSupabaseProfileSelectRequest(_sbUser.id)
+    : { userId: _sbUser.id };
 
   const { data, error } = await sb
     .from("profiles")
     .select("*")
-    .eq("id", _sbUser.id)
+    .eq("id", profileSelectRequest.userId)
     .maybeSingle();
 
   if (data) return data;
@@ -124,15 +178,20 @@ async function _loadProfile() {
 async function apiUpdateProfile(updates) {
   if (!_sbUser) return;
 
-  const dbUpdates = {};
-  if (updates.name !== undefined) dbUpdates.name = updates.name;
-  if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
-  if (updates.theme !== undefined) dbUpdates.theme = updates.theme;
-  if (updates.defaults) {
-    if (updates.defaults.sm !== undefined) dbUpdates.default_sm = updates.defaults.sm;
-    if (updates.defaults.sy !== undefined) dbUpdates.default_sy = updates.defaults.sy;
-    if (updates.defaults.nm !== undefined) dbUpdates.default_nm = updates.defaults.nm;
-  }
+  const dbUpdates = typeof buildRuntimeSupabaseProfileUpdatePayload === "function"
+    ? buildRuntimeSupabaseProfileUpdatePayload(updates)
+    : (() => {
+        const fallbackUpdates = {};
+        if (updates.name !== undefined) fallbackUpdates.name = updates.name;
+        if (updates.avatar !== undefined) fallbackUpdates.avatar = updates.avatar;
+        if (updates.theme !== undefined) fallbackUpdates.theme = updates.theme;
+        if (updates.defaults) {
+          if (updates.defaults.sm !== undefined) fallbackUpdates.default_sm = updates.defaults.sm;
+          if (updates.defaults.sy !== undefined) fallbackUpdates.default_sy = updates.defaults.sy;
+          if (updates.defaults.nm !== undefined) fallbackUpdates.default_nm = updates.defaults.nm;
+        }
+        return fallbackUpdates;
+      })();
 
   const { error } = await sb.from("profiles").update(dbUpdates).eq("id", _sbUser.id);
   if (error) throw new Error(error.message);
@@ -168,12 +227,16 @@ async function apiLoadProject(localId) {
   if (!authUser) return;
 
   const localProject = getProjectSnapshot(localId);
-  const serverId = getProjectServerId(localId);
+  const loadDecision = typeof buildRuntimeResolveProjectLoadDecision === "function"
+    ? buildRuntimeResolveProjectLoadDecision(localProject)
+    : {
+        shouldSyncFirst: (localProject?._localVersion || 0) > (localProject?._serverVersion || 0),
+        serverId: getProjectServerId(localId),
+      };
+  const serverId = loadDecision.serverId || getProjectServerId(localId);
   if (!serverId) return;
 
-  const localVersion = localProject?._localVersion || 0;
-  const serverVersion = localProject?._serverVersion || 0;
-  if (localVersion > serverVersion) {
+  if (loadDecision.shouldSyncFirst) {
     await apiSyncProject(localId);
     return;
   }
@@ -186,7 +249,7 @@ async function apiLoadProject(localId) {
       .single();
     if (projectError) throw projectError;
 
-    let resolvedRole = "owner";
+    let shareRole = null;
     if (projectRow.owner_id !== authUser.id) {
       const { data: shareRow } = await sb
         .from("project_shares")
@@ -194,8 +257,11 @@ async function apiLoadProject(localId) {
         .eq("project_id", serverId)
         .eq("user_id", authUser.id)
         .single();
-      resolvedRole = normalizeProjectRole(shareRow?.role || "viewer");
+      shareRole = shareRow?.role || "viewer";
     }
+    const resolvedRole = typeof buildRuntimeResolveLoadedProjectRole === "function"
+      ? buildRuntimeResolveLoadedProjectRole(projectRow.owner_id, authUser.id, shareRole)
+      : (projectRow.owner_id === authUser.id ? "owner" : normalizeProjectRole(shareRole || "viewer"));
     setProjectRole(localId, resolvedRole);
 
     const { data: taskRows, error: taskError } = await sb
@@ -296,8 +362,11 @@ async function apiLoadProjects() {
     );
 
     if (!Object.keys(allProjects).length) initDefaultProject();
-    if (bufferCurrentId && allProjects[bufferCurrentId]) currentId = bufferCurrentId;
-    else if (!currentId || !allProjects[currentId]) currentId = Object.keys(allProjects)[0];
+    currentId = typeof buildRuntimeResolveCurrentProjectId === "function"
+      ? buildRuntimeResolveCurrentProjectId(allProjects, currentId, bufferCurrentId)
+      : (bufferCurrentId && allProjects[bufferCurrentId]
+          ? bufferCurrentId
+          : ((!currentId || !allProjects[currentId]) ? Object.keys(allProjects)[0] : currentId));
 
     updateProjSel();
     loadCurrent();
@@ -346,23 +415,37 @@ async function apiSyncProject(idToSync) {
       return;
     }
 
+    const syncRequest = typeof buildRuntimeProjectSyncMutationRequest === "function"
+      ? buildRuntimeProjectSyncMutationRequest(serverId, projectSnapshot)
+      : {
+          projectId: serverId,
+          updatePayload: {
+            ...buildSupabaseProjectMutationPayload(projectSnapshot),
+            updated_at: new Date().toISOString(),
+          },
+          tasksRpc: {
+            p_project_id: serverId,
+            p_tasks: _buildTasksPayload(projectSnapshot.tasks),
+          },
+          expectedTaskCount: (projectSnapshot.tasks || []).length,
+        };
+
     const [projectResult, tasksResult] = await Promise.all([
-      sb.from("projects").update({
-        ...buildSupabaseProjectMutationPayload(projectSnapshot),
-        updated_at: new Date().toISOString(),
-      }).eq("id", serverId),
-      sb.rpc("upsert_tasks", {
-        p_project_id: serverId,
-        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
-      }),
+      sb.from("projects").update(syncRequest.updatePayload).eq("id", syncRequest.projectId),
+      sb.rpc("upsert_tasks", syncRequest.tasksRpc),
     ]);
 
     if (projectResult.error) throw projectResult.error;
     if (tasksResult.error) throw tasksResult.error;
-    await _assertSyncedTaskCount(serverId, (projectSnapshot.tasks || []).length);
+    await _assertSyncedTaskCount(syncRequest.projectId, syncRequest.expectedTaskCount);
 
     if (allProjects[snapId]) {
-      allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+      allProjects[snapId] = typeof buildRuntimeProjectSyncSuccessSnapshot === "function"
+        ? buildRuntimeProjectSyncSuccessSnapshot(allProjects[snapId])
+        : {
+            ...allProjects[snapId],
+            _serverVersion: allProjects[snapId]._localVersion,
+          };
       _saveBuffer();
     }
     _showSyncIndicator();
@@ -379,13 +462,21 @@ async function apiCreateProject(idToCreate) {
   const projectSnapshot = getProjectSnapshot(snapId);
   if (!snapId || !projectSnapshot) return;
 
-  const projectPayload = buildSupabaseProjectInsertPayload(projectSnapshot, authUser.id);
-  const { error: insertError } = await sb.from("projects").insert(projectPayload);
+  const createRequest = typeof buildRuntimeProjectCreateMutationRequest === "function"
+    ? buildRuntimeProjectCreateMutationRequest(projectSnapshot, authUser.id)
+    : {
+        insertPayload: buildSupabaseProjectInsertPayload(projectSnapshot, authUser.id),
+        tasksRpc: (projectSnapshot.tasks || []).length > 0
+          ? { p_project_id: "__PROJECT_ID__", p_tasks: _buildTasksPayload(projectSnapshot.tasks) }
+          : null,
+        expectedTaskCount: (projectSnapshot.tasks || []).length,
+      };
+  const { error: insertError } = await sb.from("projects").insert(createRequest.insertPayload);
 
   if (insertError) {
     console.error("[supabase] apiCreateProject insert failed", {
       authUserId: authUser.id,
-      ownerId: projectPayload.owner_id,
+      ownerId: createRequest.insertPayload.owner_id,
       code: insertError.code,
       message: insertError.message,
       details: insertError.details,
@@ -415,21 +506,33 @@ async function apiCreateProject(idToCreate) {
     return;
   }
 
-  projectSnapshot._serverId = data.id;
+  allProjects[snapId] = typeof buildRuntimeProjectCreateSuccessSnapshot === "function"
+    ? buildRuntimeProjectCreateSuccessSnapshot(projectSnapshot, data.id)
+    : { ...projectSnapshot, _serverId: data.id, _role: "owner" };
   setProjectOwnerRole(snapId);
   _saveBuffer();
 
   try {
-    if ((projectSnapshot.tasks || []).length > 0) {
-      const { error: tasksError } = await sb.rpc("upsert_tasks", {
-        p_project_id: data.id,
-        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
-      });
+    const tasksRpcRequest = typeof buildRuntimeBindProjectCreateTasksRpcRequest === "function"
+      ? buildRuntimeBindProjectCreateTasksRpcRequest(createRequest, data.id)
+      : (createRequest.tasksRpc
+          ? {
+              ...createRequest.tasksRpc,
+              p_project_id: data.id,
+            }
+          : null);
+    if (tasksRpcRequest) {
+      const { error: tasksError } = await sb.rpc("upsert_tasks", tasksRpcRequest);
       if (tasksError) throw tasksError;
     }
-    await _assertSyncedTaskCount(data.id, (projectSnapshot.tasks || []).length);
+    await _assertSyncedTaskCount(data.id, createRequest.expectedTaskCount);
 
-    allProjects[snapId]._serverVersion = allProjects[snapId]._localVersion;
+    allProjects[snapId] = typeof buildRuntimeProjectSyncSuccessSnapshot === "function"
+      ? buildRuntimeProjectSyncSuccessSnapshot(allProjects[snapId])
+      : {
+          ...allProjects[snapId],
+          _serverVersion: allProjects[snapId]._localVersion,
+        };
     _saveBuffer();
     _showSyncIndicator();
   } catch (_) {
@@ -442,7 +545,10 @@ async function apiDeleteProject(localId) {
   if (!authUser) return;
   const serverId = getProjectServerId(localId);
   if (!serverId) return;
-  await sb.from("projects").delete().eq("id", serverId);
+  const deleteRequest = typeof buildRuntimeProjectDeleteRequest === "function"
+    ? buildRuntimeProjectDeleteRequest(serverId)
+    : { projectId: serverId };
+  await sb.from("projects").delete().eq("id", deleteRequest.projectId);
 }
 
 async function apiLogActivity(eventType, payload = {}) {
@@ -451,20 +557,31 @@ async function apiLogActivity(eventType, payload = {}) {
   const serverId = getCurrentProjectServerId();
   if (!serverId) return;
 
-  const activityPayload = buildSupabaseActivityInsertPayload({
-    projectId: serverId,
-    actorId: authUser.id,
-    actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
-    actorEmail: authUser?.email || null,
-    eventType,
-    entityType: payload.entityType || "project",
-    entityId: payload.entityId,
-    payload: Object.fromEntries(
-      Object.entries(payload || {}).filter(([key]) => key !== "entityType" && key !== "entityId"),
-    ),
-  });
+  const activityRequest = typeof buildRuntimeSupabaseActivityWriteRequest === "function"
+    ? buildRuntimeSupabaseActivityWriteRequest({
+        projectId: serverId,
+        actorId: authUser.id,
+        actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
+        actorEmail: authUser?.email || null,
+        eventType,
+        payload,
+      })
+    : {
+        payload: buildSupabaseActivityInsertPayload({
+          projectId: serverId,
+          actorId: authUser.id,
+          actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
+          actorEmail: authUser?.email || null,
+          eventType,
+          entityType: payload.entityType || "project",
+          entityId: payload.entityId,
+          payload: Object.fromEntries(
+            Object.entries(payload || {}).filter(([key]) => key !== "entityType" && key !== "entityId"),
+          ),
+        }),
+      };
 
-  const { error } = await sb.from("activity_log").insert(activityPayload);
+  const { error } = await sb.from("activity_log").insert(activityRequest.payload);
   if (error) throw error;
 }
 
@@ -473,17 +590,21 @@ async function apiGetShares() {
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return [];
 
-  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", {
-    p_project_id: serverId,
-  });
+  const shareListRpcRequest = typeof buildRuntimeBuildShareListRpcRequest === "function"
+    ? buildRuntimeBuildShareListRpcRequest(serverId)
+    : { p_project_id: serverId };
+  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", shareListRpcRequest);
   if (!rpcSharesError && Array.isArray(rpcShares)) {
     return rpcShares.map(mapSupabaseShareRecord);
   }
 
+  const shareListFallbackRequest = typeof buildRuntimeBuildShareListFallbackRequest === "function"
+    ? buildRuntimeBuildShareListFallbackRequest(serverId)
+    : { projectId: serverId };
   const { data, error } = await sb
     .from("project_shares")
     .select("id, role, user_id, created_at")
-    .eq("project_id", serverId)
+    .eq("project_id", shareListFallbackRequest.projectId)
     .order("created_at", { ascending: true });
 
   if (error) return [];
@@ -494,59 +615,86 @@ async function apiShareProject(email, role = "viewer") {
   const authUser = await _getCurrentAuthUser();
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return;
-  if (!canInviteUsers()) throw new Error("You do not have permission to invite users.");
+  const collaborationErrors = typeof buildRuntimeSupabaseCollaborationErrorMessages === "function"
+    ? buildRuntimeSupabaseCollaborationErrorMessages()
+    : {
+        invitePermissionDenied: "You do not have permission to invite users.",
+      };
+  if (!canInviteUsers()) throw new Error(collaborationErrors.invitePermissionDenied);
 
-  const shareRole = normalizeProjectRole(role);
-  if (!isShareableProjectRole(shareRole)) throw new Error("Unsupported access role.");
+  const shareGrantInput = typeof buildRuntimeNormalizeShareGrantInput === "function"
+    ? buildRuntimeNormalizeShareGrantInput(email, role, isShareableProjectRole)
+    : {
+        normalizedEmail: String(email || "").trim().toLowerCase(),
+        normalizedRole: normalizeProjectRole(role),
+      };
+  const shareRole = shareGrantInput.normalizedRole;
+  const normalizedEmail = shareGrantInput.normalizedEmail;
 
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) throw new Error("Enter email.");
-
-  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", {
-    p_email: normalizedEmail,
-  });
+  const shareLookupRequest = typeof buildRuntimeBuildShareLookupRequest === "function"
+    ? buildRuntimeBuildShareLookupRequest(normalizedEmail)
+    : { p_email: normalizedEmail };
+  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", shareLookupRequest);
   if (lookupError) throw new Error(lookupError.message);
-  if (!targetUserId) {
-    throw new Error("User with this email was not found. They need to register first.");
-  }
-  if (targetUserId === authUser.id) {
-    throw new Error("You already have access to this project as the owner.");
-  }
+  const resolvedTargetUserId = typeof buildRuntimeResolveShareTargetUser === "function"
+    ? buildRuntimeResolveShareTargetUser(targetUserId, authUser.id)
+    : (() => {
+        if (!targetUserId) throw new Error("User with this email was not found. They need to register first.");
+        if (targetUserId === authUser.id) throw new Error("You already have access to this project as the owner.");
+        return targetUserId;
+      })();
 
-  const sharePayload = buildSupabaseProjectShareUpsertPayload({
-    projectId: serverId,
-    userId: targetUserId,
-    role: shareRole,
-    invitedBy: authUser.id,
-  });
+  const sharePayload = typeof buildRuntimeBuildShareGrantRequest === "function"
+    ? buildRuntimeBuildShareGrantRequest({
+        projectId: serverId,
+        userId: resolvedTargetUserId,
+        role: shareRole,
+        invitedBy: authUser.id,
+      })
+    : buildSupabaseProjectShareUpsertPayload({
+        projectId: serverId,
+        userId: resolvedTargetUserId,
+        role: shareRole,
+        invitedBy: authUser.id,
+      });
 
+  const shareUpsertOptions = typeof buildRuntimeBuildShareUpsertOptions === "function"
+    ? buildRuntimeBuildShareUpsertOptions()
+    : { onConflict: "project_id,user_id" };
   const { error } = await sb.from("project_shares").upsert(
     sharePayload,
-    { onConflict: "project_id,user_id" },
+    shareUpsertOptions,
   );
 
   if (error) throw new Error(error.message);
   _showSyncIndicator();
-  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, targetUserId, {
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, resolvedTargetUserId, {
     email: normalizedEmail,
     role: shareRole,
   });
-  return {
-    userId: targetUserId,
-    email: normalizedEmail,
-    role: shareRole,
-  };
+  return typeof buildRuntimeBuildShareGrantResult === "function"
+    ? buildRuntimeBuildShareGrantResult(resolvedTargetUserId, normalizedEmail, shareRole)
+    : { userId: resolvedTargetUserId, email: normalizedEmail, role: shareRole };
 }
 
 async function apiUpdateShareRole(shareId, role) {
-  if (!canManageShares()) throw new Error("You do not have permission to manage access.");
+  const collaborationErrors = typeof buildRuntimeSupabaseCollaborationErrorMessages === "function"
+    ? buildRuntimeSupabaseCollaborationErrorMessages()
+    : {
+        manageAccessPermissionDenied: "You do not have permission to manage access.",
+      };
+  if (!canManageShares()) throw new Error(collaborationErrors.manageAccessPermissionDenied);
 
-  const shareRole = normalizeProjectRole(role);
-  if (!isShareableProjectRole(shareRole)) throw new Error("Unsupported access role.");
+  const shareRoleUpdateRequest = typeof buildRuntimeBuildShareRoleUpdateRequest === "function"
+    ? buildRuntimeBuildShareRoleUpdateRequest(role, isShareableProjectRole)
+    : buildSupabaseProjectShareRoleUpdatePayload(normalizeProjectRole(role));
+  const shareRole = typeof buildRuntimeBuildShareRoleUpdateResult === "function"
+    ? buildRuntimeBuildShareRoleUpdateResult(role)
+    : normalizeProjectRole(role);
 
   const { error } = await sb
     .from("project_shares")
-    .update(buildSupabaseProjectShareRoleUpdatePayload(shareRole))
+    .update(shareRoleUpdateRequest)
     .eq("id", shareId);
 
   if (error) throw new Error(error.message);
@@ -558,24 +706,40 @@ async function apiUpdateShareRole(shareId, role) {
 }
 
 async function apiRemoveShare(shareId) {
-  if (!canManageShares()) throw new Error("You do not have permission to remove access.");
-  const { error } = await sb.from("project_shares").delete().eq("id", shareId);
+  const collaborationErrors = typeof buildRuntimeSupabaseCollaborationErrorMessages === "function"
+    ? buildRuntimeSupabaseCollaborationErrorMessages()
+    : {
+        removeAccessPermissionDenied: "You do not have permission to remove access.",
+      };
+  if (!canManageShares()) throw new Error(collaborationErrors.removeAccessPermissionDenied);
+  const shareRemoveRequest = typeof buildRuntimeBuildShareRemoveRequest === "function"
+    ? buildRuntimeBuildShareRemoveRequest(shareId)
+    : { shareId };
+  const { error } = await sb.from("project_shares").delete().eq("id", shareRemoveRequest.shareId);
   if (error) throw new Error(error.message);
   _showSyncIndicator();
-  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_REVOKED, shareId);
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_REVOKED, shareRemoveRequest.shareId);
 }
 
 async function apiGetActivityLog(limit = 100) {
   const authUser = await _getCurrentAuthUser();
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return [];
+  const activityLogReadRequest = typeof buildRuntimeSupabaseActivityLogReadRequest === "function"
+    ? buildRuntimeSupabaseActivityLogReadRequest(serverId, limit)
+    : {
+        projectId: serverId,
+        limit: typeof buildRuntimeResolveActivityLogLimit === "function"
+          ? buildRuntimeResolveActivityLogLimit(limit)
+          : Math.max(1, Math.min(500, Number(limit) || 100)),
+      };
 
   const { data, error } = await sb
     .from("activity_log")
     .select("id, project_id, actor_id, actor_name, actor_email, event_type, entity_type, entity_id, payload, created_at")
-    .eq("project_id", serverId)
+    .eq("project_id", activityLogReadRequest.projectId)
     .order("created_at", { ascending: false })
-    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+    .limit(activityLogReadRequest.limit);
 
   if (error) throw new Error(error.message);
   return (data || []).map(mapSupabaseActivityRow);
@@ -599,49 +763,82 @@ function _updateReadOnlyUI() {
           : "",
       };
 
+  const uiState = typeof buildRuntimeSupabaseReadOnlyUiState === "function"
+    ? buildRuntimeSupabaseReadOnlyUiState({
+        readonly,
+        canShare,
+        isLoggedIn: isLoggedIn(),
+        bannerModel,
+      })
+    : {
+        showReadonlyBanner: readonly,
+        headerBannerVisible: bannerModel.shouldShow,
+        headerBannerClassName: `project-access-banner${readonly ? " is-readonly" : " is-limited"}`,
+        headerBannerHtml: bannerModel.shouldShow
+          ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
+          : "",
+        ganttPointerEvents: readonly ? "none" : "",
+        ganttOpacity: readonly ? "0.85" : "",
+        ganttTitle: readonly ? "View-only mode - editing is disabled" : "",
+        addButtonVisible: !readonly,
+        shareButtonVisible: isLoggedIn() && canShare,
+      };
+
   const banner = document.getElementById("readonly-banner");
-  if (banner) banner.style.display = readonly ? "flex" : "none";
+  if (banner) banner.style.display = uiState.showReadonlyBanner ? "flex" : "none";
 
   const headerBanner = document.getElementById("project-access-banner");
   if (headerBanner) {
-    headerBanner.style.display = bannerModel.shouldShow ? "flex" : "none";
-    headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
-    headerBanner.innerHTML = bannerModel.shouldShow
-      ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
-      : "";
+    headerBanner.style.display = uiState.headerBannerVisible ? "flex" : "none";
+    headerBanner.className = uiState.headerBannerClassName;
+    headerBanner.innerHTML = uiState.headerBannerHtml;
   }
 
   const ganttTable = document.getElementById("gtbl-wrap");
   if (ganttTable) {
-    ganttTable.style.pointerEvents = readonly ? "none" : "";
-    ganttTable.style.opacity = readonly ? "0.85" : "";
-    ganttTable.title = readonly ? "View-only mode - editing is disabled" : "";
+    ganttTable.style.pointerEvents = uiState.ganttPointerEvents;
+    ganttTable.style.opacity = uiState.ganttOpacity;
+    ganttTable.title = uiState.ganttTitle;
   }
 
   const addBtn = document.querySelector(".btn-acc[onclick='openAdd()']");
-  if (addBtn) addBtn.style.display = readonly ? "none" : "";
+  if (addBtn) addBtn.style.display = uiState.addButtonVisible ? "" : "none";
 
   const shareBtn = document.getElementById("share-btn");
-  if (shareBtn) shareBtn.style.display = isLoggedIn() && canShare ? "" : "none";
+  if (shareBtn) shareBtn.style.display = uiState.shareButtonVisible ? "" : "none";
 }
 
 async function handleShareRoleChange(shareId, role) {
   try {
     const nextRole = await apiUpdateShareRole(shareId, role);
+    const toastModel = typeof buildRuntimeSupabaseRoleUpdatedToast === "function"
+      ? buildRuntimeSupabaseRoleUpdatedToast(
+          typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole),
+        )
+      : {
+          title: `Role updated: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole)}`,
+          timer: 2600,
+        };
     Swal.fire({
       toast: true,
       position: "top-end",
       icon: "success",
-      title: `Role updated: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole)}`,
+      title: toastModel.title,
       showConfirmButton: false,
-      timer: 2600,
+      timer: toastModel.timer,
     });
     await openShareModal();
   } catch (err) {
+    const errorMessages = typeof buildRuntimeSupabaseShareErrorMessages === "function"
+      ? buildRuntimeSupabaseShareErrorMessages()
+      : {
+          updateRoleErrorTitle: "Failed to update role",
+          updateRoleErrorText: "Try again.",
+        };
     Swal.fire({
       icon: "error",
-      title: "Failed to update role",
-      text: err.message || "Try again.",
+      title: errorMessages.updateRoleErrorTitle,
+      text: err.message || errorMessages.updateRoleErrorText,
     });
   }
 }
@@ -649,69 +846,116 @@ async function handleShareRoleChange(shareId, role) {
 async function handleShareRemoval(shareId) {
   try {
     await apiRemoveShare(shareId);
+    const toastModel = typeof buildRuntimeSupabaseShareRemovedToast === "function"
+      ? buildRuntimeSupabaseShareRemovedToast()
+      : { title: "Access removed", timer: 2400 };
     Swal.fire({
       toast: true,
       position: "top-end",
       icon: "success",
-      title: "Access removed",
+      title: toastModel.title,
       showConfirmButton: false,
-      timer: 2400,
+      timer: toastModel.timer,
     });
     await openShareModal();
   } catch (err) {
+    const errorMessages = typeof buildRuntimeSupabaseShareErrorMessages === "function"
+      ? buildRuntimeSupabaseShareErrorMessages()
+      : {
+          removeAccessErrorTitle: "Failed to remove access",
+          removeAccessErrorText: "Try again.",
+        };
     Swal.fire({
       icon: "error",
-      title: "Failed to remove access",
-      text: err.message || "Try again.",
+      title: errorMessages.removeAccessErrorTitle,
+      text: err.message || errorMessages.removeAccessErrorText,
     });
   }
 }
 
 async function openShareModal() {
   const shares = await apiGetShares();
+  const shareDialog = typeof buildRuntimeSupabaseShareDialogModel === "function"
+    ? buildRuntimeSupabaseShareDialogModel()
+    : {
+        accessDeniedTitle: "You do not have permission to manage access.",
+        emptyText: "No shared users yet",
+        modalTitle: "Shared Access",
+        projectLabel: "Project",
+        grantSectionTitle: "Grant access:",
+        emailPlaceholder: "email@example.com",
+        confirmButtonText: "Grant access",
+        cancelButtonText: "Close",
+        emailRequiredMessage: "Enter email",
+      };
 
   if (!canManageShares()) {
-    Swal.fire({ icon: "info", title: "You do not have permission to manage access." });
+    Swal.fire({ icon: "info", title: shareDialog.accessDeniedTitle });
     return;
   }
 
-  const roleOptions = SHAREABLE_PROJECT_ROLES.map(
-    (role) => `<option value="${role}">${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
-  ).join("");
+  const getRoleLabel = (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
+  const roleOptions = typeof buildRuntimeSupabaseShareRoleOptions === "function"
+    ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, "viewer")
+    : SHAREABLE_PROJECT_ROLES.map(
+        (role) => `<option value="${role}">${getRoleLabel(role)}</option>`,
+      ).join("");
+  const roleGuideItems = typeof buildRuntimeSupabaseShareRoleGuide === "function"
+    ? buildRuntimeSupabaseShareRoleGuide()
+    : [
+        { title: "Manager", description: "manages access and project settings." },
+        { title: "Editor", description: "edits tasks but cannot manage access." },
+        { title: "Viewer", description: "read-only access." },
+      ];
   const roleGuide = `
     <div class="share-role-guide">
-      <div><b>Manager:</b> manages access and project settings.</div>
-      <div><b>Editor:</b> edits tasks but cannot manage access.</div>
-      <div><b>Viewer:</b> read-only access.</div>
+      ${roleGuideItems.map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}
     </div>`;
 
-  const list = shares.length
-    ? shares.map((share) => {
-      const shareRole = normalizeProjectRole(share.role);
-      const shareLabel = share.user?.email || share.user?.name || share.user?.id || "-";
+  const shareModalState = typeof buildRuntimeSupabaseShareModalState === "function"
+    ? buildRuntimeSupabaseShareModalState({
+        shares,
+        projectName: proj.name,
+        getRoleLabel,
+      })
+    : {
+        projectName: proj.name,
+        items: shares.map((share) => ({
+          id: share.id,
+          role: normalizeProjectRole(share.role),
+          normalizedRole: normalizeProjectRole(share.role),
+          roleLabel: getRoleLabel(share.role),
+          displayLabel: share.user?.email || share.user?.name || share.user?.id || "-",
+        })),
+      };
+
+  const list = shareModalState.items.length
+    ? shareModalState.items.map((share) => {
       return `
         <div class="share-row">
-          <span>${shareLabel}</span>
+          <span>${share.displayLabel}</span>
           <select class="cost-sel" onchange="handleShareRoleChange('${share.id}',this.value)">
-            ${SHAREABLE_PROJECT_ROLES.map(
-              (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
-            ).join("")}
+            ${typeof buildRuntimeSupabaseShareRoleOptions === "function"
+              ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, share.normalizedRole || share.role)
+              : SHAREABLE_PROJECT_ROLES.map(
+                  (role) => `<option value="${role}"${share.normalizedRole === role ? " selected" : ""}>${getRoleLabel(role)}</option>`,
+                ).join("")}
           </select>
           <button class="cost-act-btn del" onclick="handleShareRemoval('${share.id}')">✕</button>
         </div>`;
     }).join("")
-    : `<div class="share-empty">No shared users yet</div>`;
+    : `<div class="share-empty">${shareDialog.emptyText}</div>`;
 
   Swal.fire({
-    title: "Shared Access",
+    title: shareDialog.modalTitle,
     html: `
       <div class="share-modal-body">
-        <div class="share-proj-name">Project: <b>${proj.name}</b></div>
+        <div class="share-proj-name">${shareDialog.projectLabel}: <b>${shareModalState.projectName}</b></div>
         <div class="share-list">${list}</div>
         <hr class="share-divider">
-        <div class="share-add-title">Grant access:</div>
+        <div class="share-add-title">${shareDialog.grantSectionTitle}</div>
         <div class="share-add-row">
-          <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
+          <input id="share-email" type="email" placeholder="${shareDialog.emailPlaceholder}" class="share-email-inp">
           <select id="share-role" class="share-role-sel">
             ${roleOptions}
           </select>
@@ -720,25 +964,35 @@ async function openShareModal() {
         <div id="share-err" class="share-err"></div>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Grant access",
-    cancelButtonText: "Close",
+    confirmButtonText: shareDialog.confirmButtonText,
+    cancelButtonText: shareDialog.cancelButtonText,
     preConfirm: async () => {
       const email = document.getElementById("share-email").value.trim();
       const role = document.getElementById("share-role").value;
       if (!email) {
-        Swal.showValidationMessage("Enter email");
+        Swal.showValidationMessage(shareDialog.emailRequiredMessage);
         return false;
       }
       try {
         const result = await apiShareProject(email, role);
+        const toastModel = typeof buildRuntimeSupabaseShareGrantedToast === "function"
+          ? buildRuntimeSupabaseShareGrantedToast(
+              typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role),
+              result.email,
+            )
+          : {
+              title: `Access granted: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role)}`,
+              text: result.email,
+              timer: 2800,
+            };
         Swal.fire({
           toast: true,
           position: "top-end",
           icon: "success",
-          title: `Access granted: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role)}`,
-          text: result.email,
+          title: toastModel.title,
+          text: toastModel.text,
           showConfirmButton: false,
-          timer: 2800,
+          timer: toastModel.timer,
         });
       } catch (err) {
         Swal.showValidationMessage(err.message);
@@ -750,61 +1004,79 @@ async function openShareModal() {
 
 function _showSyncIndicator() {
   if (typeof setUserSyncStatus === "function") {
-    setUserSyncStatus("syncing");
+    const plan = typeof buildRuntimeSupabaseSyncIndicatorPlan === "function"
+      ? buildRuntimeSupabaseSyncIndicatorPlan()
+      : { status: "syncing", timeoutMs: 1800 };
+    setUserSyncStatus(plan.status);
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => {
       if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
       else setUserSyncStatus("ok");
-    }, 1800);
+    }, plan.timeoutMs);
   }
 }
 
 async function _hydrateSession(session, { loadProjects = true } = {}) {
   if (!session?.user) return;
   _sbUser = session.user;
-  _sbProfile = await _loadProfile();
+  const profile = await _loadProfile();
+  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
+    ? buildRuntimeHydratedAuthState(session.user, profile)
+    : { user: session.user, profile };
+  _sbUser = hydrated.user;
+  _sbProfile = hydrated.profile;
   if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
   else updateUserBtn();
   if (loadProjects) await apiLoadProjects();
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
-  if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && session?.user) {
+  const plan = typeof buildRuntimeResolveSupabaseAuthEventPlan === "function"
+    ? buildRuntimeResolveSupabaseAuthEventPlan(event, !!session?.user)
+    : {
+        kind: (event === "INITIAL_SESSION" || event === "SIGNED_IN") && session?.user
+          ? "hydrate"
+          : event === "TOKEN_REFRESHED" && session?.user
+            ? "refresh"
+            : event === "SIGNED_OUT"
+              ? "signed_out"
+              : event === "USER_UPDATED" && session?.user
+                ? "hydrate"
+                : "noop",
+        loadProjects: event === "INITIAL_SESSION" || event === "SIGNED_IN",
+        refreshStatus: event === "SIGNED_OUT" ? "offline" : undefined,
+      };
+
+  if (plan.kind === "hydrate" && session?.user) {
     queueMicrotask(() => {
-      _hydrateSession(session, { loadProjects: true }).catch((err) => {
+      _hydrateSession(session, { loadProjects: plan.loadProjects }).catch((err) => {
         console.error("[auth] hydrate session failed", err);
       });
     });
     return;
   }
 
-  if (event === "TOKEN_REFRESHED" && session?.user) {
+  if (plan.kind === "refresh" && session?.user) {
     _sbUser = session.user;
     if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
     else updateUserBtn();
     return;
   }
 
-  if (event === "SIGNED_OUT") {
-    _sbUser = _sbProfile = _projectRole = null;
-    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus("offline");
+  if (plan.kind === "signed_out") {
+    const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
+      ? buildRuntimeResetSupabaseAuthState()
+      : { user: null, profile: null, projectRole: null };
+    _sbUser = resetState.user;
+    _sbProfile = resetState.profile;
+    _projectRole = resetState.projectRole;
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus(plan.refreshStatus || "offline");
     else updateUserBtn();
     _updateReadOnlyUI();
     return;
   }
 
-  if (event === "USER_UPDATED" && session?.user) {
-    queueMicrotask(() => {
-      (async () => {
-        _sbUser = session.user;
-        _sbProfile = await _loadProfile();
-        if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
-        else updateUserBtn();
-      })().catch((err) => {
-        console.error("[auth] user update hydration failed", err);
-      });
-    });
-  }
+  if (plan.kind === "noop") return;
 });
 
 document.addEventListener("DOMContentLoaded", () => {

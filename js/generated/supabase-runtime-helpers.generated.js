@@ -37,6 +37,170 @@
     return PROJECT_ROLE_HINTS[normalizeProjectRole(role)];
   }
 
+  // src/services/api/account-runtime.ts
+  function resetFallbackAuthState() {
+    return {
+      token: null,
+      user: null,
+      projectRole: null
+    };
+  }
+  function buildFallbackRegisterRequest(name, email, password) {
+    return {
+      name,
+      email,
+      password
+    };
+  }
+  function buildFallbackLoginRequest(email, password) {
+    return {
+      email,
+      password
+    };
+  }
+  function buildFallbackProfileUpdateRequest(updates) {
+    return {
+      body: { ...updates || {} }
+    };
+  }
+  function buildFallbackAuthHydratedState(token, user) {
+    return {
+      token,
+      user,
+      projectRole: null
+    };
+  }
+  function buildFallbackSyncIndicatorPlan(timeoutMs = 1800) {
+    return {
+      status: "syncing",
+      timeoutMs
+    };
+  }
+
+  // src/services/api/http-runtime.ts
+  function buildFallbackHttpRequestOptions(authToken) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    return { headers };
+  }
+  function resolveFallbackHttpOutcome(status, data) {
+    if (status === 401 && data?.expired) {
+      return { kind: "session_expired" };
+    }
+    if (status >= 200 && status < 300) {
+      return { kind: "ok" };
+    }
+    return {
+      kind: "error",
+      message: typeof data?.error === "string" && data.error ? data.error : `HTTP ${status}`
+    };
+  }
+
+  // src/services/api/fallback-runtime.ts
+  function buildFallbackProjectShell(project) {
+    const normalizedRole = normalizeProjectRole(project.role || "owner");
+    return {
+      proj: {
+        name: project.name,
+        sm: project.sm,
+        sy: project.sy,
+        nm: project.nm
+      },
+      cats: [],
+      tasks: [],
+      nextN: 1,
+      _serverId: project.id,
+      _role: normalizedRole
+    };
+  }
+  function buildFallbackLoadedProjectSnapshot(localId, project, tasks, resolvedRole, getStoredRole2) {
+    const normalizedRole = normalizeProjectRole(resolvedRole || "viewer");
+    return {
+      proj: {
+        name: project.name,
+        sm: project.sm,
+        sy: project.sy,
+        nm: project.nm,
+        baseline: project.baseline,
+        baselineDate: project.baselineDate || null
+      },
+      cats: project.cats || [],
+      tasks: tasks || [],
+      nextN: project.nextN || 1,
+      _serverId: project._id,
+      _role: typeof getStoredRole2 === "function" ? getStoredRole2(localId, normalizedRole) : normalizedRole
+    };
+  }
+  function buildFallbackProjectSyncRequest(snapshot) {
+    return {
+      projectPayload: {
+        name: snapshot.proj.name,
+        sm: snapshot.proj.sm,
+        sy: snapshot.proj.sy,
+        nm: snapshot.proj.nm,
+        cats: snapshot.cats,
+        nextN: snapshot.nextN,
+        baseline: snapshot.proj.baseline || null,
+        baselineDate: snapshot.proj.baselineDate || null
+      },
+      tasksPayload: {
+        tasks: snapshot.tasks
+      }
+    };
+  }
+  function buildFallbackProjectCreateRequest(snapshot) {
+    return {
+      payload: {
+        name: snapshot.proj.name,
+        sm: snapshot.proj.sm,
+        sy: snapshot.proj.sy,
+        nm: snapshot.proj.nm,
+        cats: snapshot.cats,
+        tasks: snapshot.tasks,
+        nextN: snapshot.nextN
+      }
+    };
+  }
+  function buildFallbackProjectDeleteRequest(projectId) {
+    return { projectId };
+  }
+  function buildFallbackShareGrantRequest(email, role, isShareableRole) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) throw new Error("Enter email");
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role");
+    return {
+      email: normalizedEmail,
+      role: normalizedRole
+    };
+  }
+  function buildFallbackShareRoleUpdateRequest(role, isShareableRole) {
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role");
+    return {
+      role: normalizedRole
+    };
+  }
+  function buildFallbackShareRemoveRequest(userId) {
+    return { userId };
+  }
+  function buildFallbackShareModalState(shares, getRoleLabel) {
+    return {
+      items: (shares || []).map((share) => {
+        const normalizedRole = normalizeProjectRole(share.role || "viewer");
+        return {
+          userId: String(share.userId?._id || ""),
+          displayName: share.userId?.name || "—",
+          displayEmail: share.userId?.email || "",
+          normalizedRole,
+          roleLabel: getRoleLabel(normalizedRole)
+        };
+      })
+    };
+  }
+
   // src/domain/project-access.ts
   function isSharedProjectEntry(projectSnapshot) {
     if (!projectSnapshot) return false;
@@ -468,6 +632,30 @@
         logoutConfirmButtonText: "Вийти",
         loginButtonLabel: "☁ Увійти"
       }
+    };
+  }
+  function buildFallbackAuthModalRenderModel(tab, ui) {
+    const isLogin = tab === "login";
+    return {
+      isLogin,
+      loginTabClassName: `auth-tab${isLogin ? " active" : ""}`,
+      registerTabClassName: `auth-tab${!isLogin ? " active" : ""}`,
+      submitLabel: isLogin ? ui.loginSubmitLabel : ui.registerSubmitLabel,
+      showNameField: !isLogin
+    };
+  }
+  function buildFallbackAuthButtonModel(isLoggedIn, userName, ui) {
+    if (isLoggedIn && userName) {
+      return {
+        text: `☃ ${userName}`,
+        title: ui.syncedTitle,
+        mode: "logout"
+      };
+    }
+    return {
+      text: ui.loginButtonLabel,
+      title: "",
+      mode: "login"
     };
   }
 
@@ -1049,6 +1237,48 @@
       importReviewTitle: "Перевірка імпорту",
       importLabel: "Імпортувати",
       importOkLabel: "OK",
+      noImportOptionLabel: "Не імпортувати",
+      noActOptionLabel: "Без акту",
+      contractFieldLabel: "Договір",
+      paymentDateFieldLabel: "Дата платежу",
+      paymentAmountFieldLabel: "Сума платежу",
+      paymentActFieldLabel: "Згідно акту",
+      actTypeFieldLabel: "Тип акту",
+      actNumberFieldLabel: "Номер акту",
+      actDateFieldLabel: "Дата акту",
+      actAmountFieldLabel: "Сума акту",
+      actItemNameFieldLabel: "Опис товару/послуги",
+      paymentOrActNoteFieldLabel: "Примітка",
+      actPlaceholder: "Акт №",
+      importReviewRowsTitle: "Рядки імпорту",
+      importReviewNoteTitle: "Примітка",
+      importReviewFallbackTaskNote: "Частина рядків без роботи буде прив’язана до типової імпортної роботи.",
+      importReviewRefHeader: "Рядок",
+      importReviewSupplierHeader: "Контрагент",
+      importReviewPositionHeader: "Позиція",
+      importReviewPaymentHeader: "Платіж",
+      importReviewIssueHeader: "Проблема",
+      importReviewActionHeader: "Дія",
+      importFilterRowsLabel: "рядків",
+      importFilterContractorsLabel: "контрагентів",
+      importFilterTasksLabel: "робіт",
+      importFilterCreatedLabel: "нових позицій",
+      importFilterUpdatedLabel: "оновлень",
+      importFilterPaymentsLabel: "платежів",
+      importFilterDuplicatesLabel: "дублікатів",
+      importFilterSkippedLabel: "пропусків",
+      importFilterIssuesLabel: "проблем",
+      importSkipRowLabel: "Пропустити рядок",
+      importCreateItemLabel: "Створити нову позицію",
+      importFallbackTaskLabel: "Імпортувати в типову роботу",
+      importSkipWithoutPaymentLabel: "Імпортувати рядок без платежу",
+      importUseTodayPaymentLabel: "Імпортувати платіж з поточною датою",
+      importSkipDuplicateLabel: "Пропустити дублікат",
+      importForcePaymentLabel: "Імпортувати все одно",
+      importRowDecisionLabel: "Імпортувати рядок",
+      importSkipLabel: "Пропустити",
+      importAutoLabel: "Авто",
+      importNoChangesValidation: "Немає змін для імпорту",
       editPaymentTitle: (name) => `Редагувати платіж: ${name}`,
       deletePaymentTitlePrompt: "Видалити платіж?",
       addActTitleWithSupplier: (supplier) => `Додати акт: ${supplier}`,
@@ -1278,6 +1508,96 @@
       row.rowNo = index + 1;
     });
     return rows;
+  }
+
+  // src/domain/contractors-panel.ts
+  function buildContractorSummaryModel(rows) {
+    const total = rows.reduce(
+      (acc, row) => {
+        acc.budget += +row?.budget || 0;
+        acc.paid += +row?.paid || 0;
+        acc.rest += +row?.rest || 0;
+        acc.actsAmount += +row?.actsAmount || 0;
+        acc.actsDebt += +row?.actsDebt || 0;
+        acc.payments += +row?.paymentsCount || 0;
+        acc.items += +row?.itemsCount || 0;
+        return acc;
+      },
+      { budget: 0, paid: 0, rest: 0, actsAmount: 0, actsDebt: 0, payments: 0, items: 0 }
+    );
+    return {
+      total,
+      realContractors: rows.filter((row) => !row?.isForecast).length,
+      withDebt: rows.filter((row) => (+row?.rest || 0) > 0.5).length
+    };
+  }
+  function hasContractorFilters(filters, multiValues) {
+    return !!(multiValues(filters?.status).length || multiValues(filters?.type).length || multiValues(filters?.cat).length);
+  }
+  function getVisibleDeletableContractorRows(rows, isBlocked) {
+    return (rows || []).filter((row) => !isBlocked(String(row?.key || "")) && !row?.isForecast);
+  }
+  function buildContractorBulkDeleteModel(keys, rows, isBlocked, summarize) {
+    const uniqueKeys = Array.from(new Set(Array.from(keys || []))).filter((key) => !isBlocked(String(key || "")));
+    const matchedRows = (rows || []).filter((row) => uniqueKeys.includes(String(row?.key || "")));
+    return {
+      uniqueKeys,
+      rows: matchedRows,
+      summary: summarize(matchedRows)
+    };
+  }
+  function buildPaymentRegisterCurrentState(contractorRows, typeLabel) {
+    const rows = (contractorRows || []).map((row) => ({
+      ...row,
+      payments: (row?.payments || []).map((payment) => ({
+        ...payment,
+        typeLabel: typeLabel(String(payment?.type || ""))
+      }))
+    }));
+    const registerRows = rows.filter((row) => !row?.isForecast).flatMap(
+      (row) => (row.payments || []).map((payment) => ({
+        supplier: row.supplier,
+        date: payment.date || "",
+        amount: +payment.amount || 0,
+        type: payment.typeLabel || payment.type || "",
+        taskNo: payment.taskNo,
+        taskName: payment.taskName,
+        itemName: payment.itemName,
+        note: payment.note || ""
+      }))
+    ).sort(
+      (a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.supplier || "").localeCompare(String(b.supplier || ""), "uk")
+    );
+    const total = registerRows.reduce((sum, row) => sum + (+row.amount || 0), 0);
+    return {
+      rows: registerRows,
+      total,
+      count: registerRows.length
+    };
+  }
+  function buildPaymentRegisterListItems(registers) {
+    return (registers || []).map((register) => ({
+      id: String(register?.id || ""),
+      name: String(register?.name || ""),
+      createdAt: String(register?.createdAt || ""),
+      count: Array.isArray(register?.rows) ? register.rows.length : 0,
+      total: +register?.total || 0,
+      filtersLabel: String(register?.filtersLabel || "")
+    }));
+  }
+  function buildSavedPaymentRegister(params) {
+    return {
+      id: params.id,
+      name: params.name,
+      createdAt: params.createdAt,
+      filters: { ...params.filters },
+      filtersLabel: params.filtersLabel,
+      total: params.total,
+      rows: params.rows
+    };
+  }
+  function findPaymentRegisterById(registers, id) {
+    return (registers || []).find((register) => String(register?.id) === String(id));
   }
 
   // src/domain/costs-ui.ts
@@ -1727,6 +2047,201 @@
       filteredCount: rows.length,
       counts,
       rows
+    };
+  }
+
+  // src/domain/modal-orchestration.ts
+  function cloneModalCostItems(items) {
+    return (items || []).map((item) => ({
+      ...item,
+      payments: (item?.payments || []).map((payment) => ({ ...payment })),
+      acts: (item?.acts || []).map((act) => ({ ...act }))
+    }));
+  }
+  function cloneModalPhasesFromTask(task) {
+    if (Array.isArray(task?.phases) && task.phases.length > 0) {
+      return task.phases.map((phase) => ({ ...phase, prog: phase?.prog ?? 0 }));
+    }
+    return [{
+      ms: task?.ms ?? 0,
+      ws: task?.ws ?? 0,
+      me: task?.me ?? 0,
+      we: task?.we ?? 0,
+      prog: task?.prog || 0,
+      dsExact: task?.dsExact || null,
+      deExact: task?.deExact || null
+    }];
+  }
+  function buildTaskModalEditState(params) {
+    const modalPhases = cloneModalPhasesFromTask(params.task);
+    const modalDeps = (params.task?.deps || []).map((dep) => params.normDep(dep));
+    const costItems = cloneModalCostItems(params.task?.costItems || []);
+    const hasItems = costItems.length > 0;
+    const contractsOverrideBudget = !!params.task?.contractsOverrideBudget;
+    const taskBudget = +params.task?.budget || 0;
+    return {
+      modalPhases,
+      modalDeps,
+      costItems,
+      hasItems,
+      title: params.task?.name || params.editFallbackTitle,
+      budgetValue: hasItems && (taskBudget <= 0 || contractsOverrideBudget) ? params.totalBudget : params.task?.budget || "",
+      spentValue: hasItems ? params.totalSpent : params.task?.spent || "",
+      contractsOverrideBudget
+    };
+  }
+  function buildTaskModalSaveModel(params) {
+    const phases = (params.phases || []).map((phase) => ({ ...phase }));
+    const first = phases[0] || { ms: 0, ws: 0 };
+    const last = phases[phases.length - 1] || first;
+    const startIndex = first.ms * 4 + first.ws;
+    const endIndex = last.me * 4 + last.we;
+    const costItems = params.costItems.length > 0 ? cloneModalCostItems(params.costItems) : null;
+    const budget = costItems && (params.contractsOverrideBudget || params.manualBudget <= 0) ? params.totalBudget : params.manualBudget;
+    const spent = costItems ? params.totalSpent : params.manualSpent;
+    const prog = getWeightedProgress(phases);
+    return {
+      isValidRange: startIndex <= endIndex,
+      startIndex,
+      endIndex,
+      prog,
+      budget,
+      spent,
+      taskPatch: {
+        name: params.name,
+        cat: params.cat,
+        ms: first.ms,
+        ws: first.ws,
+        me: last.me,
+        we: last.we,
+        prog,
+        budget,
+        spent,
+        contractsOverrideBudget: params.contractsOverrideBudget,
+        deps: params.deps,
+        phases: phases.length > 1 ? phases : null,
+        costItems,
+        dsExact: phases.length === 1 ? first.dsExact || null : null,
+        deExact: phases.length === 1 ? first.deExact || null : null
+      }
+    };
+  }
+  function applyTaskSave(params) {
+    const isEdit = params.editIdx !== null;
+    if (isEdit) {
+      const nextTasks = params.tasks.map(
+        (task, index) => index === params.editIdx ? { ...task, ...params.taskPatch, notes: task.notes || [] } : task
+      );
+      return {
+        tasks: nextTasks,
+        nextN: params.nextN,
+        savedTask: nextTasks[params.editIdx],
+        isEdit: true
+      };
+    }
+    const savedTask = {
+      id: params.newTaskId,
+      n: params.nextN,
+      ...params.taskPatch,
+      notes: []
+    };
+    return {
+      tasks: [...params.tasks, savedTask],
+      nextN: params.nextN + 1,
+      savedTask,
+      isEdit: false
+    };
+  }
+  function removeTaskAt(tasks, index) {
+    if (index < 0 || index >= tasks.length) return { tasks: [...tasks], removedTask: null };
+    return {
+      tasks: tasks.filter((_, taskIndex) => taskIndex !== index),
+      removedTask: tasks[index] || null
+    };
+  }
+
+  // src/domain/modal-panels.ts
+  function cloneTaskNotes(notes) {
+    return (notes || []).map((note) => ({
+      ...note,
+      history: (note.history || []).map((entry) => ({ ...entry }))
+    }));
+  }
+  function addTaskNote(params) {
+    const nextNotes = cloneTaskNotes(params.notes);
+    nextNotes.push({
+      id: params.id,
+      text: params.text,
+      author: params.author,
+      date: params.date,
+      history: []
+    });
+    return nextNotes;
+  }
+  function editTaskNote(params) {
+    const nextNotes = cloneTaskNotes(params.notes);
+    const target = nextNotes[params.index];
+    if (!target) return nextNotes;
+    target.history = target.history || [];
+    target.history.push({
+      action: "edit",
+      text: target.text,
+      author: params.author,
+      date: params.date
+    });
+    target.text = params.text;
+    return nextNotes;
+  }
+  function deleteTaskNote(params) {
+    const nextNotes = cloneTaskNotes(params.notes);
+    const target = nextNotes[params.index];
+    if (!target) return nextNotes;
+    target.history = target.history || [];
+    target.history.push({
+      action: "delete",
+      text: target.text,
+      author: params.author,
+      date: params.date
+    });
+    target.text = params.deletedPlaceholderText;
+    target.deleted = true;
+    return nextNotes;
+  }
+  function countVisibleTaskNotes(notes) {
+    return (notes || []).filter((note) => !note.deleted).length;
+  }
+  function cloneCategoryDrafts(categories) {
+    return (categories || []).map((category) => ({ ...category }));
+  }
+  function removeCategoryDraftAt(categories, index) {
+    return (categories || []).filter((_, categoryIndex) => categoryIndex !== index);
+  }
+  function createNextCategoryDraft(params) {
+    const usedColors = params.categories.map((category) => category.color);
+    const color = params.palette.find((candidate) => !usedColors.includes(candidate)) || params.palette[params.categories.length % params.palette.length];
+    return [
+      ...cloneCategoryDrafts(params.categories),
+      { name: params.newCategoryName, color }
+    ];
+  }
+  function isCategoryUsedByTasks(tasks, index) {
+    return (tasks || []).some((task) => task.cat === index);
+  }
+  function buildProjectManagerGroupModel(params) {
+    const grouped = groupProjectEntriesByAccess(Object.entries(params.projects || {}));
+    const mapRow = ([id, snapshot]) => ({
+      id,
+      name: snapshot?.proj?.name || "",
+      role: snapshot?._role || "owner",
+      roleLabel: params.getRoleLabel(snapshot?._role || "owner"),
+      tasksCount: Array.isArray(snapshot?.tasks) ? snapshot.tasks.length : 0,
+      sharedMetaLine: params.getSharedMetaLine(snapshot?._access || null),
+      canManageProject: params.canManageProject(id, snapshot),
+      isActive: id === params.currentId
+    });
+    return {
+      own: (grouped.own || []).map(mapRow),
+      shared: (grouped.shared || []).map(mapRow)
     };
   }
 
@@ -2350,11 +2865,7 @@
     ];
   }
 
-  // src/runtime/supabase-runtime-helpers.ts
-  function getStoredRole(localId, role) {
-    const scope = globalThis;
-    return typeof scope.getStoredProjectRole === "function" ? scope.getStoredProjectRole(localId, role) : role;
-  }
+  // src/services/supabase/runtime.ts
   function mergeAccessibleProjectsIntoLocalState(offlineNew, localSynced, accessibleProjects, authUserId) {
     const mergedProjects = { ...offlineNew };
     for (const item of accessibleProjects || []) {
@@ -2369,7 +2880,9 @@
         invited_by_name: item.invited_by_name || "",
         invited_by_email: item.invited_by_email || ""
       };
-      const localMatch = Object.entries(localSynced).find(([, localProject]) => localProject?._serverId === item.project_id);
+      const localMatch = Object.entries(localSynced).find(
+        ([, localProject]) => localProject?._serverId === item.project_id
+      );
       if (localMatch) {
         const [localId, localProject] = localMatch;
         mergedProjects[localId] = {
@@ -2386,7 +2899,7 @@
     }
     return mergedProjects;
   }
-  function buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role) {
+  function buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole2) {
     const snapshot = mapProjectRowToSnapshot(projectRow, taskRows, role, {
       _access: previousSnapshot?._access,
       _localVersion: previousSnapshot?._localVersion,
@@ -2395,8 +2908,384 @@
     });
     return {
       ...snapshot,
-      _role: getStoredRole(localId, role)
+      _role: typeof getStoredRole2 === "function" ? getStoredRole2(localId, role) : role
     };
+  }
+  function resolveProjectLoadDecision(snapshot) {
+    return {
+      shouldSyncFirst: (snapshot?._localVersion || 0) > (snapshot?._serverVersion || 0),
+      serverId: snapshot?._serverId || null,
+      localVersion: snapshot?._localVersion || 0,
+      serverVersion: snapshot?._serverVersion || 0
+    };
+  }
+  function buildProjectSyncSuccessSnapshot(snapshot) {
+    return {
+      ...snapshot,
+      _serverVersion: snapshot._localVersion || 0
+    };
+  }
+  function buildProjectCreateSuccessSnapshot(snapshot, serverId) {
+    return {
+      ...snapshot,
+      _serverId: serverId,
+      _role: "owner"
+    };
+  }
+  function resolveCurrentProjectId(projects, currentId, bufferCurrentId) {
+    if (bufferCurrentId && projects[bufferCurrentId]) return bufferCurrentId;
+    if (currentId && projects[currentId]) return currentId;
+    return Object.keys(projects)[0] || null;
+  }
+
+  // src/services/supabase/account-runtime.ts
+  function buildAuthRedirectUrl(origin, pathname) {
+    return `${origin}${pathname}`;
+  }
+  function buildSupabaseRegisterRequest(name, email, password, redirectUrl) {
+    return {
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: redirectUrl
+      }
+    };
+  }
+  function buildSupabaseLoginRequest(email, password) {
+    return {
+      email,
+      password
+    };
+  }
+  function buildSupabaseProfileSelectRequest(userId) {
+    return {
+      userId
+    };
+  }
+  function buildSupabaseProfileUpdatePayload(updates) {
+    const dbUpdates = {};
+    if (updates.name !== void 0) dbUpdates.name = updates.name;
+    if (updates.avatar !== void 0) dbUpdates.avatar = updates.avatar;
+    if (updates.theme !== void 0) dbUpdates.theme = updates.theme;
+    if (updates.defaults) {
+      if (updates.defaults.sm !== void 0) dbUpdates.default_sm = updates.defaults.sm;
+      if (updates.defaults.sy !== void 0) dbUpdates.default_sy = updates.defaults.sy;
+      if (updates.defaults.nm !== void 0) dbUpdates.default_nm = updates.defaults.nm;
+    }
+    return dbUpdates;
+  }
+  function buildSupabaseAccountErrorMessages() {
+    return {
+      missingConfig: "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+      emailConfirmationRequired: "Check your email to confirm registration."
+    };
+  }
+
+  // src/services/supabase/auth-runtime.ts
+  function resetSupabaseAuthState() {
+    return {
+      user: null,
+      profile: null,
+      projectRole: null
+    };
+  }
+  function buildLogoutSyncDecision(snapshot) {
+    return {
+      shouldSync: (snapshot?._localVersion || 0) > (snapshot?._serverVersion || 0)
+    };
+  }
+  function buildHydratedAuthState(user, profile) {
+    return {
+      user,
+      profile
+    };
+  }
+  function resolveSupabaseAuthEventPlan(event, hasSessionUser) {
+    if ((event === "INITIAL_SESSION" || event === "SIGNED_IN") && hasSessionUser) {
+      return {
+        kind: "hydrate",
+        loadProjects: true
+      };
+    }
+    if (event === "TOKEN_REFRESHED" && hasSessionUser) {
+      return {
+        kind: "refresh",
+        loadProjects: false
+      };
+    }
+    if (event === "USER_UPDATED" && hasSessionUser) {
+      return {
+        kind: "hydrate",
+        loadProjects: false
+      };
+    }
+    if (event === "SIGNED_OUT") {
+      return {
+        kind: "signed_out",
+        loadProjects: false,
+        refreshStatus: "offline"
+      };
+    }
+    return {
+      kind: "noop",
+      loadProjects: false
+    };
+  }
+
+  // src/services/supabase/project-runtime.ts
+  function resolveLoadedProjectRole(ownerId, authUserId, shareRole) {
+    if (ownerId && ownerId === authUserId) return "owner";
+    return normalizeProjectRole(shareRole || "viewer");
+  }
+  function buildProjectTasksRpcRequest(projectId, tasks) {
+    return {
+      p_project_id: projectId,
+      p_tasks: buildUpsertTasksPayload(tasks || [])
+    };
+  }
+  function buildProjectSyncMutationRequest(projectId, snapshot, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
+    return {
+      projectId,
+      updatePayload: {
+        ...buildProjectMutationPayload(snapshot),
+        updated_at: updatedAt
+      },
+      tasksRpc: buildProjectTasksRpcRequest(projectId, snapshot.tasks || []),
+      expectedTaskCount: (snapshot.tasks || []).length
+    };
+  }
+  function buildProjectCreateMutationRequest(snapshot, ownerId) {
+    const expectedTaskCount = (snapshot.tasks || []).length;
+    return {
+      insertPayload: buildProjectInsertPayload(snapshot, ownerId),
+      tasksRpc: expectedTaskCount > 0 ? buildProjectTasksRpcRequest("__PROJECT_ID__", snapshot.tasks || []) : null,
+      expectedTaskCount
+    };
+  }
+  function bindProjectCreateTasksRpcRequest(request, projectId) {
+    if (!request.tasksRpc) return null;
+    return {
+      ...request.tasksRpc,
+      p_project_id: projectId
+    };
+  }
+  function buildProjectDeleteRequest(projectId) {
+    return { projectId };
+  }
+
+  // src/services/supabase/collaboration-runtime.ts
+  function buildActivityWriteRequest(params) {
+    const activityPayload = { ...params.payload || {} };
+    const entityType = typeof activityPayload.entityType === "string" && activityPayload.entityType ? activityPayload.entityType : "project";
+    const entityId = activityPayload.entityId != null ? String(activityPayload.entityId) : null;
+    delete activityPayload.entityType;
+    delete activityPayload.entityId;
+    return {
+      eventType: params.eventType,
+      payload: buildActivityInsertPayload({
+        projectId: params.projectId,
+        actorId: params.actorId,
+        actorName: params.actorName ?? null,
+        actorEmail: params.actorEmail ?? null,
+        eventType: params.eventType,
+        entityType,
+        entityId,
+        payload: activityPayload
+      })
+    };
+  }
+  function normalizeShareGrantInput(email, role, isShareableRole) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) throw new Error(buildSupabaseCollaborationErrorMessages().emptyEmail);
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error(buildSupabaseCollaborationErrorMessages().unsupportedRole);
+    return {
+      normalizedEmail,
+      normalizedRole
+    };
+  }
+  function buildShareGrantRequest(params) {
+    return buildProjectShareUpsertPayload({
+      projectId: params.projectId,
+      userId: params.userId,
+      role: params.role,
+      invitedBy: params.invitedBy
+    });
+  }
+  function buildShareGrantResult(userId, email, role) {
+    return {
+      userId,
+      email,
+      role
+    };
+  }
+  function buildShareLookupRequest(email) {
+    return {
+      p_email: email
+    };
+  }
+  function resolveShareTargetUser(targetUserId, authUserId) {
+    if (!targetUserId) {
+      throw new Error(buildSupabaseCollaborationErrorMessages().userNotFound);
+    }
+    if (targetUserId === authUserId) {
+      throw new Error(buildSupabaseCollaborationErrorMessages().ownerAlreadyHasAccess);
+    }
+    return targetUserId;
+  }
+  function buildShareUpsertOptions() {
+    return {
+      onConflict: "project_id,user_id"
+    };
+  }
+  function buildShareRoleUpdateRequest(role, isShareableRole) {
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error(buildSupabaseCollaborationErrorMessages().unsupportedRole);
+    return buildProjectShareRoleUpdatePayload(normalizedRole);
+  }
+  function buildShareRoleUpdateResult(role) {
+    return normalizeProjectRole(role);
+  }
+  function buildShareListRpcRequest(projectId) {
+    return {
+      p_project_id: projectId
+    };
+  }
+  function buildShareListFallbackRequest(projectId) {
+    return {
+      projectId
+    };
+  }
+  function buildShareRemoveRequest(shareId) {
+    return {
+      shareId
+    };
+  }
+  function resolveActivityLogLimit(limit) {
+    return Math.max(1, Math.min(500, Number(limit) || 100));
+  }
+  function buildActivityLogReadRequest(projectId, limit) {
+    return {
+      projectId,
+      limit: resolveActivityLogLimit(limit)
+    };
+  }
+  function buildSupabaseCollaborationErrorMessages() {
+    return {
+      invitePermissionDenied: "You do not have permission to invite users.",
+      manageAccessPermissionDenied: "You do not have permission to manage access.",
+      removeAccessPermissionDenied: "You do not have permission to remove access.",
+      emptyEmail: "Enter email.",
+      unsupportedRole: "Unsupported access role.",
+      userNotFound: "User with this email was not found. They need to register first.",
+      ownerAlreadyHasAccess: "You already have access to this project as the owner."
+    };
+  }
+
+  // src/services/supabase/ui-runtime.ts
+  function buildSupabaseShareModalState(params) {
+    return {
+      projectName: params.projectName,
+      items: (params.shares || []).map((share) => ({
+        id: String(share.id || ""),
+        role: String(share.role || "viewer"),
+        normalizedRole: normalizeProjectRole(String(share.role || "viewer")),
+        roleLabel: params.getRoleLabel(String(share.role || "viewer")),
+        displayLabel: share.user?.email || share.user?.name || share.user?.id || "-"
+      }))
+    };
+  }
+  function buildSupabaseShareRoleOptions(roles, getRoleLabel, selectedRole) {
+    const normalizedSelectedRole = normalizeProjectRole(selectedRole || "viewer");
+    return (roles || []).map(
+      (role) => `<option value="${role}"${normalizeProjectRole(role) === normalizedSelectedRole ? " selected" : ""}>${getRoleLabel(role)}</option>`
+    ).join("");
+  }
+  function buildSupabaseShareRoleGuide() {
+    return [
+      {
+        role: "manager",
+        title: "Manager",
+        description: "manages access and project settings."
+      },
+      {
+        role: "editor",
+        title: "Editor",
+        description: "edits tasks but cannot manage access."
+      },
+      {
+        role: "viewer",
+        title: "Viewer",
+        description: "read-only access."
+      }
+    ];
+  }
+  function buildSupabaseShareDialogModel() {
+    return {
+      accessDeniedTitle: "You do not have permission to manage access.",
+      emptyText: "No shared users yet",
+      modalTitle: "Shared Access",
+      projectLabel: "Project",
+      grantSectionTitle: "Grant access:",
+      emailPlaceholder: "email@example.com",
+      confirmButtonText: "Grant access",
+      cancelButtonText: "Close",
+      emailRequiredMessage: "Enter email"
+    };
+  }
+  function buildSupabaseShareErrorMessages() {
+    return {
+      updateRoleErrorTitle: "Failed to update role",
+      updateRoleErrorText: "Try again.",
+      removeAccessErrorTitle: "Failed to remove access",
+      removeAccessErrorText: "Try again."
+    };
+  }
+  function buildSupabaseReadOnlyUiState(params) {
+    return {
+      readonly: params.readonly,
+      showReadonlyBanner: params.readonly,
+      headerBannerVisible: params.bannerModel.shouldShow,
+      headerBannerClassName: `project-access-banner${params.readonly ? " is-readonly" : " is-limited"}`,
+      headerBannerHtml: params.bannerModel.shouldShow ? `<span class="project-access-pill">${params.bannerModel.roleLabel}</span><span class="project-access-text">${params.bannerModel.roleHint}${params.bannerModel.sharedMetaText ? ` ${params.bannerModel.sharedMetaText}` : ""}</span>` : "",
+      ganttPointerEvents: params.readonly ? "none" : "",
+      ganttOpacity: params.readonly ? "0.85" : "",
+      ganttTitle: params.readonly ? "View-only mode - editing is disabled" : "",
+      addButtonVisible: !params.readonly,
+      shareButtonVisible: params.isLoggedIn && params.canShare
+    };
+  }
+  function buildSupabaseRoleUpdatedToast(roleLabel) {
+    return {
+      title: `Role updated: ${roleLabel}`,
+      timer: 2600
+    };
+  }
+  function buildSupabaseShareGrantedToast(roleLabel, email) {
+    return {
+      title: `Access granted: ${roleLabel}`,
+      text: email,
+      timer: 2800
+    };
+  }
+  function buildSupabaseShareRemovedToast() {
+    return {
+      title: "Access removed",
+      timer: 2400
+    };
+  }
+  function buildSupabaseSyncIndicatorPlan(timeoutMs = 1800) {
+    return {
+      status: "syncing",
+      timeoutMs
+    };
+  }
+
+  // src/runtime/supabase-runtime-helpers.ts
+  function getStoredRole(localId, role) {
+    const scope = globalThis;
+    return typeof scope.getStoredProjectRole === "function" ? scope.getStoredProjectRole(localId, role) : role;
   }
   function mapSupabaseShareRecord(shareRow) {
     return mapProjectShareRow(shareRow);
@@ -2418,10 +3307,72 @@
     return mapActivityLogRow(activityRow);
   }
   var runtimeHelpers = {
+    buildRuntimeResetFallbackAuthState: resetFallbackAuthState,
+    buildRuntimeFallbackRegisterRequest: buildFallbackRegisterRequest,
+    buildRuntimeFallbackLoginRequest: buildFallbackLoginRequest,
+    buildRuntimeFallbackProfileUpdateRequest: buildFallbackProfileUpdateRequest,
+    buildRuntimeFallbackAuthHydratedState: buildFallbackAuthHydratedState,
+    buildRuntimeFallbackSyncIndicatorPlan: buildFallbackSyncIndicatorPlan,
+    buildRuntimeFallbackHttpRequestOptions: buildFallbackHttpRequestOptions,
+    buildRuntimeFallbackHttpOutcome: resolveFallbackHttpOutcome,
+    buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
+    buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
+    buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,
+    buildRuntimeFallbackProjectCreateRequest: buildFallbackProjectCreateRequest,
+    buildRuntimeFallbackProjectDeleteRequest: buildFallbackProjectDeleteRequest,
+    buildRuntimeFallbackShareGrantRequest: buildFallbackShareGrantRequest,
+    buildRuntimeFallbackShareRoleUpdateRequest: buildFallbackShareRoleUpdateRequest,
+    buildRuntimeFallbackShareRemoveRequest: buildFallbackShareRemoveRequest,
+    buildRuntimeFallbackShareModalState: buildFallbackShareModalState,
     analyzeBufferedProjectsForUser: analyzeBufferedProjects,
     mergeAccessibleProjectsIntoLocalState,
+    buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
+    buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
+    buildRuntimeAuthRedirectUrl: buildAuthRedirectUrl,
+    buildRuntimeSupabaseRegisterRequest: buildSupabaseRegisterRequest,
+    buildRuntimeSupabaseLoginRequest: buildSupabaseLoginRequest,
+    buildRuntimeSupabaseAccountErrorMessages: buildSupabaseAccountErrorMessages,
+    buildRuntimeSupabaseProfileSelectRequest: buildSupabaseProfileSelectRequest,
+    buildRuntimeSupabaseProfileUpdatePayload: buildSupabaseProfileUpdatePayload,
+    buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
+    buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
+    buildRuntimeHydratedAuthState: buildHydratedAuthState,
+    buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+    buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
+    buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
+    buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
+    buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+    buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
+    buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
+    buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
+    buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
+    buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
+    buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
+    buildRuntimeSupabaseActivityWriteRequest: buildActivityWriteRequest,
+    buildRuntimeSupabaseActivityLogReadRequest: buildActivityLogReadRequest,
+    buildRuntimeNormalizeShareGrantInput: normalizeShareGrantInput,
+    buildRuntimeBuildShareLookupRequest: buildShareLookupRequest,
+    buildRuntimeResolveShareTargetUser: resolveShareTargetUser,
+    buildRuntimeBuildShareGrantRequest: buildShareGrantRequest,
+    buildRuntimeBuildShareGrantResult: buildShareGrantResult,
+    buildRuntimeBuildShareUpsertOptions: buildShareUpsertOptions,
+    buildRuntimeSupabaseCollaborationErrorMessages: buildSupabaseCollaborationErrorMessages,
+    buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
+    buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
+    buildRuntimeBuildShareListRpcRequest: buildShareListRpcRequest,
+    buildRuntimeBuildShareListFallbackRequest: buildShareListFallbackRequest,
+    buildRuntimeBuildShareRemoveRequest: buildShareRemoveRequest,
+    buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
+    buildRuntimeResolveLoadedProjectRole: resolveLoadedProjectRole,
+    buildRuntimeProjectTasksRpcRequest: buildProjectTasksRpcRequest,
+    buildRuntimeProjectSyncMutationRequest: buildProjectSyncMutationRequest,
+    buildRuntimeProjectCreateMutationRequest: buildProjectCreateMutationRequest,
+    buildRuntimeBindProjectCreateTasksRpcRequest: bindProjectCreateTasksRpcRequest,
+    buildRuntimeProjectDeleteRequest: buildProjectDeleteRequest,
     mapSupabaseTaskRow: mapTaskRowToTask,
-    buildSupabaseProjectSnapshot,
+    buildSupabaseProjectSnapshot: (localId, projectRow, taskRows, previousSnapshot, role) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole),
+    buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,
+    buildRuntimeProjectCreateSuccessSnapshot: buildProjectCreateSuccessSnapshot,
     buildSupabaseTasksPayload: buildUpsertTasksPayload,
     buildSupabaseProjectMutationPayload: buildProjectMutationPayload,
     buildSupabaseProjectInsertPayload: buildProjectInsertPayload,
@@ -2465,6 +3416,8 @@
     buildRuntimeTaskWindowModel: buildTaskWindowModel,
     buildRuntimeAppUiModel: buildAppUiModel,
     buildRuntimeApiUiModel: buildApiUiModel,
+    buildRuntimeFallbackAuthModalRenderModel: buildFallbackAuthModalRenderModel,
+    buildRuntimeFallbackAuthButtonModel: buildFallbackAuthButtonModel,
     buildRuntimeChartsUiModel: buildChartsUiModel,
     buildRuntimeChartData: buildChartData,
     buildRuntimeChartColors: buildChartColors,
@@ -2501,6 +3454,14 @@
     buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
     buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
     buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
+    buildRuntimeContractorSummaryModel: buildContractorSummaryModel,
+    buildRuntimeHasContractorFilters: hasContractorFilters,
+    buildRuntimeVisibleDeletableContractorRows: getVisibleDeletableContractorRows,
+    buildRuntimeContractorBulkDeleteModel: buildContractorBulkDeleteModel,
+    buildRuntimePaymentRegisterCurrentState: buildPaymentRegisterCurrentState,
+    buildRuntimePaymentRegisterListItems: buildPaymentRegisterListItems,
+    buildRuntimeSavedPaymentRegister: buildSavedPaymentRegister,
+    buildRuntimeFindPaymentRegisterById: findPaymentRegisterById,
     buildRuntimeCostUiModel: buildCostUiModel,
     buildRuntimeCreateCostItem: createCostItem,
     buildRuntimeCreateCostPayment: createCostPayment,
@@ -2552,6 +3513,22 @@
     buildRuntimeRemWeeks: remWeeks,
     buildRuntimeTaskCalcModel: buildTaskCalcModel,
     buildRuntimeDependencyListState: buildDependencyListState,
+    buildRuntimeCloneModalCostItems: cloneModalCostItems,
+    buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+    buildRuntimeTaskModalEditState: buildTaskModalEditState,
+    buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
+    buildRuntimeApplyTaskSave: applyTaskSave,
+    buildRuntimeRemoveTaskAt: removeTaskAt,
+    buildRuntimeCloneTaskNotes: cloneTaskNotes,
+    buildRuntimeAddTaskNote: addTaskNote,
+    buildRuntimeEditTaskNote: editTaskNote,
+    buildRuntimeDeleteTaskNote: deleteTaskNote,
+    buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
+    buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
+    buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
+    buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,
+    buildRuntimeIsCategoryUsedByTasks: isCategoryUsedByTasks,
+    buildRuntimeProjectManagerGroupModel: buildProjectManagerGroupModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

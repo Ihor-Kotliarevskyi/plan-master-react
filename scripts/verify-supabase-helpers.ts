@@ -1,6 +1,29 @@
 import assert from "node:assert/strict";
 
 import {
+  buildFallbackAuthHydratedState,
+  buildFallbackLoginRequest,
+  buildFallbackProfileUpdateRequest,
+  buildFallbackRegisterRequest,
+  buildFallbackSyncIndicatorPlan,
+  resetFallbackAuthState,
+} from "../src/services/api/account-runtime";
+import {
+  buildFallbackHttpRequestOptions,
+  resolveFallbackHttpOutcome,
+} from "../src/services/api/http-runtime";
+import {
+  buildFallbackLoadedProjectSnapshot,
+  buildFallbackProjectCreateRequest,
+  buildFallbackProjectDeleteRequest,
+  buildFallbackProjectShell,
+  buildFallbackProjectSyncRequest,
+  buildFallbackShareGrantRequest,
+  buildFallbackShareModalState,
+  buildFallbackShareRemoveRequest,
+  buildFallbackShareRoleUpdateRequest,
+} from "../src/services/api/fallback-runtime";
+import {
   getSharedProjectLabels,
   groupProjectEntriesByAccess,
 } from "../src/domain/project-access";
@@ -64,6 +87,40 @@ import {
 } from "../src/domain/print";
 import { buildStorageUiModel } from "../src/domain/storage-ui";
 import {
+  buildApiUiModel,
+  buildFallbackAuthButtonModel,
+  buildFallbackAuthModalRenderModel,
+} from "../src/domain/api-ui";
+import { buildChartsUiModel } from "../src/domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../src/domain/charts";
+import { buildFinanceUiModel } from "../src/domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../src/domain/finance";
+import { buildPrintUiModel } from "../src/domain/print-ui";
+import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../src/domain/print";
+import { buildStorageUiModel } from "../src/domain/storage-ui";
+import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
   buildContractorSummaryLabels,
@@ -81,6 +138,16 @@ import {
   selectedContractorKeys,
   summarizeContractorBulkDelete,
 } from "../src/domain/contractors";
+import {
+  buildContractorBulkDeleteModel,
+  buildContractorSummaryModel,
+  buildPaymentRegisterCurrentState,
+  buildPaymentRegisterListItems,
+  buildSavedPaymentRegister,
+  findPaymentRegisterById,
+  getVisibleDeletableContractorRows,
+  hasContractorFilters,
+} from "../src/domain/contractors-panel";
 import { buildCostUiModel } from "../src/domain/costs-ui";
 import {
   addPaymentToCostItem,
@@ -126,6 +193,26 @@ import {
   remWeeks,
   snapToHalfWeek,
 } from "../src/domain/modal";
+import {
+  applyTaskSave,
+  buildTaskModalEditState,
+  buildTaskModalSaveModel,
+  cloneModalCostItems,
+  cloneModalPhasesFromTask,
+  removeTaskAt,
+} from "../src/domain/modal-orchestration";
+import {
+  addTaskNote,
+  buildProjectManagerGroupModel,
+  cloneCategoryDrafts,
+  cloneTaskNotes,
+  countVisibleTaskNotes,
+  createNextCategoryDraft,
+  deleteTaskNote,
+  editTaskNote,
+  isCategoryUsedByTasks,
+  removeCategoryDraftAt,
+} from "../src/domain/modal-panels";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -178,6 +265,65 @@ import {
   buildAccessibleProjectsFromFallback,
   mergeAccessibleProjectsIntoLocalMap,
 } from "../src/services/supabase/project-list";
+import {
+  buildProjectCreateSuccessSnapshot,
+  buildProjectSyncSuccessSnapshot,
+  buildSupabaseProjectSnapshot as buildSupabaseRuntimeProjectSnapshot,
+  mergeAccessibleProjectsIntoLocalState,
+  resolveCurrentProjectId,
+  resolveProjectLoadDecision,
+} from "../src/services/supabase/runtime";
+import {
+  buildAuthRedirectUrl,
+  buildSupabaseLoginRequest,
+  buildSupabaseAccountErrorMessages,
+  buildSupabaseProfileSelectRequest,
+  buildSupabaseProfileUpdatePayload,
+  buildSupabaseRegisterRequest,
+} from "../src/services/supabase/account-runtime";
+import {
+  buildHydratedAuthState,
+  buildLogoutSyncDecision,
+  resetSupabaseAuthState,
+  resolveSupabaseAuthEventPlan,
+} from "../src/services/supabase/auth-runtime";
+import {
+  bindProjectCreateTasksRpcRequest,
+  buildProjectCreateMutationRequest,
+  buildProjectDeleteRequest,
+  buildProjectSyncMutationRequest,
+  buildProjectTasksRpcRequest,
+  resolveLoadedProjectRole,
+} from "../src/services/supabase/project-runtime";
+import {
+  buildSupabaseReadOnlyUiState,
+  buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleOptions,
+  buildSupabaseShareDialogModel,
+  buildSupabaseShareErrorMessages,
+  buildSupabaseRoleUpdatedToast,
+  buildSupabaseShareGrantedToast,
+  buildSupabaseShareModalState,
+  buildSupabaseShareRemovedToast,
+  buildSupabaseSyncIndicatorPlan,
+} from "../src/services/supabase/ui-runtime";
+import {
+  buildActivityLogReadRequest,
+  buildActivityWriteRequest,
+  buildShareListFallbackRequest,
+  buildShareListRpcRequest,
+  buildShareGrantRequest,
+  buildShareGrantResult,
+  buildShareLookupRequest,
+  buildSupabaseCollaborationErrorMessages,
+  buildShareRemoveRequest,
+  buildShareRoleUpdateRequest,
+  buildShareRoleUpdateResult,
+  buildShareUpsertOptions,
+  normalizeShareGrantInput,
+  resolveActivityLogLimit,
+  resolveShareTargetUser,
+} from "../src/services/supabase/collaboration-runtime";
 import {
   buildProjectInsertPayload,
   buildActivityInsertPayload,
@@ -262,6 +408,75 @@ const activityRow: ActivityLogRow = {
   payload: { field: "name" },
   created_at: "2026-05-19T10:30:00.000Z",
 };
+
+const fallbackAuthResetState = resetFallbackAuthState();
+assert.equal(fallbackAuthResetState.token, null);
+assert.equal(buildFallbackRegisterRequest("Ihor", "mail@example.com", "secret").name, "Ihor");
+assert.equal(buildFallbackLoginRequest("mail@example.com", "secret").password, "secret");
+assert.equal(buildFallbackProfileUpdateRequest({ theme: "dark" }).body.theme, "dark");
+assert.equal(buildFallbackAuthHydratedState("token-1", { name: "Ihor" }).token, "token-1");
+assert.equal(buildFallbackSyncIndicatorPlan().timeoutMs, 1800);
+assert.equal(buildFallbackHttpRequestOptions("token-1").headers.Authorization, "Bearer token-1");
+assert.equal(resolveFallbackHttpOutcome(401, { expired: true }).kind, "session_expired");
+assert.equal(resolveFallbackHttpOutcome(500, { error: "Boom" }).message, "Boom");
+assert.equal(buildSupabaseAccountErrorMessages().emailConfirmationRequired, "Check your email to confirm registration.");
+const fallbackAuthModalRenderModel = buildFallbackAuthModalRenderModel("register", buildApiUiModel().auth);
+assert.equal(fallbackAuthModalRenderModel.showNameField, true);
+assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.registerSubmitLabel);
+const fallbackAuthButtonModel = buildFallbackAuthButtonModel(true, "Ihor", buildApiUiModel().auth);
+assert.equal(fallbackAuthButtonModel.mode, "logout");
+assert.equal(fallbackAuthButtonModel.title.length > 0, true);
+
+const fallbackProjectShell = buildFallbackProjectShell({
+  id: "fallback-1",
+  name: "Fallback Project",
+  sm: 4,
+  sy: 2026,
+  nm: 10,
+  role: "manager",
+});
+assert.equal(fallbackProjectShell._serverId, "fallback-1");
+assert.equal(fallbackProjectShell._role, "manager");
+const fallbackLoadedProjectSnapshot = buildFallbackLoadedProjectSnapshot(
+  "fallback-local-1",
+  {
+    _id: "fallback-1",
+    name: "Fallback Project",
+    sm: 4,
+    sy: 2026,
+    nm: 10,
+    baseline: { saved: true },
+    baselineDate: "2026-05-02",
+    cats: [{ name: "General", color: "#2563eb" }],
+    nextN: 8,
+  },
+  [mapTaskRowToTask(taskRow)],
+  "editor",
+  (localId, role) => role,
+);
+assert.equal(fallbackLoadedProjectSnapshot._serverId, "fallback-1");
+assert.equal(fallbackLoadedProjectSnapshot._role, "editor");
+const fallbackProjectSyncRequest = buildFallbackProjectSyncRequest(fallbackLoadedProjectSnapshot);
+assert.equal(fallbackProjectSyncRequest.projectPayload.name, "Fallback Project");
+assert.equal(fallbackProjectSyncRequest.tasksPayload.tasks.length, 1);
+const fallbackProjectCreateRequest = buildFallbackProjectCreateRequest(fallbackLoadedProjectSnapshot);
+assert.equal(fallbackProjectCreateRequest.payload.nextN, 8);
+assert.equal(buildFallbackProjectDeleteRequest("fallback-1").projectId, "fallback-1");
+assert.equal(buildFallbackShareGrantRequest(" USER@example.com ", "manager", (role) => ["viewer", "editor", "manager"].includes(role)).email, "user@example.com");
+assert.equal(buildFallbackShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
+assert.equal(buildFallbackShareRemoveRequest("user-2").userId, "user-2");
+const fallbackShareModalState = buildFallbackShareModalState([
+  {
+    role: "manager",
+    userId: {
+      _id: "user-2",
+      name: "Shared User",
+      email: "user2@example.com",
+    },
+  },
+], (role) => role.toUpperCase());
+assert.equal(fallbackShareModalState.items[0]?.userId, "user-2");
+assert.equal(fallbackShareModalState.items[0]?.normalizedRole, "manager");
 
 const shell = mapAccessibleProjectToSnapshotShell(accessibleRow, {
   localVersion: 3,
@@ -400,6 +615,168 @@ const merged = mergeAccessibleProjectsIntoLocalMap(analysis.offlineNew, [accessi
 assert.ok(merged.localOnly);
 assert.ok(merged["project-1"]);
 assert.equal(merged["project-1"]?._role, "editor");
+const mergedRuntimeState = mergeAccessibleProjectsIntoLocalState(
+  analysis.offlineNew,
+  analysis.localSynced,
+  [accessibleRow],
+  "user-1",
+);
+assert.ok(mergedRuntimeState.localOnly);
+assert.ok(mergedRuntimeState.synced);
+assert.equal(mergedRuntimeState.synced?._role, "editor");
+const projectLoadDecision = resolveProjectLoadDecision({
+  ...shell,
+  _serverId: "project-1",
+  _localVersion: 4,
+  _serverVersion: 2,
+});
+assert.equal(projectLoadDecision.shouldSyncFirst, true);
+assert.equal(projectLoadDecision.serverId, "project-1");
+assert.equal(resolveCurrentProjectId({ a: shell, b: snapshot }, null, "b"), "b");
+assert.equal(resolveCurrentProjectId({ a: shell }, "missing", null), "a");
+const runtimeProjectSnapshot = buildSupabaseRuntimeProjectSnapshot(
+  "local-1",
+  projectRow,
+  [taskRow],
+  shell,
+  "manager",
+  (_localId, role) => role,
+);
+assert.equal(runtimeProjectSnapshot._serverId, "project-1");
+assert.equal(runtimeProjectSnapshot._role, "manager");
+assert.equal(buildProjectSyncSuccessSnapshot(runtimeProjectSnapshot)._serverVersion, runtimeProjectSnapshot._localVersion || 0);
+assert.equal(buildProjectCreateSuccessSnapshot(runtimeProjectSnapshot, "project-2")._serverId, "project-2");
+assert.equal(buildProjectCreateSuccessSnapshot(runtimeProjectSnapshot, "project-2")._role, "owner");
+const resetAuthState = resetSupabaseAuthState();
+assert.equal(resetAuthState.user, null);
+assert.equal(resetAuthState.profile, null);
+assert.equal(resetAuthState.projectRole, null);
+const logoutDecision = buildLogoutSyncDecision({
+  ...runtimeProjectSnapshot,
+  _localVersion: 5,
+  _serverVersion: 4,
+});
+assert.equal(logoutDecision.shouldSync, true);
+const hydratedAuthState = buildHydratedAuthState({ id: "user-1" }, { name: "Ihor" });
+assert.equal((hydratedAuthState.user as { id: string }).id, "user-1");
+assert.equal((hydratedAuthState.profile as { name: string }).name, "Ihor");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_IN", true).kind, "hydrate");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_IN", true).loadProjects, true);
+assert.equal(resolveSupabaseAuthEventPlan("USER_UPDATED", true).kind, "hydrate");
+assert.equal(resolveSupabaseAuthEventPlan("USER_UPDATED", true).loadProjects, false);
+assert.equal(resolveSupabaseAuthEventPlan("TOKEN_REFRESHED", true).kind, "refresh");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_OUT", false).kind, "signed_out");
+assert.equal(resolveSupabaseAuthEventPlan("SIGNED_OUT", false).refreshStatus, "offline");
+const shareModalState = buildSupabaseShareModalState({
+  shares: [{ id: "share-1", role: "manager", user: { email: "user@example.com" } }],
+  projectName: "Shared Project",
+  getRoleLabel: (role) => role.toUpperCase(),
+});
+assert.equal(shareModalState.projectName, "Shared Project");
+assert.equal(shareModalState.items[0]?.displayLabel, "user@example.com");
+assert.equal(shareModalState.items[0]?.roleLabel, "MANAGER");
+assert.equal(shareModalState.items[0]?.normalizedRole, "manager");
+const shareDialogModel = buildSupabaseShareDialogModel();
+assert.equal(shareDialogModel.modalTitle, "Shared Access");
+assert.equal(shareDialogModel.confirmButtonText, "Grant access");
+const shareErrorMessages = buildSupabaseShareErrorMessages();
+assert.equal(shareErrorMessages.updateRoleErrorTitle, "Failed to update role");
+assert.equal(shareErrorMessages.removeAccessErrorText, "Try again.");
+assert.equal(buildSupabaseShareRoleOptions(["viewer", "manager"], (role) => role.toUpperCase(), "manager").includes("selected"), true);
+assert.equal(buildSupabaseShareRoleGuide()[0]?.title, "Manager");
+const readOnlyUiState = buildSupabaseReadOnlyUiState({
+  readonly: true,
+  canShare: false,
+  isLoggedIn: true,
+  bannerModel: {
+    shouldShow: true,
+    roleLabel: "Viewer",
+    roleHint: "Read-only access",
+    sharedMetaText: "Owner · Manager",
+  },
+});
+assert.equal(readOnlyUiState.showReadonlyBanner, true);
+assert.equal(readOnlyUiState.headerBannerVisible, true);
+assert.equal(readOnlyUiState.addButtonVisible, false);
+assert.equal(readOnlyUiState.shareButtonVisible, false);
+assert.equal(buildSupabaseRoleUpdatedToast("Manager").title, "Role updated: Manager");
+assert.equal(buildSupabaseShareGrantedToast("Viewer", "mail@example.com").text, "mail@example.com");
+assert.equal(buildSupabaseShareRemovedToast().title, "Access removed");
+assert.equal(buildSupabaseSyncIndicatorPlan().status, "syncing");
+assert.equal(buildSupabaseSyncIndicatorPlan().timeoutMs, 1800);
+assert.equal(buildAuthRedirectUrl("http://localhost:5173", "/app"), "http://localhost:5173/app");
+const registerRequest = buildSupabaseRegisterRequest("Ihor", "mail@example.com", "secret", "http://localhost:5173/app");
+assert.equal(registerRequest.options.data.name, "Ihor");
+assert.equal(registerRequest.options.emailRedirectTo, "http://localhost:5173/app");
+assert.equal(buildSupabaseLoginRequest("mail@example.com", "secret").password, "secret");
+assert.equal(buildSupabaseProfileSelectRequest("user-1").userId, "user-1");
+const profileUpdatePayload = buildSupabaseProfileUpdatePayload({
+  name: "Ihor",
+  theme: "dark",
+  defaults: { sm: 5, sy: 2026, nm: 12 },
+});
+assert.equal(profileUpdatePayload.name, "Ihor");
+assert.equal(profileUpdatePayload.default_sm, 5);
+assert.equal(profileUpdatePayload.default_sy, 2026);
+assert.equal(profileUpdatePayload.default_nm, 12);
+const activityWriteRequest = buildActivityWriteRequest({
+  projectId: "project-1",
+  actorId: "owner-1",
+  actorName: "Owner Name",
+  actorEmail: "owner@example.com",
+  eventType: "share.granted",
+  payload: { entityType: "share", entityId: "share-1", role: "manager" },
+});
+assert.equal(activityWriteRequest.payload.project_id, "project-1");
+assert.equal(activityWriteRequest.payload.entity_type, "share");
+assert.equal(activityWriteRequest.payload.entity_id, "share-1");
+assert.equal(activityWriteRequest.payload.payload.role, "manager");
+const shareGrantInput = normalizeShareGrantInput(" USER@Example.com ", "manager", (role) => ["viewer", "editor", "manager"].includes(role));
+assert.equal(shareGrantInput.normalizedEmail, "user@example.com");
+assert.equal(shareGrantInput.normalizedRole, "manager");
+const shareGrantRequest = buildShareGrantRequest({
+  projectId: "project-1",
+  userId: "user-2",
+  role: "manager",
+  invitedBy: "owner-1",
+});
+assert.equal(shareGrantRequest.project_id, "project-1");
+assert.equal(shareGrantRequest.user_id, "user-2");
+assert.equal(buildShareGrantResult("user-2", "user@example.com", "viewer").email, "user@example.com");
+assert.equal(buildShareLookupRequest("user@example.com").p_email, "user@example.com");
+assert.equal(resolveShareTargetUser("user-2", "owner-1"), "user-2");
+assert.equal(buildSupabaseCollaborationErrorMessages().invitePermissionDenied, "You do not have permission to invite users.");
+assert.equal(buildShareUpsertOptions().onConflict, "project_id,user_id");
+assert.equal(buildShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
+assert.equal(buildShareRoleUpdateResult("admin"), "manager");
+assert.equal(buildShareListRpcRequest("project-1").p_project_id, "project-1");
+assert.equal(buildShareListFallbackRequest("project-1").projectId, "project-1");
+assert.equal(buildShareRemoveRequest("share-1").shareId, "share-1");
+assert.equal(resolveActivityLogLimit(999), 500);
+assert.equal(resolveActivityLogLimit(0), 100);
+const activityLogReadRequest = buildActivityLogReadRequest("project-1", 999);
+assert.equal(activityLogReadRequest.projectId, "project-1");
+assert.equal(activityLogReadRequest.limit, 500);
+assert.equal(resolveLoadedProjectRole("owner-1", "owner-1", "viewer"), "owner");
+assert.equal(resolveLoadedProjectRole("owner-1", "user-2", "editor"), "editor");
+const projectTasksRpcRequest = buildProjectTasksRpcRequest("project-1", snapshot.tasks);
+assert.equal(projectTasksRpcRequest.p_project_id, "project-1");
+assert.equal(projectTasksRpcRequest.p_tasks.length, snapshot.tasks.length);
+const projectSyncMutationRequest = buildProjectSyncMutationRequest(
+  "project-1",
+  snapshot,
+  "2026-05-20T00:00:00.000Z",
+);
+assert.equal(projectSyncMutationRequest.projectId, "project-1");
+assert.equal(projectSyncMutationRequest.updatePayload.updated_at, "2026-05-20T00:00:00.000Z");
+assert.equal(projectSyncMutationRequest.expectedTaskCount, snapshot.tasks.length);
+const projectCreateMutationRequest = buildProjectCreateMutationRequest(snapshot, "owner-1");
+assert.equal(projectCreateMutationRequest.insertPayload.owner_id, "owner-1");
+assert.equal(projectCreateMutationRequest.expectedTaskCount, snapshot.tasks.length);
+assert.equal(projectCreateMutationRequest.tasksRpc?.p_project_id, "__PROJECT_ID__");
+const boundProjectCreateTasksRpcRequest = bindProjectCreateTasksRpcRequest(projectCreateMutationRequest, "project-2");
+assert.equal(boundProjectCreateTasksRpcRequest?.p_project_id, "project-2");
+assert.equal(buildProjectDeleteRequest("project-3").projectId, "project-3");
 
 const groupedProjects = groupProjectEntriesByAccess([
   ["local-only", buffered.localOnly],
@@ -909,6 +1286,10 @@ assert.equal(contractorSelectionLabels.showSelectionLabel, "Вибрати");
 assert.equal(contractorSelectionLabels.deleteSelectedLabel, "Видалити вибраних");
 
 const contractorTableLabels = buildContractorTableLabels();
+assert.equal(contractorTableLabels.noActOptionLabel.length > 0, true);
+assert.equal(contractorTableLabels.importSkipRowLabel.length > 0, true);
+assert.equal(contractorTableLabels.importNoChangesValidation.length > 0, true);
+assert.equal(contractorTableLabels.importReviewActionHeader.length > 0, true);
 assert.equal(contractorTableLabels.emptyContractorName, "Без контрагента");
 assert.equal(contractorTableLabels.paymentsCountHeader, "Платежів");
 assert.equal(contractorTableLabels.emDash, "—");
@@ -932,6 +1313,20 @@ assert.deepEqual(summarizeContractorBulkDelete([{ itemsCount: 2, paymentsCount: 
   payments: 3,
   acts: 1,
 });
+assert.equal(
+  hasContractorFilters(
+    { status: ["debt"], type: [], cat: [] },
+    (selected) => Array.isArray(selected) ? selected.map(String) : [],
+  ),
+  true,
+);
+assert.equal(
+  hasContractorFilters(
+    { status: [], type: [], cat: [] },
+    (selected) => Array.isArray(selected) ? selected.map(String) : [],
+  ),
+  false,
+);
 
 const contractorRows = buildContractorRows(
   [
@@ -968,6 +1363,20 @@ assert.equal(contractorRows[0]?.supplier, "Acme");
 assert.equal(contractorRows[0]?.budget, 300);
 assert.equal(contractorRows[0]?.paid, 100);
 assert.equal(contractorRows[0]?.status, "debt");
+const contractorSummary = buildContractorSummaryModel(contractorRows);
+assert.equal(contractorSummary.realContractors, 1);
+assert.equal(contractorSummary.total.budget, 300);
+assert.equal(contractorSummary.total.paid, 100);
+const visibleContractors = getVisibleDeletableContractorRows(contractorRows, (key) => key === "__blocked__");
+assert.equal(visibleContractors.length, 1);
+const contractorBulkDelete = buildContractorBulkDeleteModel(
+  ["acme", "__blocked__", "acme"],
+  contractorRows,
+  (key) => key === "__blocked__",
+  summarizeContractorBulkDelete,
+);
+assert.deepEqual(contractorBulkDelete.uniqueKeys, ["acme"]);
+assert.equal(contractorBulkDelete.summary.contractors, 1);
 
 const registerRows = paymentRegisterRowsFromContractorRows([{
   supplier: "Acme",
@@ -986,6 +1395,33 @@ assert.equal(
   ),
   "пошук: acme; статус: debt; тип: Роботи; категорія: General",
 );
+
+const currentPaymentRegister = buildPaymentRegisterCurrentState(
+  [{
+    supplier: "Acme",
+    isForecast: false,
+    payments: [{ date: "2026-05-01", amount: 100, type: "act", taskNo: 1, taskName: "Foundation", itemName: "Work", note: "" }],
+  }],
+  (type) => ({ act: "Act" }[type] || type),
+);
+assert.equal(currentPaymentRegister.count, 1);
+assert.equal(currentPaymentRegister.total, 100);
+assert.equal(currentPaymentRegister.rows[0]?.type, "Act");
+const savedRegister = buildSavedPaymentRegister({
+  id: "reg-1",
+  name: "Register",
+  createdAt: "2026-05-23",
+  filters: { q: "acme" },
+  filtersLabel: "РїРѕС€СѓРє: acme",
+  total: 100,
+  rows: currentPaymentRegister.rows,
+});
+assert.equal(savedRegister.name, "Register");
+assert.equal(savedRegister.filters.q, "acme");
+const registerListItems = buildPaymentRegisterListItems([savedRegister]);
+assert.equal(registerListItems[0]?.count, 1);
+assert.equal(registerListItems[0]?.total, 100);
+assert.equal(findPaymentRegisterById([savedRegister], "reg-1")?.name, "Register");
 
 const costUi = buildCostUiModel();
 assert.equal(costUi.labels.addPaymentLabel, "+ Платіж");
@@ -1078,6 +1514,137 @@ assert.equal(depListState.counts.SS, 1);
 assert.equal(depListState.rows[0]?.typeLabel, "FS");
 assert.equal(depListState.rows[1]?.typeLabel, "SS+25%");
 assert.equal(depListState.rows[0]?.isCritical, true);
+const clonedCostItems = cloneModalCostItems([{
+  id: "ci-1",
+  payments: [{ id: "pay-1", amount: 100 }],
+  acts: [{ id: "act-1", amount: 50 }],
+}]);
+assert.notEqual(clonedCostItems[0], undefined);
+assert.notEqual(clonedCostItems[0], null);
+assert.notEqual(clonedCostItems[0]?.payments, undefined);
+assert.notEqual(clonedCostItems[0]?.payments, null);
+assert.notEqual(clonedCostItems[0]?.payments, ([{ id: "pay-1", amount: 100 }]));
+const clonedPhases = cloneModalPhasesFromTask({
+  ms: 1, ws: 0, me: 2, we: 0, prog: 10, dsExact: "2026-02-01", deExact: "2026-03-01",
+});
+assert.equal(clonedPhases.length, 1);
+assert.equal(clonedPhases[0]?.prog, 10);
+const modalEditState = buildTaskModalEditState({
+  task: {
+    name: "Modal Task",
+    budget: 0,
+    spent: 200,
+    contractsOverrideBudget: true,
+    deps: [{ id: "dep-1", type: "FS" }],
+    phases: [{ ms: 0, ws: 0, me: 1, we: 1, prog: 25 }],
+    costItems: [{ payments: [{ amount: 100 }], acts: [{ amount: 50 }] }],
+  },
+  editFallbackTitle: "Fallback",
+  totalBudget: 1200,
+  totalSpent: 200,
+  normDep: (dep) => dep,
+});
+assert.equal(modalEditState.title, "Modal Task");
+assert.equal(modalEditState.hasItems, true);
+assert.equal(modalEditState.budgetValue, 1200);
+assert.equal(modalEditState.modalDeps.length, 1);
+const modalSaveModel = buildTaskModalSaveModel({
+  name: "Saved Task",
+  cat: 2,
+  phases: [{ ms: 0, ws: 0, me: 1, we: 1, prog: 50, dsExact: "2026-01-01", deExact: "2026-02-01" }],
+  deps: [{ id: "dep-1", type: "FS" }],
+  costItems: [{ payments: [{ amount: 100 }], acts: [{ amount: 40 }] }],
+  contractsOverrideBudget: true,
+  manualBudget: 0,
+  manualSpent: 0,
+  totalBudget: 900,
+  totalSpent: 100,
+});
+assert.equal(modalSaveModel.isValidRange, true);
+assert.equal(modalSaveModel.taskPatch.budget, 900);
+assert.equal(modalSaveModel.taskPatch.spent, 100);
+assert.equal(modalSaveModel.taskPatch.phases, null);
+const appliedTaskSave = applyTaskSave({
+  tasks: [{ id: "t-1", n: 1, name: "Old", notes: [] }],
+  editIdx: null,
+  nextN: 2,
+  taskPatch: modalSaveModel.taskPatch,
+  newTaskId: "t-2",
+});
+assert.equal(appliedTaskSave.isEdit, false);
+assert.equal(appliedTaskSave.savedTask.id, "t-2");
+assert.equal(appliedTaskSave.nextN, 3);
+const removedTaskState = removeTaskAt(appliedTaskSave.tasks, 1);
+assert.equal(removedTaskState.removedTask?.id, "t-2");
+assert.equal(removedTaskState.tasks.length, 1);
+const clonedNotes = cloneTaskNotes([{ text: "Hello", author: "Ihor", date: "2026-05-23", history: [{ action: "edit", text: "Prev", author: "Ihor", date: "2026-05-22" }] }]);
+assert.equal(clonedNotes.length, 1);
+assert.equal(clonedNotes[0]?.history?.length, 1);
+const addedNotes = addTaskNote({
+  notes: [],
+  id: 1,
+  text: "New note",
+  author: "Ihor",
+  date: "2026-05-23",
+});
+assert.equal(addedNotes.length, 1);
+assert.equal(addedNotes[0]?.text, "New note");
+const editedNotes = editTaskNote({
+  notes: addedNotes,
+  index: 0,
+  text: "Updated note",
+  author: "Ihor",
+  date: "2026-05-24",
+});
+assert.equal(editedNotes[0]?.text, "Updated note");
+assert.equal(editedNotes[0]?.history?.length, 1);
+const deletedNotes = deleteTaskNote({
+  notes: editedNotes,
+  index: 0,
+  author: "Ihor",
+  date: "2026-05-25",
+  deletedPlaceholderText: "[deleted]",
+});
+assert.equal(deletedNotes[0]?.deleted, true);
+assert.equal(countVisibleTaskNotes(deletedNotes), 0);
+const clonedCats = cloneCategoryDrafts([{ name: "General", color: "#111111" }]);
+assert.equal(clonedCats.length, 1);
+const nextCats = createNextCategoryDraft({
+  categories: clonedCats,
+  palette: ["#111111", "#222222", "#333333"],
+  newCategoryName: "New category",
+});
+assert.equal(nextCats.length, 2);
+assert.equal(nextCats[1]?.name, "New category");
+assert.equal(removeCategoryDraftAt(nextCats, 0).length, 1);
+assert.equal(isCategoryUsedByTasks([{ n: 1, name: "Task", cat: 1, ms: 0, ws: 0, me: 0, we: 0, prog: 0 }], 1), true);
+const projectManagerGroups = buildProjectManagerGroupModel({
+  projects: {
+    own: { proj: { name: "Own" }, tasks: [{}, {}], _role: "owner", _access: { source: "own" } },
+    shared: {
+      proj: { name: "Shared" },
+      tasks: [{}],
+      _role: "viewer",
+      _access: {
+        source: "shared",
+        ownerId: "owner-1",
+        ownerName: "Owner Name",
+        ownerEmail: "owner@example.com",
+        invitedBy: "manager-1",
+        invitedByName: "Manager Name",
+        invitedByEmail: "manager@example.com",
+      },
+    },
+  },
+  currentId: "shared",
+  canManageProject: (projectId) => projectId === "own",
+  getRoleLabel: (role) => role.toUpperCase(),
+  getSharedMetaLine: (access) => access?.source === "shared" ? "Owner · Manager" : "Власний проєкт",
+});
+assert.equal(projectManagerGroups.own.length, 1);
+assert.equal(projectManagerGroups.shared.length, 1);
+assert.equal(projectManagerGroups.shared[0]?.isActive, true);
+assert.equal(projectManagerGroups.shared[0]?.sharedMetaLine, "Owner · Manager");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

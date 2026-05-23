@@ -27,6 +27,8 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
   - `src/domain/modal.ts`
+  - `src/domain/modal-orchestration.ts`
+  - `src/domain/modal-panels.ts`
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
@@ -46,13 +48,24 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/costs.ts`
   - `src/domain/finance.ts`
   - `src/domain/contractors.ts`
+  - `src/domain/contractors-panel.ts`
   - `src/domain/print.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
+- typed fallback API helpers in:
+  - `src/services/api/account-runtime.ts`
+  - `src/services/api/fallback-runtime.ts`
+  - `src/services/api/http-runtime.ts`
 - typed Supabase extraction helpers in:
   - `src/services/supabase/mappers.ts`
   - `src/services/supabase/payloads.ts`
   - `src/services/supabase/project-list.ts`
+  - `src/services/supabase/runtime.ts`
+  - `src/services/supabase/auth-runtime.ts`
+  - `src/services/supabase/account-runtime.ts`
+  - `src/services/supabase/ui-runtime.ts`
+  - `src/services/supabase/collaboration-runtime.ts`
+  - `src/services/supabase/project-runtime.ts`
 - fixture-based verification script:
   - `npm run verify:supabase-helpers`
   - `scripts/verify-supabase-helpers.ts`
@@ -99,6 +112,36 @@ and Supabase adapters happen against stable interfaces.
   - `apiShareProject()`
   - `apiUpdateShareRole()`
   - `_buildTasksPayload()`
+  - project load-vs-sync decision
+  - current project resolution after bootstrap
+  - synced snapshot version update
+  - created snapshot server-id/owner-role update
+  - auth redirect URL construction
+  - register/login request construction
+  - account-level configuration and confirmation error messages
+  - profile select/update request construction
+  - auth-state reset and hydration model
+  - logout sync-decision
+  - auth-event planning for `INITIAL_SESSION` / `SIGNED_IN` / `TOKEN_REFRESHED` / `USER_UPDATED` / `SIGNED_OUT`
+  - readonly/share-button UI state model
+  - share modal list projection
+  - share role option and guide rendering helpers
+  - share dialog copy and error-state models
+  - share success toast models
+  - sync-indicator timing plan
+  - activity write request model
+  - activity read request model
+  - share grant normalization/request/result
+  - collaboration permission and lookup error messages
+  - share lookup/target validation/upsert options
+  - share role update request/result
+  - share list RPC/fallback request models
+  - share remove request model
+  - activity log limit resolution
+  - loaded-project role resolution
+  - project create/sync request construction
+  - task RPC request construction and create-time rebinding
+  - project delete request model
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels
@@ -112,6 +155,15 @@ and Supabase adapters happen against stable interfaces.
   - empty-project and demo-project snapshot creation
   - delete-project guard evaluation
   - next-project resolution after deletion
+  - task modal edit-state projection
+  - task modal save-model construction
+  - task save apply/update orchestration
+  - task remove-at mutation helper
+  - note add/edit/delete state mutation
+  - visible note-count calculation
+  - category draft cloning/add/remove helpers
+  - category-in-use detection
+  - project manager grouped row projection
   - modal phase/date conversion helpers
   - weighted progress and active-phase resolution
   - task cost summary calculation for modal footer
@@ -193,14 +245,38 @@ and Supabase adapters happen against stable interfaces.
   - access-guard capability labels and denial toast copy
 - `js/contractors.js` now uses the generated helper layer for:
   - contractor row aggregation and sorting
+  - contractor summary aggregation
+  - contractor filter-state detection
   - selected-key normalization
-  - bulk delete summary calculation
-  - payment register row extraction and totals
+  - visible bulk-delete row resolution
+  - bulk delete normalization and summary calculation
+  - payment register current-state calculation
+  - saved payment-register list projection
+  - saved payment-register snapshot creation
+  - payment-register lookup by id
   - payment register filter-summary text
+  - payment and act modal field labels
+  - contractor import mapping default-option labels
+  - contractor import review filter and table labels
+  - contractor import decision labels
+  - import-review validation copy
 - `js/api.js` now uses the generated helper layer for:
   - auth modal labels and submit copy
   - auth success/error/logout prompt copy
+  - fallback auth modal render model
+  - fallback auth button state model
+  - fallback HTTP request header construction
+  - fallback HTTP/session outcome resolution
   - share modal titles, empty states, and validation copy
+  - fallback auth reset and hydration state
+  - fallback register/login request construction
+  - fallback profile update request construction
+  - fallback sync-indicator plan
+  - fallback project shell projection
+  - fallback loaded-project snapshot projection
+  - fallback project sync/create/delete request construction
+  - fallback share grant/update/remove request construction
+  - fallback share modal state projection
 - `js/storage.js`, `js/modal.js`, and `js/app.js` now use the generated helper layer for:
   - initial local snapshot meta creation
   - persisted buffer payload shape

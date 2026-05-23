@@ -30,6 +30,20 @@ export interface ApiUiModel {
   };
 }
 
+export interface FallbackAuthModalRenderModel {
+  isLogin: boolean;
+  loginTabClassName: string;
+  registerTabClassName: string;
+  submitLabel: string;
+  showNameField: boolean;
+}
+
+export interface FallbackAuthButtonModel {
+  text: string;
+  title: string;
+  mode: "login" | "logout";
+}
+
 export function buildApiUiModel(): ApiUiModel {
   return {
     sessionExpiredTitle: "Сесія закінчилась — увійдіть знову",
@@ -61,5 +75,35 @@ export function buildApiUiModel(): ApiUiModel {
       logoutConfirmButtonText: "Вийти",
       loginButtonLabel: "☁ Увійти",
     },
+  };
+}
+
+export function buildFallbackAuthModalRenderModel(tab: string, ui: ApiUiModel["auth"]): FallbackAuthModalRenderModel {
+  const isLogin = tab === "login";
+  return {
+    isLogin,
+    loginTabClassName: `auth-tab${isLogin ? " active" : ""}`,
+    registerTabClassName: `auth-tab${!isLogin ? " active" : ""}`,
+    submitLabel: isLogin ? ui.loginSubmitLabel : ui.registerSubmitLabel,
+    showNameField: !isLogin,
+  };
+}
+
+export function buildFallbackAuthButtonModel(
+  isLoggedIn: boolean,
+  userName: string | null | undefined,
+  ui: ApiUiModel["auth"],
+): FallbackAuthButtonModel {
+  if (isLoggedIn && userName) {
+    return {
+      text: `☃ ${userName}`,
+      title: ui.syncedTitle,
+      mode: "logout",
+    };
+  }
+  return {
+    text: ui.loginButtonLabel,
+    title: "",
+    mode: "login",
   };
 }
