@@ -622,7 +622,7 @@ function updateAuthBtn() {
   _updateReadOnlyUI();
 }
 
-async function apiShareProject(email, role = "viewer") {
+async function _legacyApiShareProject(email, role = "viewer") {
   const sid = typeof getCurrentProjectServerId === "function"
     ? getCurrentProjectServerId()
     : allProjects[currentId]?._serverId;
@@ -641,7 +641,7 @@ async function apiShareProject(email, role = "viewer") {
   });
 }
 
-async function apiUpdateShareRole(userId, role) {
+async function _legacyApiUpdateShareRole(userId, role) {
   const sid = typeof getCurrentProjectServerId === "function"
     ? getCurrentProjectServerId()
     : allProjects[currentId]?._serverId;
@@ -660,7 +660,7 @@ async function apiUpdateShareRole(userId, role) {
   });
 }
 
-async function apiRemoveShare(userId) {
+async function _legacyApiRemoveShare(userId) {
   const sid = typeof getCurrentProjectServerId === "function"
     ? getCurrentProjectServerId()
     : allProjects[currentId]?._serverId;
@@ -672,7 +672,7 @@ async function apiRemoveShare(userId) {
   return _fetch(`/projects/${sid}/shares/${removeRequest.userId}`, { method: "DELETE" });
 }
 
-async function openShareModal() {
+async function _legacyOpenShareModal() {
   if (!canManageShares()) {
     Swal.fire({ icon: "info", title: API_UI.share.accessDeniedTitle });
     return;
@@ -759,7 +759,7 @@ async function openShareModal() {
   updateAuthBtn();
 })();
 
-function updateAuthBtn() {
+function _legacyUpdateAuthBtn() {
   const btn = document.getElementById("auth-status-btn");
   if (!btn) return;
   const buttonModel = typeof buildRuntimeFallbackAuthButtonModel === "function"
