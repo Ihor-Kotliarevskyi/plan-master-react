@@ -223,6 +223,14 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../src/services/supabase/auth-runtime";
 import {
+  bindProjectCreateTasksRpcRequest,
+  buildProjectCreateMutationRequest,
+  buildProjectDeleteRequest,
+  buildProjectSyncMutationRequest,
+  buildProjectTasksRpcRequest,
+  resolveLoadedProjectRole,
+} from "../src/services/supabase/project-runtime";
+import {
   buildSupabaseReadOnlyUiState,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
@@ -569,6 +577,26 @@ assert.equal(buildShareRoleUpdateRequest("editor", (role) => ["viewer", "editor"
 assert.equal(buildShareRoleUpdateResult("admin"), "manager");
 assert.equal(resolveActivityLogLimit(999), 500);
 assert.equal(resolveActivityLogLimit(0), 100);
+assert.equal(resolveLoadedProjectRole("owner-1", "owner-1", "viewer"), "owner");
+assert.equal(resolveLoadedProjectRole("owner-1", "user-2", "editor"), "editor");
+const projectTasksRpcRequest = buildProjectTasksRpcRequest("project-1", snapshot.tasks);
+assert.equal(projectTasksRpcRequest.p_project_id, "project-1");
+assert.equal(projectTasksRpcRequest.p_tasks.length, snapshot.tasks.length);
+const projectSyncMutationRequest = buildProjectSyncMutationRequest(
+  "project-1",
+  snapshot,
+  "2026-05-20T00:00:00.000Z",
+);
+assert.equal(projectSyncMutationRequest.projectId, "project-1");
+assert.equal(projectSyncMutationRequest.updatePayload.updated_at, "2026-05-20T00:00:00.000Z");
+assert.equal(projectSyncMutationRequest.expectedTaskCount, snapshot.tasks.length);
+const projectCreateMutationRequest = buildProjectCreateMutationRequest(snapshot, "owner-1");
+assert.equal(projectCreateMutationRequest.insertPayload.owner_id, "owner-1");
+assert.equal(projectCreateMutationRequest.expectedTaskCount, snapshot.tasks.length);
+assert.equal(projectCreateMutationRequest.tasksRpc?.p_project_id, "__PROJECT_ID__");
+const boundProjectCreateTasksRpcRequest = bindProjectCreateTasksRpcRequest(projectCreateMutationRequest, "project-2");
+assert.equal(boundProjectCreateTasksRpcRequest?.p_project_id, "project-2");
+assert.equal(buildProjectDeleteRequest("project-3").projectId, "project-3");
 
 const groupedProjects = groupProjectEntriesByAccess([
   ["local-only", buffered.localOnly],

@@ -221,7 +221,7 @@ async function apiLoadProject(localId) {
       .single();
     if (projectError) throw projectError;
 
-    let resolvedRole = "owner";
+    let shareRole = null;
     if (projectRow.owner_id !== authUser.id) {
       const { data: shareRow } = await sb
         .from("project_shares")
@@ -229,8 +229,11 @@ async function apiLoadProject(localId) {
         .eq("project_id", serverId)
         .eq("user_id", authUser.id)
         .single();
-      resolvedRole = normalizeProjectRole(shareRow?.role || "viewer");
+      shareRole = shareRow?.role || "viewer";
     }
+    const resolvedRole = typeof buildRuntimeResolveLoadedProjectRole === "function"
+      ? buildRuntimeResolveLoadedProjectRole(projectRow.owner_id, authUser.id, shareRole)
+      : (projectRow.owner_id === authUser.id ? "owner" : normalizeProjectRole(shareRole || "viewer"));
     setProjectRole(localId, resolvedRole);
 
     const { data: taskRows, error: taskError } = await sb
@@ -384,20 +387,29 @@ async function apiSyncProject(idToSync) {
       return;
     }
 
+    const syncRequest = typeof buildRuntimeProjectSyncMutationRequest === "function"
+      ? buildRuntimeProjectSyncMutationRequest(serverId, projectSnapshot)
+      : {
+          projectId: serverId,
+          updatePayload: {
+            ...buildSupabaseProjectMutationPayload(projectSnapshot),
+            updated_at: new Date().toISOString(),
+          },
+          tasksRpc: {
+            p_project_id: serverId,
+            p_tasks: _buildTasksPayload(projectSnapshot.tasks),
+          },
+          expectedTaskCount: (projectSnapshot.tasks || []).length,
+        };
+
     const [projectResult, tasksResult] = await Promise.all([
-      sb.from("projects").update({
-        ...buildSupabaseProjectMutationPayload(projectSnapshot),
-        updated_at: new Date().toISOString(),
-      }).eq("id", serverId),
-      sb.rpc("upsert_tasks", {
-        p_project_id: serverId,
-        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
-      }),
+      sb.from("projects").update(syncRequest.updatePayload).eq("id", syncRequest.projectId),
+      sb.rpc("upsert_tasks", syncRequest.tasksRpc),
     ]);
 
     if (projectResult.error) throw projectResult.error;
     if (tasksResult.error) throw tasksResult.error;
-    await _assertSyncedTaskCount(serverId, (projectSnapshot.tasks || []).length);
+    await _assertSyncedTaskCount(syncRequest.projectId, syncRequest.expectedTaskCount);
 
     if (allProjects[snapId]) {
       allProjects[snapId] = typeof buildRuntimeProjectSyncSuccessSnapshot === "function"
@@ -422,13 +434,21 @@ async function apiCreateProject(idToCreate) {
   const projectSnapshot = getProjectSnapshot(snapId);
   if (!snapId || !projectSnapshot) return;
 
-  const projectPayload = buildSupabaseProjectInsertPayload(projectSnapshot, authUser.id);
-  const { error: insertError } = await sb.from("projects").insert(projectPayload);
+  const createRequest = typeof buildRuntimeProjectCreateMutationRequest === "function"
+    ? buildRuntimeProjectCreateMutationRequest(projectSnapshot, authUser.id)
+    : {
+        insertPayload: buildSupabaseProjectInsertPayload(projectSnapshot, authUser.id),
+        tasksRpc: (projectSnapshot.tasks || []).length > 0
+          ? { p_project_id: "__PROJECT_ID__", p_tasks: _buildTasksPayload(projectSnapshot.tasks) }
+          : null,
+        expectedTaskCount: (projectSnapshot.tasks || []).length,
+      };
+  const { error: insertError } = await sb.from("projects").insert(createRequest.insertPayload);
 
   if (insertError) {
     console.error("[supabase] apiCreateProject insert failed", {
       authUserId: authUser.id,
-      ownerId: projectPayload.owner_id,
+      ownerId: createRequest.insertPayload.owner_id,
       code: insertError.code,
       message: insertError.message,
       details: insertError.details,
@@ -465,14 +485,19 @@ async function apiCreateProject(idToCreate) {
   _saveBuffer();
 
   try {
-    if ((projectSnapshot.tasks || []).length > 0) {
-      const { error: tasksError } = await sb.rpc("upsert_tasks", {
-        p_project_id: data.id,
-        p_tasks: _buildTasksPayload(projectSnapshot.tasks),
-      });
+    const tasksRpcRequest = typeof buildRuntimeBindProjectCreateTasksRpcRequest === "function"
+      ? buildRuntimeBindProjectCreateTasksRpcRequest(createRequest, data.id)
+      : (createRequest.tasksRpc
+          ? {
+              ...createRequest.tasksRpc,
+              p_project_id: data.id,
+            }
+          : null);
+    if (tasksRpcRequest) {
+      const { error: tasksError } = await sb.rpc("upsert_tasks", tasksRpcRequest);
       if (tasksError) throw tasksError;
     }
-    await _assertSyncedTaskCount(data.id, (projectSnapshot.tasks || []).length);
+    await _assertSyncedTaskCount(data.id, createRequest.expectedTaskCount);
 
     allProjects[snapId] = typeof buildRuntimeProjectSyncSuccessSnapshot === "function"
       ? buildRuntimeProjectSyncSuccessSnapshot(allProjects[snapId])
@@ -492,7 +517,10 @@ async function apiDeleteProject(localId) {
   if (!authUser) return;
   const serverId = getProjectServerId(localId);
   if (!serverId) return;
-  await sb.from("projects").delete().eq("id", serverId);
+  const deleteRequest = typeof buildRuntimeProjectDeleteRequest === "function"
+    ? buildRuntimeProjectDeleteRequest(serverId)
+    : { projectId: serverId };
+  await sb.from("projects").delete().eq("id", deleteRequest.projectId);
 }
 
 async function apiLogActivity(eventType, payload = {}) {

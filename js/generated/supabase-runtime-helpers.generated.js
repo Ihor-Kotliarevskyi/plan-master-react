@@ -2759,6 +2759,47 @@
     };
   }
 
+  // src/services/supabase/project-runtime.ts
+  function resolveLoadedProjectRole(ownerId, authUserId, shareRole) {
+    if (ownerId && ownerId === authUserId) return "owner";
+    return normalizeProjectRole(shareRole || "viewer");
+  }
+  function buildProjectTasksRpcRequest(projectId, tasks) {
+    return {
+      p_project_id: projectId,
+      p_tasks: buildUpsertTasksPayload(tasks || [])
+    };
+  }
+  function buildProjectSyncMutationRequest(projectId, snapshot, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
+    return {
+      projectId,
+      updatePayload: {
+        ...buildProjectMutationPayload(snapshot),
+        updated_at: updatedAt
+      },
+      tasksRpc: buildProjectTasksRpcRequest(projectId, snapshot.tasks || []),
+      expectedTaskCount: (snapshot.tasks || []).length
+    };
+  }
+  function buildProjectCreateMutationRequest(snapshot, ownerId) {
+    const expectedTaskCount = (snapshot.tasks || []).length;
+    return {
+      insertPayload: buildProjectInsertPayload(snapshot, ownerId),
+      tasksRpc: expectedTaskCount > 0 ? buildProjectTasksRpcRequest("__PROJECT_ID__", snapshot.tasks || []) : null,
+      expectedTaskCount
+    };
+  }
+  function bindProjectCreateTasksRpcRequest(request, projectId) {
+    if (!request.tasksRpc) return null;
+    return {
+      ...request.tasksRpc,
+      p_project_id: projectId
+    };
+  }
+  function buildProjectDeleteRequest(projectId) {
+    return { projectId };
+  }
+
   // src/services/supabase/collaboration-runtime.ts
   function buildActivityWriteRequest(params) {
     const activityPayload = { ...params.payload || {} };
@@ -2915,6 +2956,12 @@
     buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
     buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
     buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
+    buildRuntimeResolveLoadedProjectRole: resolveLoadedProjectRole,
+    buildRuntimeProjectTasksRpcRequest: buildProjectTasksRpcRequest,
+    buildRuntimeProjectSyncMutationRequest: buildProjectSyncMutationRequest,
+    buildRuntimeProjectCreateMutationRequest: buildProjectCreateMutationRequest,
+    buildRuntimeBindProjectCreateTasksRpcRequest: bindProjectCreateTasksRpcRequest,
+    buildRuntimeProjectDeleteRequest: buildProjectDeleteRequest,
     mapSupabaseTaskRow: mapTaskRowToTask,
     buildSupabaseProjectSnapshot: (localId, projectRow, taskRows, previousSnapshot, role) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole),
     buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,

@@ -227,6 +227,14 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../services/supabase/auth-runtime";
 import {
+  bindProjectCreateTasksRpcRequest,
+  buildProjectCreateMutationRequest,
+  buildProjectDeleteRequest,
+  buildProjectSyncMutationRequest,
+  buildProjectTasksRpcRequest,
+  resolveLoadedProjectRole,
+} from "../services/supabase/project-runtime";
+import {
   buildActivityWriteRequest,
   buildShareGrantRequest,
   buildShareGrantResult,
@@ -310,6 +318,12 @@ const runtimeHelpers = {
   buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
   buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
   buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
+  buildRuntimeResolveLoadedProjectRole: resolveLoadedProjectRole,
+  buildRuntimeProjectTasksRpcRequest: buildProjectTasksRpcRequest,
+  buildRuntimeProjectSyncMutationRequest: buildProjectSyncMutationRequest,
+  buildRuntimeProjectCreateMutationRequest: buildProjectCreateMutationRequest,
+  buildRuntimeBindProjectCreateTasksRpcRequest: bindProjectCreateTasksRpcRequest,
+  buildRuntimeProjectDeleteRequest: buildProjectDeleteRequest,
   mapSupabaseTaskRow: mapTaskRowToTask,
   buildSupabaseProjectSnapshot: (
     localId: string,
