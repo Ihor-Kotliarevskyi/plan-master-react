@@ -3204,6 +3204,27 @@
       }
     ];
   }
+  function buildSupabaseShareDialogModel() {
+    return {
+      accessDeniedTitle: "You do not have permission to manage access.",
+      emptyText: "No shared users yet",
+      modalTitle: "Shared Access",
+      projectLabel: "Project",
+      grantSectionTitle: "Grant access:",
+      emailPlaceholder: "email@example.com",
+      confirmButtonText: "Grant access",
+      cancelButtonText: "Close",
+      emailRequiredMessage: "Enter email"
+    };
+  }
+  function buildSupabaseShareErrorMessages() {
+    return {
+      updateRoleErrorTitle: "Failed to update role",
+      updateRoleErrorText: "Try again.",
+      removeAccessErrorTitle: "Failed to remove access",
+      removeAccessErrorText: "Try again."
+    };
+  }
   function buildSupabaseReadOnlyUiState(params) {
     return {
       readonly: params.readonly,
@@ -3302,6 +3323,8 @@
     buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
     buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
     buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
+    buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+    buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
     buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
     buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
     buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,

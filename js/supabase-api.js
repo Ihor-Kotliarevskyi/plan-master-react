@@ -802,10 +802,16 @@ async function handleShareRoleChange(shareId, role) {
     });
     await openShareModal();
   } catch (err) {
+    const errorMessages = typeof buildRuntimeSupabaseShareErrorMessages === "function"
+      ? buildRuntimeSupabaseShareErrorMessages()
+      : {
+          updateRoleErrorTitle: "Failed to update role",
+          updateRoleErrorText: "Try again.",
+        };
     Swal.fire({
       icon: "error",
-      title: "Failed to update role",
-      text: err.message || "Try again.",
+      title: errorMessages.updateRoleErrorTitle,
+      text: err.message || errorMessages.updateRoleErrorText,
     });
   }
 }
@@ -826,19 +832,38 @@ async function handleShareRemoval(shareId) {
     });
     await openShareModal();
   } catch (err) {
+    const errorMessages = typeof buildRuntimeSupabaseShareErrorMessages === "function"
+      ? buildRuntimeSupabaseShareErrorMessages()
+      : {
+          removeAccessErrorTitle: "Failed to remove access",
+          removeAccessErrorText: "Try again.",
+        };
     Swal.fire({
       icon: "error",
-      title: "Failed to remove access",
-      text: err.message || "Try again.",
+      title: errorMessages.removeAccessErrorTitle,
+      text: err.message || errorMessages.removeAccessErrorText,
     });
   }
 }
 
 async function openShareModal() {
   const shares = await apiGetShares();
+  const shareDialog = typeof buildRuntimeSupabaseShareDialogModel === "function"
+    ? buildRuntimeSupabaseShareDialogModel()
+    : {
+        accessDeniedTitle: "You do not have permission to manage access.",
+        emptyText: "No shared users yet",
+        modalTitle: "Shared Access",
+        projectLabel: "Project",
+        grantSectionTitle: "Grant access:",
+        emailPlaceholder: "email@example.com",
+        confirmButtonText: "Grant access",
+        cancelButtonText: "Close",
+        emailRequiredMessage: "Enter email",
+      };
 
   if (!canManageShares()) {
-    Swal.fire({ icon: "info", title: "You do not have permission to manage access." });
+    Swal.fire({ icon: "info", title: shareDialog.accessDeniedTitle });
     return;
   }
 
@@ -892,18 +917,18 @@ async function openShareModal() {
           <button class="cost-act-btn del" onclick="handleShareRemoval('${share.id}')">✕</button>
         </div>`;
     }).join("")
-    : `<div class="share-empty">No shared users yet</div>`;
+    : `<div class="share-empty">${shareDialog.emptyText}</div>`;
 
   Swal.fire({
-    title: "Shared Access",
+    title: shareDialog.modalTitle,
     html: `
       <div class="share-modal-body">
-        <div class="share-proj-name">Project: <b>${shareModalState.projectName}</b></div>
+        <div class="share-proj-name">${shareDialog.projectLabel}: <b>${shareModalState.projectName}</b></div>
         <div class="share-list">${list}</div>
         <hr class="share-divider">
-        <div class="share-add-title">Grant access:</div>
+        <div class="share-add-title">${shareDialog.grantSectionTitle}</div>
         <div class="share-add-row">
-          <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
+          <input id="share-email" type="email" placeholder="${shareDialog.emailPlaceholder}" class="share-email-inp">
           <select id="share-role" class="share-role-sel">
             ${roleOptions}
           </select>
@@ -912,13 +937,13 @@ async function openShareModal() {
         <div id="share-err" class="share-err"></div>
       </div>`,
     showCancelButton: true,
-    confirmButtonText: "Grant access",
-    cancelButtonText: "Close",
+    confirmButtonText: shareDialog.confirmButtonText,
+    cancelButtonText: shareDialog.cancelButtonText,
     preConfirm: async () => {
       const email = document.getElementById("share-email").value.trim();
       const role = document.getElementById("share-role").value;
       if (!email) {
-        Swal.showValidationMessage("Enter email");
+        Swal.showValidationMessage(shareDialog.emailRequiredMessage);
         return false;
       }
       try {

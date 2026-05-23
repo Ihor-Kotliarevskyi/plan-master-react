@@ -268,6 +268,8 @@ import {
   buildSupabaseReadOnlyUiState,
   buildSupabaseShareRoleGuide,
   buildSupabaseShareRoleOptions,
+  buildSupabaseShareDialogModel,
+  buildSupabaseShareErrorMessages,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
   buildSupabaseShareModalState,
@@ -641,6 +643,12 @@ assert.equal(shareModalState.projectName, "Shared Project");
 assert.equal(shareModalState.items[0]?.displayLabel, "user@example.com");
 assert.equal(shareModalState.items[0]?.roleLabel, "MANAGER");
 assert.equal(shareModalState.items[0]?.normalizedRole, "manager");
+const shareDialogModel = buildSupabaseShareDialogModel();
+assert.equal(shareDialogModel.modalTitle, "Shared Access");
+assert.equal(shareDialogModel.confirmButtonText, "Grant access");
+const shareErrorMessages = buildSupabaseShareErrorMessages();
+assert.equal(shareErrorMessages.updateRoleErrorTitle, "Failed to update role");
+assert.equal(shareErrorMessages.removeAccessErrorText, "Try again.");
 assert.equal(buildSupabaseShareRoleOptions(["viewer", "manager"], (role) => role.toUpperCase(), "manager").includes("selected"), true);
 assert.equal(buildSupabaseShareRoleGuide()[0]?.title, "Manager");
 const readOnlyUiState = buildSupabaseReadOnlyUiState({

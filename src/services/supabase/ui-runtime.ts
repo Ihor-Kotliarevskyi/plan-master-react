@@ -38,6 +38,25 @@ export interface SupabaseShareRoleGuideItem {
   description: string;
 }
 
+export interface SupabaseShareDialogModel {
+  accessDeniedTitle: string;
+  emptyText: string;
+  modalTitle: string;
+  projectLabel: string;
+  grantSectionTitle: string;
+  emailPlaceholder: string;
+  confirmButtonText: string;
+  cancelButtonText: string;
+  emailRequiredMessage: string;
+}
+
+export interface SupabaseShareErrorMessages {
+  updateRoleErrorTitle: string;
+  updateRoleErrorText: string;
+  removeAccessErrorTitle: string;
+  removeAccessErrorText: string;
+}
+
 export function buildSupabaseShareModalState(params: {
   shares: Array<{
     id: string;
@@ -88,6 +107,29 @@ export function buildSupabaseShareRoleGuide(): SupabaseShareRoleGuideItem[] {
       description: "read-only access.",
     },
   ];
+}
+
+export function buildSupabaseShareDialogModel(): SupabaseShareDialogModel {
+  return {
+    accessDeniedTitle: "You do not have permission to manage access.",
+    emptyText: "No shared users yet",
+    modalTitle: "Shared Access",
+    projectLabel: "Project",
+    grantSectionTitle: "Grant access:",
+    emailPlaceholder: "email@example.com",
+    confirmButtonText: "Grant access",
+    cancelButtonText: "Close",
+    emailRequiredMessage: "Enter email",
+  };
+}
+
+export function buildSupabaseShareErrorMessages(): SupabaseShareErrorMessages {
+  return {
+    updateRoleErrorTitle: "Failed to update role",
+    updateRoleErrorText: "Try again.",
+    removeAccessErrorTitle: "Failed to remove access",
+    removeAccessErrorText: "Try again.",
+  };
 }
 
 export function buildSupabaseReadOnlyUiState(params: {

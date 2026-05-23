@@ -125,6 +125,7 @@ and Supabase adapters happen against stable interfaces.
   - readonly/share-button UI state model
   - share modal list projection
   - share role option and guide rendering helpers
+  - share dialog copy and error-state models
   - share success toast models
   - sync-indicator timing plan
   - activity write request model

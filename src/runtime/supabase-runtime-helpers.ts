@@ -286,6 +286,8 @@ import {
 } from "../services/supabase/collaboration-runtime";
 import {
   buildSupabaseReadOnlyUiState,
+  buildSupabaseShareDialogModel,
+  buildSupabaseShareErrorMessages,
   buildSupabaseShareRoleGuide,
   buildSupabaseShareRoleOptions,
   buildSupabaseRoleUpdatedToast,
@@ -373,6 +375,8 @@ const runtimeHelpers = {
   buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
   buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
   buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
+  buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+  buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
   buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
   buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
   buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
