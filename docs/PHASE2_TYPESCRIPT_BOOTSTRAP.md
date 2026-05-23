@@ -120,6 +120,7 @@ and Supabase adapters happen against stable interfaces.
   - auth-event planning for `INITIAL_SESSION` / `SIGNED_IN` / `TOKEN_REFRESHED` / `USER_UPDATED` / `SIGNED_OUT`
   - readonly/share-button UI state model
   - share modal list projection
+  - share role option and guide rendering helpers
   - share success toast models
   - sync-indicator timing plan
   - activity write request model

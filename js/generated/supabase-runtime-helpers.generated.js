@@ -2943,10 +2943,36 @@
       items: (params.shares || []).map((share) => ({
         id: String(share.id || ""),
         role: String(share.role || "viewer"),
+        normalizedRole: normalizeProjectRole(String(share.role || "viewer")),
         roleLabel: params.getRoleLabel(String(share.role || "viewer")),
         displayLabel: share.user?.email || share.user?.name || share.user?.id || "-"
       }))
     };
+  }
+  function buildSupabaseShareRoleOptions(roles, getRoleLabel, selectedRole) {
+    const normalizedSelectedRole = normalizeProjectRole(selectedRole || "viewer");
+    return (roles || []).map(
+      (role) => `<option value="${role}"${normalizeProjectRole(role) === normalizedSelectedRole ? " selected" : ""}>${getRoleLabel(role)}</option>`
+    ).join("");
+  }
+  function buildSupabaseShareRoleGuide() {
+    return [
+      {
+        role: "manager",
+        title: "Manager",
+        description: "manages access and project settings."
+      },
+      {
+        role: "editor",
+        title: "Editor",
+        description: "edits tasks but cannot manage access."
+      },
+      {
+        role: "viewer",
+        title: "Viewer",
+        description: "read-only access."
+      }
+    ];
   }
   function buildSupabaseReadOnlyUiState(params) {
     return {
@@ -3027,6 +3053,8 @@
     buildRuntimeHydratedAuthState: buildHydratedAuthState,
     buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
     buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
+    buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
+    buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
     buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
     buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
     buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,

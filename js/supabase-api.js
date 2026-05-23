@@ -842,42 +842,52 @@ async function openShareModal() {
     return;
   }
 
-  const roleOptions = SHAREABLE_PROJECT_ROLES.map(
-    (role) => `<option value="${role}">${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
-  ).join("");
+  const getRoleLabel = (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
+  const roleOptions = typeof buildRuntimeSupabaseShareRoleOptions === "function"
+    ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, "viewer")
+    : SHAREABLE_PROJECT_ROLES.map(
+        (role) => `<option value="${role}">${getRoleLabel(role)}</option>`,
+      ).join("");
+  const roleGuideItems = typeof buildRuntimeSupabaseShareRoleGuide === "function"
+    ? buildRuntimeSupabaseShareRoleGuide()
+    : [
+        { title: "Manager", description: "manages access and project settings." },
+        { title: "Editor", description: "edits tasks but cannot manage access." },
+        { title: "Viewer", description: "read-only access." },
+      ];
   const roleGuide = `
     <div class="share-role-guide">
-      <div><b>Manager:</b> manages access and project settings.</div>
-      <div><b>Editor:</b> edits tasks but cannot manage access.</div>
-      <div><b>Viewer:</b> read-only access.</div>
+      ${roleGuideItems.map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}
     </div>`;
 
   const shareModalState = typeof buildRuntimeSupabaseShareModalState === "function"
     ? buildRuntimeSupabaseShareModalState({
         shares,
         projectName: proj.name,
-        getRoleLabel: (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role],
+        getRoleLabel,
       })
     : {
         projectName: proj.name,
         items: shares.map((share) => ({
           id: share.id,
           role: normalizeProjectRole(share.role),
-          roleLabel: typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(share.role) : PROJECT_ROLE_LABELS[share.role],
+          normalizedRole: normalizeProjectRole(share.role),
+          roleLabel: getRoleLabel(share.role),
           displayLabel: share.user?.email || share.user?.name || share.user?.id || "-",
         })),
       };
 
   const list = shareModalState.items.length
     ? shareModalState.items.map((share) => {
-      const shareRole = normalizeProjectRole(share.role);
       return `
         <div class="share-row">
           <span>${share.displayLabel}</span>
           <select class="cost-sel" onchange="handleShareRoleChange('${share.id}',this.value)">
-            ${SHAREABLE_PROJECT_ROLES.map(
-              (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
-            ).join("")}
+            ${typeof buildRuntimeSupabaseShareRoleOptions === "function"
+              ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, share.normalizedRole || share.role)
+              : SHAREABLE_PROJECT_ROLES.map(
+                  (role) => `<option value="${role}"${share.normalizedRole === role ? " selected" : ""}>${getRoleLabel(role)}</option>`,
+                ).join("")}
           </select>
           <button class="cost-act-btn del" onclick="handleShareRemoval('${share.id}')">✕</button>
         </div>`;

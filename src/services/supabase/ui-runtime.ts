@@ -1,8 +1,10 @@
+import { normalizeProjectRole } from "../../domain/permissions";
 import type { ProjectAccessMeta } from "../../domain/types";
 
 export interface SupabaseShareListItem {
   id: string;
   role: string;
+  normalizedRole: string;
   roleLabel: string;
   displayLabel: string;
 }
@@ -30,6 +32,12 @@ export interface SupabaseSyncIndicatorPlan {
   timeoutMs: number;
 }
 
+export interface SupabaseShareRoleGuideItem {
+  role: string;
+  title: string;
+  description: string;
+}
+
 export function buildSupabaseShareModalState(params: {
   shares: Array<{
     id: string;
@@ -44,10 +52,42 @@ export function buildSupabaseShareModalState(params: {
     items: (params.shares || []).map((share) => ({
       id: String(share.id || ""),
       role: String(share.role || "viewer"),
+      normalizedRole: normalizeProjectRole(String(share.role || "viewer")),
       roleLabel: params.getRoleLabel(String(share.role || "viewer")),
       displayLabel: share.user?.email || share.user?.name || share.user?.id || "-",
     })),
   };
+}
+
+export function buildSupabaseShareRoleOptions(
+  roles: string[],
+  getRoleLabel: (role: string) => string,
+  selectedRole?: string | null,
+): string {
+  const normalizedSelectedRole = normalizeProjectRole(selectedRole || "viewer");
+  return (roles || []).map(
+    (role) => `<option value="${role}"${normalizeProjectRole(role) === normalizedSelectedRole ? " selected" : ""}>${getRoleLabel(role)}</option>`,
+  ).join("");
+}
+
+export function buildSupabaseShareRoleGuide(): SupabaseShareRoleGuideItem[] {
+  return [
+    {
+      role: "manager",
+      title: "Manager",
+      description: "manages access and project settings.",
+    },
+    {
+      role: "editor",
+      title: "Editor",
+      description: "edits tasks but cannot manage access.",
+    },
+    {
+      role: "viewer",
+      title: "Viewer",
+      description: "read-only access.",
+    },
+  ];
 }
 
 export function buildSupabaseReadOnlyUiState(params: {

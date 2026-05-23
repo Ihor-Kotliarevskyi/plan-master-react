@@ -239,6 +239,8 @@ import {
 } from "../src/services/supabase/project-runtime";
 import {
   buildSupabaseReadOnlyUiState,
+  buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleOptions,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
   buildSupabaseShareModalState,
@@ -543,6 +545,9 @@ const shareModalState = buildSupabaseShareModalState({
 assert.equal(shareModalState.projectName, "Shared Project");
 assert.equal(shareModalState.items[0]?.displayLabel, "user@example.com");
 assert.equal(shareModalState.items[0]?.roleLabel, "MANAGER");
+assert.equal(shareModalState.items[0]?.normalizedRole, "manager");
+assert.equal(buildSupabaseShareRoleOptions(["viewer", "manager"], (role) => role.toUpperCase(), "manager").includes("selected"), true);
+assert.equal(buildSupabaseShareRoleGuide()[0]?.title, "Manager");
 const readOnlyUiState = buildSupabaseReadOnlyUiState({
   readonly: true,
   canShare: false,
