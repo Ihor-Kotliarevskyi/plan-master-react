@@ -1930,6 +1930,91 @@
     };
   }
 
+  // src/domain/modal-panels.ts
+  function cloneTaskNotes(notes) {
+    return (notes || []).map((note) => ({
+      ...note,
+      history: (note.history || []).map((entry) => ({ ...entry }))
+    }));
+  }
+  function addTaskNote(params) {
+    const nextNotes = cloneTaskNotes(params.notes);
+    nextNotes.push({
+      id: params.id,
+      text: params.text,
+      author: params.author,
+      date: params.date,
+      history: []
+    });
+    return nextNotes;
+  }
+  function editTaskNote(params) {
+    const nextNotes = cloneTaskNotes(params.notes);
+    const target = nextNotes[params.index];
+    if (!target) return nextNotes;
+    target.history = target.history || [];
+    target.history.push({
+      action: "edit",
+      text: target.text,
+      author: params.author,
+      date: params.date
+    });
+    target.text = params.text;
+    return nextNotes;
+  }
+  function deleteTaskNote(params) {
+    const nextNotes = cloneTaskNotes(params.notes);
+    const target = nextNotes[params.index];
+    if (!target) return nextNotes;
+    target.history = target.history || [];
+    target.history.push({
+      action: "delete",
+      text: target.text,
+      author: params.author,
+      date: params.date
+    });
+    target.text = params.deletedPlaceholderText;
+    target.deleted = true;
+    return nextNotes;
+  }
+  function countVisibleTaskNotes(notes) {
+    return (notes || []).filter((note) => !note.deleted).length;
+  }
+  function cloneCategoryDrafts(categories) {
+    return (categories || []).map((category) => ({ ...category }));
+  }
+  function removeCategoryDraftAt(categories, index) {
+    return (categories || []).filter((_, categoryIndex) => categoryIndex !== index);
+  }
+  function createNextCategoryDraft(params) {
+    const usedColors = params.categories.map((category) => category.color);
+    const color = params.palette.find((candidate) => !usedColors.includes(candidate)) || params.palette[params.categories.length % params.palette.length];
+    return [
+      ...cloneCategoryDrafts(params.categories),
+      { name: params.newCategoryName, color }
+    ];
+  }
+  function isCategoryUsedByTasks(tasks, index) {
+    return (tasks || []).some((task) => task.cat === index);
+  }
+  function buildProjectManagerGroupModel(params) {
+    const grouped = groupProjectEntriesByAccess(Object.entries(params.projects || {}));
+    const mapRow = ([id, snapshot]) => ({
+      id,
+      name: snapshot?.proj?.name || "",
+      role: snapshot?._role || "owner",
+      roleLabel: params.getRoleLabel(snapshot?._role || "owner"),
+      tasksCount: Array.isArray(snapshot?.tasks) ? snapshot.tasks.length : 0,
+      sharedMetaLine: params.getSharedMetaLine(snapshot?._access || null),
+      canManageProject: params.canManageProject(id, snapshot),
+      isActive: id === params.currentId
+    });
+    return {
+      own: (grouped.own || []).map(mapRow),
+      shared: (grouped.shared || []).map(mapRow)
+    };
+  }
+
   // src/domain/audit-ui.ts
   var AUDIT_EVENT_LABELS = {
     "task.created": "Created task",
@@ -2766,6 +2851,16 @@
     buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
     buildRuntimeApplyTaskSave: applyTaskSave,
     buildRuntimeRemoveTaskAt: removeTaskAt,
+    buildRuntimeCloneTaskNotes: cloneTaskNotes,
+    buildRuntimeAddTaskNote: addTaskNote,
+    buildRuntimeEditTaskNote: editTaskNote,
+    buildRuntimeDeleteTaskNote: deleteTaskNote,
+    buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
+    buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
+    buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
+    buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,
+    buildRuntimeIsCategoryUsedByTasks: isCategoryUsedByTasks,
+    buildRuntimeProjectManagerGroupModel: buildProjectManagerGroupModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
     buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

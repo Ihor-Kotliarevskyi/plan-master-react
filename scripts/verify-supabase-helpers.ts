@@ -144,6 +144,18 @@ import {
   cloneModalPhasesFromTask,
   removeTaskAt,
 } from "../src/domain/modal-orchestration";
+import {
+  addTaskNote,
+  buildProjectManagerGroupModel,
+  cloneCategoryDrafts,
+  cloneTaskNotes,
+  countVisibleTaskNotes,
+  createNextCategoryDraft,
+  deleteTaskNote,
+  editTaskNote,
+  isCategoryUsedByTasks,
+  removeCategoryDraftAt,
+} from "../src/domain/modal-panels";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -1214,6 +1226,74 @@ assert.equal(appliedTaskSave.nextN, 3);
 const removedTaskState = removeTaskAt(appliedTaskSave.tasks, 1);
 assert.equal(removedTaskState.removedTask?.id, "t-2");
 assert.equal(removedTaskState.tasks.length, 1);
+const clonedNotes = cloneTaskNotes([{ text: "Hello", author: "Ihor", date: "2026-05-23", history: [{ action: "edit", text: "Prev", author: "Ihor", date: "2026-05-22" }] }]);
+assert.equal(clonedNotes.length, 1);
+assert.equal(clonedNotes[0]?.history?.length, 1);
+const addedNotes = addTaskNote({
+  notes: [],
+  id: 1,
+  text: "New note",
+  author: "Ihor",
+  date: "2026-05-23",
+});
+assert.equal(addedNotes.length, 1);
+assert.equal(addedNotes[0]?.text, "New note");
+const editedNotes = editTaskNote({
+  notes: addedNotes,
+  index: 0,
+  text: "Updated note",
+  author: "Ihor",
+  date: "2026-05-24",
+});
+assert.equal(editedNotes[0]?.text, "Updated note");
+assert.equal(editedNotes[0]?.history?.length, 1);
+const deletedNotes = deleteTaskNote({
+  notes: editedNotes,
+  index: 0,
+  author: "Ihor",
+  date: "2026-05-25",
+  deletedPlaceholderText: "[deleted]",
+});
+assert.equal(deletedNotes[0]?.deleted, true);
+assert.equal(countVisibleTaskNotes(deletedNotes), 0);
+const clonedCats = cloneCategoryDrafts([{ name: "General", color: "#111111" }]);
+assert.equal(clonedCats.length, 1);
+const nextCats = createNextCategoryDraft({
+  categories: clonedCats,
+  palette: ["#111111", "#222222", "#333333"],
+  newCategoryName: "New category",
+});
+assert.equal(nextCats.length, 2);
+assert.equal(nextCats[1]?.name, "New category");
+assert.equal(removeCategoryDraftAt(nextCats, 0).length, 1);
+assert.equal(isCategoryUsedByTasks([{ n: 1, name: "Task", cat: 1, ms: 0, ws: 0, me: 0, we: 0, prog: 0 }], 1), true);
+const projectManagerGroups = buildProjectManagerGroupModel({
+  projects: {
+    own: { proj: { name: "Own" }, tasks: [{}, {}], _role: "owner", _access: { source: "own" } },
+    shared: {
+      proj: { name: "Shared" },
+      tasks: [{}],
+      _role: "viewer",
+      _access: {
+        source: "shared",
+        ownerId: "owner-1",
+        ownerName: "Owner Name",
+        ownerEmail: "owner@example.com",
+        invitedBy: "manager-1",
+        invitedByName: "Manager Name",
+        invitedByEmail: "manager@example.com",
+      },
+    },
+  },
+  currentId: "shared",
+  canManageProject: (projectId) => projectId === "own",
+  getRoleLabel: (role) => role.toUpperCase(),
+  getSharedMetaLine: (access) => access?.source === "shared" ? "Owner · Manager" : "Власний проєкт",
+});
+assert.equal(projectManagerGroups.own.length, 1);
+assert.equal(projectManagerGroups.shared.length, 1);
+assert.equal(projectManagerGroups.shared[0]?.isActive, true);
+assert.equal(projectManagerGroups.shared[0]?.sharedMetaLine, "Owner · Manager");
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,

@@ -1082,7 +1082,8 @@ function openNotesModal(ti) {
   _notesTi = ti;
   const t = tasks[ti];
   document.getElementById("notes-modal-title").textContent = t.name;
-  renderNotes(t.notes || []);
+  const notes = typeof buildRuntimeCloneTaskNotes === "function" ? buildRuntimeCloneTaskNotes(t.notes || []) : (t.notes || []);
+  renderNotes(notes);
   document.getElementById("notes-modal").style.display = "flex";
   _applyNotesModalPermissions();
 }
@@ -1154,7 +1155,9 @@ function _syncNotesCell(ti) {
   const notesModal = _getNotesModalModel();
   if (ti == null) return;
   const t = tasks[ti];
-  const count = t.notes?.filter((n) => !n.deleted).length || 0;
+  const count = typeof buildRuntimeCountVisibleTaskNotes === "function"
+    ? buildRuntimeCountVisibleTaskNotes(t.notes || [])
+    : (t.notes?.filter((n) => !n.deleted).length || 0);
   const cell = document.querySelector(`#tr${ti} .td-notes`);
   if (!cell) return;
   cell.className = count > 0 ? "td-notes has-notes" : "td-notes";
@@ -1177,14 +1180,21 @@ function addNote() {
   const ta = document.getElementById("note-input");
   const text = ta?.value?.trim();
   if (!text) return;
-  const notes = _getNotes();
-  notes.push({
-    id: Date.now(),
-    text,
-    author: userProfile?.name || notesModal.defaultAuthorLabel,
-    date: _noteDate(),
-    history: [],
-  });
+  const notes = typeof buildRuntimeAddTaskNote === "function"
+    ? buildRuntimeAddTaskNote({
+        notes: _getNotes(),
+        id: Date.now(),
+        text,
+        author: userProfile?.name || notesModal.defaultAuthorLabel,
+        date: _noteDate(),
+      })
+    : [..._getNotes(), {
+        id: Date.now(),
+        text,
+        author: userProfile?.name || notesModal.defaultAuthorLabel,
+        date: _noteDate(),
+        history: [],
+      }];
   _setNotes(notes);
   renderNotes(notes);
   ta.value = "";
@@ -1208,16 +1218,15 @@ function saveNoteEdit(i) {
   const ta = document.getElementById(`note-edit-ta-${i}`);
   const txt = ta?.value?.trim();
   if (!txt) return;
-  const notes = _getNotes();
-  if (!notes[i]) return;
-  if (!notes[i].history) notes[i].history = [];
-  notes[i].history.push({
-    action: "edit",
-    text: notes[i].text,
-    author: userProfile?.name || notesModal.defaultAuthorLabel,
-    date: _noteDate(),
-  });
-  notes[i].text = txt;
+  const notes = typeof buildRuntimeEditTaskNote === "function"
+    ? buildRuntimeEditTaskNote({
+        notes: _getNotes(),
+        index: i,
+        text: txt,
+        author: userProfile?.name || notesModal.defaultAuthorLabel,
+        date: _noteDate(),
+      })
+    : _getNotes();
   _setNotes(notes);
   renderNotes(notes);
 }
@@ -1234,17 +1243,15 @@ async function deleteNote(i) {
     cancelButtonText: notesModal.deleteDialogCancelButtonText,
   });
   if (!res.isConfirmed) return;
-  const notes = _getNotes();
-  if (!notes[i]) return;
-  if (!notes[i].history) notes[i].history = [];
-  notes[i].history.push({
-    action: "delete",
-    text: notes[i].text,
-    author: userProfile?.name || notesModal.defaultAuthorLabel,
-    date: _noteDate(),
-  });
-  notes[i].text = notesModal.deletedPlaceholderText;
-  notes[i].deleted = true;
+  const notes = typeof buildRuntimeDeleteTaskNote === "function"
+    ? buildRuntimeDeleteTaskNote({
+        notes: _getNotes(),
+        index: i,
+        author: userProfile?.name || notesModal.defaultAuthorLabel,
+        date: _noteDate(),
+        deletedPlaceholderText: notesModal.deletedPlaceholderText,
+      })
+    : _getNotes();
   _setNotes(notes);
   renderNotes(notes);
 }
@@ -1264,7 +1271,9 @@ function openCatEditor() {
     Swal.fire({ icon: "info", title: categoryEditor.accessDeniedTitle });
     return;
   }
-  tempCats = cats.map((c) => ({ ...c }));
+  tempCats = typeof buildRuntimeCloneCategoryDrafts === "function"
+    ? buildRuntimeCloneCategoryDrafts(cats)
+    : cats.map((c) => ({ ...c }));
   renderCatList();
   document.getElementById("cat-modal").style.display = "flex";
 }
@@ -1306,7 +1315,10 @@ function renderCatList() {
     delBtn.innerHTML = '<i data-lucide="x"></i>';
     delBtn.title = categoryEditor.deleteTitle;
     delBtn.addEventListener("click", async () => {
-      if (tasks.some((t) => t.cat === i)) {
+      const isUsed = typeof buildRuntimeIsCategoryUsedByTasks === "function"
+        ? buildRuntimeIsCategoryUsedByTasks(tasks, i)
+        : tasks.some((t) => t.cat === i);
+      if (isUsed) {
         const res = await Swal.fire({
           icon: "warning",
           title: categoryEditor.deleteInUseTitle,
@@ -1319,7 +1331,9 @@ function renderCatList() {
         if (!res.isConfirmed) return;
       }
       flushCatNames();
-      tempCats.splice(i, 1);
+      tempCats = typeof buildRuntimeRemoveCategoryDraftAt === "function"
+        ? buildRuntimeRemoveCategoryDraftAt(tempCats, i)
+        : tempCats.filter((_, idx) => idx !== i);
       renderCatList();
     });
     row.appendChild(pickerWrap);
@@ -1372,11 +1386,13 @@ function flushCatNames() {
 function addCat() {
   const categoryEditor = _getCategoryEditorModel();
   flushCatNames();
-  const usedColors = tempCats.map((c) => c.color);
-  const color =
-    CAT_PALETTE.find((c) => !usedColors.includes(c)) ||
-    CAT_PALETTE[tempCats.length % CAT_PALETTE.length];
-  tempCats.push({ name: categoryEditor.newCategoryName, color });
+  tempCats = typeof buildRuntimeCreateNextCategoryDraft === "function"
+    ? buildRuntimeCreateNextCategoryDraft({
+        categories: tempCats,
+        palette: CAT_PALETTE,
+        newCategoryName: categoryEditor.newCategoryName,
+      })
+    : [...tempCats, { name: categoryEditor.newCategoryName, color: CAT_PALETTE[tempCats.length % CAT_PALETTE.length] }];
   renderCatList();
   setTimeout(() => {
     const rows = document.querySelectorAll("#cat-editor-list .cat-row");
@@ -1578,43 +1594,35 @@ function openProjManager() {
     return getProjectPermissions(role).canManageProject;
   };
   const roleLabels = typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS : {};
-  const entries = Object.entries(allProjects || {});
-  const grouped = typeof groupProjectEntriesByAccess === "function"
-    ? groupProjectEntriesByAccess(entries)
-    : { own: entries, shared: [] };
-  const own = grouped.own || [];
-  const shared = grouped.shared || [];
+  const groups = typeof buildRuntimeProjectManagerGroupModel === "function"
+    ? buildRuntimeProjectManagerGroupModel({
+        projects: allProjects || {},
+        currentId,
+        canManageProject: (projectId) => getManagePermission(projectId),
+        getRoleLabel: (role) => typeof getRuntimeProjectRoleLabel === "function"
+          ? getRuntimeProjectRoleLabel(role)
+          : (roleLabels[role] || role),
+        getSharedMetaLine: (access) => typeof buildRuntimeSharedProjectMetaLine === "function"
+          ? buildRuntimeSharedProjectMetaLine(access || null)
+          : projectManagerList.ownProjectMeta,
+      })
+    : { own: [], shared: [] };
 
-  const renderProjectRow = ([id, p]) => {
-    const canManageProjectEntry = getManagePermission(id);
-    const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
-    const roleLabel = typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : (roleLabels[role] || role);
-    const shareLabels = typeof getSharedProjectLabels === "function"
-      ? getSharedProjectLabels(p?._access || null)
-      : {
-          isShared: p?._access?.source === "shared",
-          ownerLabel: p?._access?.ownerName || p?._access?.ownerEmail || "",
-          invitedByLabel: p?._access?.invitedByName || p?._access?.invitedByEmail || "",
-        };
-    const sharedMeta = `<div class="pj-meta">${typeof buildRuntimeSharedProjectMetaLine === "function"
-      ? buildRuntimeSharedProjectMetaLine(p?._access || null)
-      : (shareLabels.isShared
-          ? `${shareLabels.ownerLabel ? `Власник: ${shareLabels.ownerLabel}` : ""}${shareLabels.invitedByLabel ? `${shareLabels.ownerLabel ? " · " : ""}Поділився: ${shareLabels.invitedByLabel}` : ""}`
-          : projectManagerList.ownProjectMeta)}</div>`;
-    return `<div class="pj-row${id === currentId ? " active" : ""}">
+  const renderProjectRow = (row) => {
+    return `<div class="pj-row${row.isActive ? " active" : ""}">
        <div class="pj-main">
-         <input class="pj-name-inp" value="${p.proj.name}" ${canManageProjectEntry ? "" : "disabled"}
-                onchange="${canManageProjectEntry ? `allProjects['${id}'].proj.name=this.value;updateProjSel();` : ""}"
+         <input class="pj-name-inp" value="${row.name}" ${row.canManageProject ? "" : "disabled"}
+                onchange="${row.canManageProject ? `allProjects['${row.id}'].proj.name=this.value;updateProjSel();` : ""}"
                 onclick="event.stopPropagation()">
-         <span class="pj-role-chip pj-role-${role}">${roleLabel}</span>
+         <span class="pj-role-chip pj-role-${row.role}">${row.roleLabel}</span>
        </div>
        <div class="pj-sub">
-         <span class="pj-tasks-count">${projectManagerList.tasksCountLabel(p.tasks?.length || 0)}</span>
-         ${sharedMeta}
+         <span class="pj-tasks-count">${projectManagerList.tasksCountLabel(row.tasksCount || 0)}</span>
+         <div class="pj-meta">${row.sharedMetaLine || projectManagerList.ownProjectMeta}</div>
        </div>
        ${
-          canManageProjectEntry
-            ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${id}')" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
+          row.canManageProject
+            ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${row.id}')" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
             : ""
         }
       </div>`;
@@ -1629,8 +1637,8 @@ function openProjManager() {
       : "";
 
   document.getElementById("proj-list-el").innerHTML = [
-    renderGroup(projectManagerList.ownGroupTitle, own),
-    renderGroup(projectManagerList.sharedGroupTitle, shared),
+    renderGroup(projectManagerList.ownGroupTitle, groups.own || []),
+    renderGroup(projectManagerList.sharedGroupTitle, groups.shared || []),
   ].join("");
   lucide.createIcons({ nodes: [document.getElementById("proj-list-el")] });
   document.getElementById("projmgr-modal").style.display = "flex";

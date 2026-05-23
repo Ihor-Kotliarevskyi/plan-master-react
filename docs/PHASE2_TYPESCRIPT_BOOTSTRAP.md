@@ -28,6 +28,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/account-section-ui.ts`
   - `src/domain/modal.ts`
   - `src/domain/modal-orchestration.ts`
+  - `src/domain/modal-panels.ts`
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
@@ -118,6 +119,11 @@ and Supabase adapters happen against stable interfaces.
   - task modal save-model construction
   - task save apply/update orchestration
   - task remove-at mutation helper
+  - note add/edit/delete state mutation
+  - visible note-count calculation
+  - category draft cloning/add/remove helpers
+  - category-in-use detection
+  - project manager grouped row projection
   - modal phase/date conversion helpers
   - weighted progress and active-phase resolution
   - task cost summary calculation for modal footer
