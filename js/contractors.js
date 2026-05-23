@@ -1205,7 +1205,7 @@ function _contractorFindContract(contractId, fallbackSupplier = "", taskIndex = 
 
 function _contractorActOptions(item, selectedAct = "") {
   const acts = item?.acts || [];
-  return `<option value="">Без акту</option>${acts
+  return `<option value="">${_ctEsc(CONTRACTOR_UI.noActOptionLabel)}</option>${acts
     .map((act) => `<option value="${_ctAttr(act.id || act.name)}"${String(selectedAct) === String(act.id || act.name) || selectedAct === act.name ? " selected" : ""}>${_ctEsc(_contractorActLabel(act))}</option>`)
     .join("")}`;
 }
@@ -1249,13 +1249,13 @@ async function editContractorPayment(path) {
     width: 820,
     html: `
       <div class="swal-form-grid">
-        <label class="swal-span-2">Договір
+        <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
           <select id="pay-edit-contract" class="swal2-input contractor-contract-select" onchange="syncPaymentEditActs('${_ctAttr(currentName)}')">${contractOptions}</select>
         </label>
-        <label>Дата платежу<input id="pay-edit-date" type="date" class="swal2-input" value="${_ctAttr(payment.date || "")}"></label>
-        <label>Сума платежу<input id="pay-edit-amount" type="number" min="0" step="100" class="swal2-input" value="${_ctAttr(payment.amount || 0)}"></label>
-        <label class="swal-span-2">Згідно акту<select id="pay-edit-act" class="swal2-input">${_contractorActOptions(selectedContractItem, payment.actId || payment.actNo)}</select></label>
-        <label class="swal-span-2">Примітка<input id="pay-edit-note" class="swal2-input" value="${_ctAttr(payment.note || "")}"></label>
+        <label>${CONTRACTOR_UI.paymentDateFieldLabel}<input id="pay-edit-date" type="date" class="swal2-input" value="${_ctAttr(payment.date || "")}"></label>
+        <label>${CONTRACTOR_UI.paymentAmountFieldLabel}<input id="pay-edit-amount" type="number" min="0" step="100" class="swal2-input" value="${_ctAttr(payment.amount || 0)}"></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.paymentActFieldLabel}<select id="pay-edit-act" class="swal2-input">${_contractorActOptions(selectedContractItem, payment.actId || payment.actNo)}</select></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.paymentOrActNoteFieldLabel}<input id="pay-edit-note" class="swal2-input" value="${_ctAttr(payment.note || "")}"></label>
       </div>`,
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
@@ -1541,19 +1541,19 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
     width: 760,
     html: `
       <div class="swal-form-grid">
-        <label class="swal-span-2">Договір
+        <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
           <select id="act-contract" class="swal2-input">
             ${contracts.map(({ item }) => `<option value="${_ctAttr(item.id)}"${pathContract && String(pathContract.item.id) === String(item.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(item))}</option>`).join("")}
           </select>
         </label>
-        <label>Тип акту<select id="act-type" class="swal2-input">
+        <label>${CONTRACTOR_UI.actTypeFieldLabel}<select id="act-type" class="swal2-input">
           ${Object.entries(CONTRACTOR_ACT_TYPES).map(([key, label]) => `<option value="${key}">${label}</option>`).join("")}
         </select></label>
-        <label>Номер акту<input id="act-name" class="swal2-input" placeholder="Акт №"></label>
-        <label>Дата акту<input id="act-date" type="date" class="swal2-input" value="${new Date().toISOString().slice(0, 10)}"></label>
-        <label>Сума акту<input id="act-amount" type="number" min="0" step="100" class="swal2-input"></label>
-        <label class="swal-span-2">Опис товару/послуги<input id="act-item-name" class="swal2-input" value="${_ctAttr(initialItemName)}"></label>
-        <label class="swal-span-2">Примітка<input id="act-note" class="swal2-input"></label>
+        <label>${CONTRACTOR_UI.actNumberFieldLabel}<input id="act-name" class="swal2-input" placeholder="${_ctAttr(CONTRACTOR_UI.actPlaceholder)}"></label>
+        <label>${CONTRACTOR_UI.actDateFieldLabel}<input id="act-date" type="date" class="swal2-input" value="${new Date().toISOString().slice(0, 10)}"></label>
+        <label>${CONTRACTOR_UI.actAmountFieldLabel}<input id="act-amount" type="number" min="0" step="100" class="swal2-input"></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.actItemNameFieldLabel}<input id="act-item-name" class="swal2-input" value="${_ctAttr(initialItemName)}"></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.paymentOrActNoteFieldLabel}<input id="act-note" class="swal2-input"></label>
       </div>`,
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
@@ -1621,19 +1621,19 @@ async function editContractorAct(path) {
     width: 760,
     html: `
       <div class="swal-form-grid">
-        <label class="swal-span-2">Договір
+        <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
           <select id="act-edit-contract" class="swal2-input">
             ${contracts.map(({ item: contract }) => `<option value="${_ctAttr(contract.id)}"${String(contract.id) === String(item.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(contract))}</option>`).join("")}
           </select>
         </label>
-        <label>Тип акту<select id="act-edit-type" class="swal2-input">
+        <label>${CONTRACTOR_UI.actTypeFieldLabel}<select id="act-edit-type" class="swal2-input">
           ${Object.entries(CONTRACTOR_ACT_TYPES).map(([key, label]) => `<option value="${key}"${(act.type || "contract") === key ? " selected" : ""}>${label}</option>`).join("")}
         </select></label>
-        <label>Номер акту<input id="act-edit-name" class="swal2-input" value="${_ctAttr(act.name || "")}"></label>
-        <label>Дата акту<input id="act-edit-date" type="date" class="swal2-input" value="${_ctAttr(act.date || "")}"></label>
-        <label>Сума акту<input id="act-edit-amount" type="number" min="0" step="100" class="swal2-input" value="${_ctAttr(act.amount || 0)}"></label>
-        <label class="swal-span-2">Опис товару/послуги<input id="act-edit-item-name" class="swal2-input" value="${_ctAttr(act.itemName || act.description || item.name || "")}"></label>
-        <label class="swal-span-2">Примітка<input id="act-edit-note" class="swal2-input" value="${_ctAttr(act.note || "")}"></label>
+        <label>${CONTRACTOR_UI.actNumberFieldLabel}<input id="act-edit-name" class="swal2-input" value="${_ctAttr(act.name || "")}"></label>
+        <label>${CONTRACTOR_UI.actDateFieldLabel}<input id="act-edit-date" type="date" class="swal2-input" value="${_ctAttr(act.date || "")}"></label>
+        <label>${CONTRACTOR_UI.actAmountFieldLabel}<input id="act-edit-amount" type="number" min="0" step="100" class="swal2-input" value="${_ctAttr(act.amount || 0)}"></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.actItemNameFieldLabel}<input id="act-edit-item-name" class="swal2-input" value="${_ctAttr(act.itemName || act.description || item.name || "")}"></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.paymentOrActNoteFieldLabel}<input id="act-edit-note" class="swal2-input" value="${_ctAttr(act.note || "")}"></label>
       </div>`,
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
@@ -1723,15 +1723,15 @@ async function openContractorPaymentModal(contractPath = "", actPath = "") {
     width: 760,
     html: `
       <div class="swal-form-grid">
-        <label class="swal-span-2">Договір
+        <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
           <select id="pay-add-contract" class="swal2-input contractor-contract-select" onchange="syncPaymentAddActs('${_ctAttr(supplier)}')">
             ${contracts.map(({ item }) => `<option value="${_ctAttr(item.id)}"${String(selectedId) === String(item.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(item))}</option>`).join("")}
           </select>
         </label>
-        <label>Дата платежу<input id="pay-add-date" type="date" class="swal2-input" value="${new Date().toISOString().slice(0, 10)}"></label>
-        <label>Сума платежу<input id="pay-add-amount" type="number" min="0" step="100" class="swal2-input"></label>
-        <label class="swal-span-2">Згідно акту<select id="pay-add-act" class="swal2-input">${_contractorActOptions(contractEntry.item, selectedAct?.id || selectedAct?.name || "")}</select></label>
-        <label class="swal-span-2">Примітка<input id="pay-add-note" class="swal2-input"></label>
+        <label>${CONTRACTOR_UI.paymentDateFieldLabel}<input id="pay-add-date" type="date" class="swal2-input" value="${new Date().toISOString().slice(0, 10)}"></label>
+        <label>${CONTRACTOR_UI.paymentAmountFieldLabel}<input id="pay-add-amount" type="number" min="0" step="100" class="swal2-input"></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.paymentActFieldLabel}<select id="pay-add-act" class="swal2-input">${_contractorActOptions(contractEntry.item, selectedAct?.id || selectedAct?.name || "")}</select></label>
+        <label class="swal-span-2">${CONTRACTOR_UI.paymentOrActNoteFieldLabel}<input id="pay-add-note" class="swal2-input"></label>
       </div>`,
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
@@ -2487,7 +2487,7 @@ async function _confirmContractorImportMapping(rows) {
         <td class="contractor-import-map-examples" data-field="${field}">${examples || "<span class=\"muted\">-</span>"}</td>
       </tr>`;
   }).join("");
-  const defaultTaskOptions = [`<option value="">Не використовувати</option>`]
+  const defaultTaskOptions = [`<option value="">${_ctEsc(CONTRACTOR_UI.noImportOptionLabel)}</option>`]
     .concat((tasks || []).map((task) => `<option value="${_ctEsc(task.id || String(task.n))}">#${task.n} ${_ctEsc(task.name || "")}</option>`))
     .join("");
   const result = await Swal.fire({
@@ -2536,7 +2536,7 @@ async function _confirmContractorImportMapping(rows) {
 }
 
 function _ctImportSelectOptions(columns, selected) {
-  return `<option value="">Не імпортувати</option>` + columns
+  return `<option value="">${_ctEsc(CONTRACTOR_UI.noImportOptionLabel)}</option>` + columns
     .map((column) => `<option value="${_ctAttr(column)}"${column === selected ? " selected" : ""}>${_ctEsc(column)}</option>`)
     .join("");
 }
@@ -2731,7 +2731,7 @@ async function _confirmContractorImport(preview) {
   const hasImportableRows = preview.itemsCreated > 0 || preview.itemsUpdated > 0 || preview.paymentsAdded > 0;
   const result = await Swal.fire({
     icon: preview.warnings.length ? "warning" : "question",
-    title: "Перевірка імпорту",
+    title: CONTRACTOR_UI.importReviewTitle,
     width: 760,
     customClass: {
       popup: "contractor-import-modal",
@@ -2753,8 +2753,8 @@ async function _confirmContractorImport(preview) {
         ${preview.warnings.length ? `<div class="contractor-import-warnings"><b>Попередження</b><ul>${issueList}${more}</ul></div>` : ""}
       </div>`,
     showCancelButton: hasImportableRows,
-    confirmButtonText: hasImportableRows ? "Імпортувати" : "OK",
-    cancelButtonText: "Скасувати",
+    confirmButtonText: hasImportableRows ? CONTRACTOR_UI.importLabel : CONTRACTOR_UI.importOkLabel,
+    cancelButtonText: CONTRACTOR_UI.cancelLabel,
   });
   return hasImportableRows && result.isConfirmed;
 }
@@ -2880,15 +2880,15 @@ async function _confirmContractorImport(preview) {
   const reviewEntries = preview.entries || [];
   const issueEntries = reviewEntries.filter((entry) => entry.issues.length);
   const filterCards = [
-    ["all", summary.processed, "рядків"],
-    ["contractors", summary.contractors, "контрагентів"],
-    ["tasks", summary.affectedTasks, "робіт"],
-    ["created", summary.itemsCreated, "нових позицій"],
-    ["updated", summary.itemsUpdated, "оновлень"],
-    ["payments", summary.paymentsAdded, "платежів"],
-    ["duplicates", summary.duplicates, "дублікатів"],
-    ["skipped", summary.skipped, "пропусків"],
-    ["issues", issueEntries.length, "проблем"],
+    ["all", summary.processed, CONTRACTOR_UI.importFilterRowsLabel],
+    ["contractors", summary.contractors, CONTRACTOR_UI.importFilterContractorsLabel],
+    ["tasks", summary.affectedTasks, CONTRACTOR_UI.importFilterTasksLabel],
+    ["created", summary.itemsCreated, CONTRACTOR_UI.importFilterCreatedLabel],
+    ["updated", summary.itemsUpdated, CONTRACTOR_UI.importFilterUpdatedLabel],
+    ["payments", summary.paymentsAdded, CONTRACTOR_UI.importFilterPaymentsLabel],
+    ["duplicates", summary.duplicates, CONTRACTOR_UI.importFilterDuplicatesLabel],
+    ["skipped", summary.skipped, CONTRACTOR_UI.importFilterSkippedLabel],
+    ["issues", issueEntries.length, CONTRACTOR_UI.importFilterIssuesLabel],
   ];
   const hasDecisionOptions = issueEntries.some((entry) => entry.rowDecisionOptions?.length || entry.paymentDecisionOptions?.length);
   const hasImportableRows = summary.itemsCreated > 0 || summary.itemsUpdated > 0 || summary.paymentsAdded > 0 || hasDecisionOptions;
@@ -2909,19 +2909,19 @@ async function _confirmContractorImport(preview) {
               <b>${count}</b><span>${label}</span>
             </button>`).join("")}
         </div>
-        ${summary.fallbackTaskUsed ? `<div class="contractor-import-warnings"><b>Примітка</b><ul><li>Частина рядків без роботи буде прив’язана до типової імпортної роботи.</li></ul></div>` : ""}
+        ${summary.fallbackTaskUsed ? `<div class="contractor-import-warnings"><b>${CONTRACTOR_UI.importReviewNoteTitle}</b><ul><li>${CONTRACTOR_UI.importReviewFallbackTaskNote}</li></ul></div>` : ""}
         ${reviewEntries.length ? `
           <div class="contractor-import-warnings">
-            <b>Рядки імпорту</b>
+            <b>${CONTRACTOR_UI.importReviewRowsTitle}</b>
             <table class="contractor-import-review-table">
               <thead>
                 <tr>
-                  <th>Рядок</th>
-                  <th>Контрагент</th>
-                  <th>Позиція</th>
-                  <th>Платіж</th>
-                  <th>Проблема</th>
-                  <th>Дія</th>
+                  <th>${CONTRACTOR_UI.importReviewRefHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewSupplierHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewPositionHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewPaymentHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewIssueHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewActionHeader}</th>
                 </tr>
               </thead>
               <tbody>${reviewEntries.map((entry) => _ctRenderImportIssueRow(entry)).join("")}</tbody>
@@ -2958,7 +2958,7 @@ async function _confirmContractorImport(preview) {
       updatedEntries.forEach(_ctNormalizeImportDecisionEntry);
       const nextSummary = _ctSummarizeContractorImportPlan(updatedEntries, preview.processed || 0);
       if (!nextSummary.itemsCreated && !nextSummary.itemsUpdated && !nextSummary.paymentsAdded) {
-        Swal.showValidationMessage("Немає змін для імпорту");
+        Swal.showValidationMessage(CONTRACTOR_UI.importNoChangesValidation);
         return false;
       }
       return { ...preview, ...nextSummary, entries: updatedEntries };
@@ -3236,8 +3236,8 @@ function _ctBuildContractorImportEntry(source, entryIndex, ctx) {
     if (!entry.issues.length) entry.issues.push(`${entry.ref}: роботу або позицію не вдалося визначити`);
     if (canCreateFallback) {
       entry.rowDecisionOptions = [
-        { value: "skip", label: "Пропустити рядок" },
-        { value: entry.taskRef ? "importCreate" : "importFallback", label: entry.taskRef ? "Створити нову позицію" : "Імпортувати в типову роботу" },
+        { value: "skip", label: CONTRACTOR_UI.importSkipRowLabel },
+        { value: entry.taskRef ? "importCreate" : "importFallback", label: entry.taskRef ? CONTRACTOR_UI.importCreateItemLabel : CONTRACTOR_UI.importFallbackTaskLabel },
       ];
     }
     return entry;
@@ -3252,8 +3252,8 @@ function _ctBuildContractorImportEntry(source, entryIndex, ctx) {
     if (!entry.paymentDateRaw) {
       entry.paymentDecision = "skip";
       entry.paymentDecisionOptions = [
-        { value: "skip", label: "Імпортувати рядок без платежу" },
-        { value: "importToday", label: "Імпортувати платіж з поточною датою" },
+        { value: "skip", label: CONTRACTOR_UI.importSkipWithoutPaymentLabel },
+        { value: "importToday", label: CONTRACTOR_UI.importUseTodayPaymentLabel },
       ];
       entry.issues.push(`${entry.ref}: платіж ${fmtM(entry.paymentAmount)} без дати`);
     } else {
@@ -3271,8 +3271,8 @@ function _ctBuildContractorImportEntry(source, entryIndex, ctx) {
         entry.duplicatePayment = true;
         entry.paymentDecision = "skip";
         entry.paymentDecisionOptions = [
-          { value: "skip", label: "Пропустити дублікат" },
-          { value: "import", label: "Імпортувати все одно" },
+          { value: "skip", label: CONTRACTOR_UI.importSkipDuplicateLabel },
+          { value: "import", label: CONTRACTOR_UI.importForcePaymentLabel },
         ];
         entry.issues.push(`${entry.ref}: у контрагента вже є такий платіж`);
       } else {
@@ -3287,8 +3287,8 @@ function _ctBuildContractorImportEntry(source, entryIndex, ctx) {
 
   if (entry.issues.length && entry.rowDecision === "import") {
     entry.rowDecisionOptions = [
-      { value: "import", label: "Імпортувати рядок" },
-      { value: "skip", label: "Пропустити рядок" },
+      { value: "import", label: CONTRACTOR_UI.importRowDecisionLabel },
+      { value: "skip", label: CONTRACTOR_UI.importSkipRowLabel },
     ];
   }
 
@@ -3448,9 +3448,9 @@ function _ctRenderImportDecisionControl(entry) {
     </select>`);
   }
   if (controls.length) return `<div class="contractor-import-decision-stack">${controls.join("")}</div>`;
-  if (entry.rowDecision !== "import") return `<span class="contractor-import-issue-note">Пропустити</span>`;
-  if (entry.paymentDecision === "skip") return `<span class="contractor-import-issue-note">Імпортувати рядок без платежу</span>`;
-  return `<span class="contractor-import-issue-note">Авто</span>`;
+  if (entry.rowDecision !== "import") return `<span class="contractor-import-issue-note">${_ctEsc(CONTRACTOR_UI.importSkipLabel)}</span>`;
+  if (entry.paymentDecision === "skip") return `<span class="contractor-import-issue-note">${_ctEsc(CONTRACTOR_UI.importSkipWithoutPaymentLabel)}</span>`;
+  return `<span class="contractor-import-issue-note">${_ctEsc(CONTRACTOR_UI.importAutoLabel)}</span>`;
 }
 
 function _ctResolveEntryTask(entry) {

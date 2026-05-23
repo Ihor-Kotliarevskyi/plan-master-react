@@ -102,6 +102,48 @@ export interface ContractorTableLabels {
   importReviewTitle: string;
   importLabel: string;
   importOkLabel: string;
+  noImportOptionLabel: string;
+  noActOptionLabel: string;
+  contractFieldLabel: string;
+  paymentDateFieldLabel: string;
+  paymentAmountFieldLabel: string;
+  paymentActFieldLabel: string;
+  actTypeFieldLabel: string;
+  actNumberFieldLabel: string;
+  actDateFieldLabel: string;
+  actAmountFieldLabel: string;
+  actItemNameFieldLabel: string;
+  paymentOrActNoteFieldLabel: string;
+  actPlaceholder: string;
+  importReviewRowsTitle: string;
+  importReviewNoteTitle: string;
+  importReviewFallbackTaskNote: string;
+  importReviewRefHeader: string;
+  importReviewSupplierHeader: string;
+  importReviewPositionHeader: string;
+  importReviewPaymentHeader: string;
+  importReviewIssueHeader: string;
+  importReviewActionHeader: string;
+  importFilterRowsLabel: string;
+  importFilterContractorsLabel: string;
+  importFilterTasksLabel: string;
+  importFilterCreatedLabel: string;
+  importFilterUpdatedLabel: string;
+  importFilterPaymentsLabel: string;
+  importFilterDuplicatesLabel: string;
+  importFilterSkippedLabel: string;
+  importFilterIssuesLabel: string;
+  importSkipRowLabel: string;
+  importCreateItemLabel: string;
+  importFallbackTaskLabel: string;
+  importSkipWithoutPaymentLabel: string;
+  importUseTodayPaymentLabel: string;
+  importSkipDuplicateLabel: string;
+  importForcePaymentLabel: string;
+  importRowDecisionLabel: string;
+  importSkipLabel: string;
+  importAutoLabel: string;
+  importNoChangesValidation: string;
   editPaymentTitle: (name: string) => string;
   deletePaymentTitlePrompt: string;
   addActTitleWithSupplier: (supplier: string) => string;
@@ -237,6 +279,48 @@ export function buildContractorTableLabels(): ContractorTableLabels {
     importReviewTitle: "Перевірка імпорту",
     importLabel: "Імпортувати",
     importOkLabel: "OK",
+    noImportOptionLabel: "Не імпортувати",
+    noActOptionLabel: "Без акту",
+    contractFieldLabel: "Договір",
+    paymentDateFieldLabel: "Дата платежу",
+    paymentAmountFieldLabel: "Сума платежу",
+    paymentActFieldLabel: "Згідно акту",
+    actTypeFieldLabel: "Тип акту",
+    actNumberFieldLabel: "Номер акту",
+    actDateFieldLabel: "Дата акту",
+    actAmountFieldLabel: "Сума акту",
+    actItemNameFieldLabel: "Опис товару/послуги",
+    paymentOrActNoteFieldLabel: "Примітка",
+    actPlaceholder: "Акт №",
+    importReviewRowsTitle: "Рядки імпорту",
+    importReviewNoteTitle: "Примітка",
+    importReviewFallbackTaskNote: "Частина рядків без роботи буде прив’язана до типової імпортної роботи.",
+    importReviewRefHeader: "Рядок",
+    importReviewSupplierHeader: "Контрагент",
+    importReviewPositionHeader: "Позиція",
+    importReviewPaymentHeader: "Платіж",
+    importReviewIssueHeader: "Проблема",
+    importReviewActionHeader: "Дія",
+    importFilterRowsLabel: "рядків",
+    importFilterContractorsLabel: "контрагентів",
+    importFilterTasksLabel: "робіт",
+    importFilterCreatedLabel: "нових позицій",
+    importFilterUpdatedLabel: "оновлень",
+    importFilterPaymentsLabel: "платежів",
+    importFilterDuplicatesLabel: "дублікатів",
+    importFilterSkippedLabel: "пропусків",
+    importFilterIssuesLabel: "проблем",
+    importSkipRowLabel: "Пропустити рядок",
+    importCreateItemLabel: "Створити нову позицію",
+    importFallbackTaskLabel: "Імпортувати в типову роботу",
+    importSkipWithoutPaymentLabel: "Імпортувати рядок без платежу",
+    importUseTodayPaymentLabel: "Імпортувати платіж з поточною датою",
+    importSkipDuplicateLabel: "Пропустити дублікат",
+    importForcePaymentLabel: "Імпортувати все одно",
+    importRowDecisionLabel: "Імпортувати рядок",
+    importSkipLabel: "Пропустити",
+    importAutoLabel: "Авто",
+    importNoChangesValidation: "Немає змін для імпорту",
     editPaymentTitle: (name: string) => `Редагувати платіж: ${name}`,
     deletePaymentTitlePrompt: "Видалити платіж?",
     addActTitleWithSupplier: (supplier: string) => `Додати акт: ${supplier}`,

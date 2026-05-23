@@ -252,6 +252,11 @@ and Supabase adapters happen against stable interfaces.
   - saved payment-register snapshot creation
   - payment-register lookup by id
   - payment register filter-summary text
+  - payment and act modal field labels
+  - contractor import mapping default-option labels
+  - contractor import review filter and table labels
+  - contractor import decision labels
+  - import-review validation copy
 - `js/api.js` now uses the generated helper layer for:
   - auth modal labels and submit copy
   - auth success/error/logout prompt copy

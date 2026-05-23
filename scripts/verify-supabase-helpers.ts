@@ -1244,6 +1244,10 @@ assert.equal(contractorSelectionLabels.showSelectionLabel, "Вибрати");
 assert.equal(contractorSelectionLabels.deleteSelectedLabel, "Видалити вибраних");
 
 const contractorTableLabels = buildContractorTableLabels();
+assert.equal(contractorTableLabels.noActOptionLabel.length > 0, true);
+assert.equal(contractorTableLabels.importSkipRowLabel.length > 0, true);
+assert.equal(contractorTableLabels.importNoChangesValidation.length > 0, true);
+assert.equal(contractorTableLabels.importReviewActionHeader.length > 0, true);
 assert.equal(contractorTableLabels.emptyContractorName, "Без контрагента");
 assert.equal(contractorTableLabels.paymentsCountHeader, "Платежів");
 assert.equal(contractorTableLabels.emDash, "—");
