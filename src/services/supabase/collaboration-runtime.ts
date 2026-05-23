@@ -38,6 +38,16 @@ export interface ActivityLogReadRequest {
   limit: number;
 }
 
+export interface SupabaseCollaborationErrorMessages {
+  invitePermissionDenied: string;
+  manageAccessPermissionDenied: string;
+  removeAccessPermissionDenied: string;
+  emptyEmail: string;
+  unsupportedRole: string;
+  userNotFound: string;
+  ownerAlreadyHasAccess: string;
+}
+
 export function buildActivityWriteRequest(params: {
   projectId: string;
   actorId: string;
@@ -76,10 +86,10 @@ export function normalizeShareGrantInput(
   isShareableRole: (role: string) => boolean,
 ): ShareGrantInput {
   const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) throw new Error("Enter email.");
+  if (!normalizedEmail) throw new Error(buildSupabaseCollaborationErrorMessages().emptyEmail);
 
   const normalizedRole = normalizeProjectRole(role);
-  if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
+  if (!isShareableRole(normalizedRole)) throw new Error(buildSupabaseCollaborationErrorMessages().unsupportedRole);
 
   return {
     normalizedEmail,
@@ -117,10 +127,10 @@ export function buildShareLookupRequest(email: string): ShareLookupRequest {
 
 export function resolveShareTargetUser(targetUserId: string | null, authUserId: string): string {
   if (!targetUserId) {
-    throw new Error("User with this email was not found. They need to register first.");
+    throw new Error(buildSupabaseCollaborationErrorMessages().userNotFound);
   }
   if (targetUserId === authUserId) {
-    throw new Error("You already have access to this project as the owner.");
+    throw new Error(buildSupabaseCollaborationErrorMessages().ownerAlreadyHasAccess);
   }
   return targetUserId;
 }
@@ -133,7 +143,7 @@ export function buildShareUpsertOptions() {
 
 export function buildShareRoleUpdateRequest(role: string, isShareableRole: (role: string) => boolean) {
   const normalizedRole = normalizeProjectRole(role);
-  if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
+  if (!isShareableRole(normalizedRole)) throw new Error(buildSupabaseCollaborationErrorMessages().unsupportedRole);
   return buildProjectShareRoleUpdatePayload(normalizedRole);
 }
 
@@ -167,5 +177,17 @@ export function buildActivityLogReadRequest(projectId: string, limit: number): A
   return {
     projectId,
     limit: resolveActivityLogLimit(limit),
+  };
+}
+
+export function buildSupabaseCollaborationErrorMessages(): SupabaseCollaborationErrorMessages {
+  return {
+    invitePermissionDenied: "You do not have permission to invite users.",
+    manageAccessPermissionDenied: "You do not have permission to manage access.",
+    removeAccessPermissionDenied: "You do not have permission to remove access.",
+    emptyEmail: "Enter email.",
+    unsupportedRole: "Unsupported access role.",
+    userNotFound: "User with this email was not found. They need to register first.",
+    ownerAlreadyHasAccess: "You already have access to this project as the owner.",
   };
 }

@@ -2975,6 +2975,12 @@
     }
     return dbUpdates;
   }
+  function buildSupabaseAccountErrorMessages() {
+    return {
+      missingConfig: "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+      emailConfirmationRequired: "Check your email to confirm registration."
+    };
+  }
 
   // src/services/supabase/auth-runtime.ts
   function resetSupabaseAuthState() {
@@ -3091,9 +3097,9 @@
   }
   function normalizeShareGrantInput(email, role, isShareableRole) {
     const normalizedEmail = String(email || "").trim().toLowerCase();
-    if (!normalizedEmail) throw new Error("Enter email.");
+    if (!normalizedEmail) throw new Error(buildSupabaseCollaborationErrorMessages().emptyEmail);
     const normalizedRole = normalizeProjectRole(role);
-    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
+    if (!isShareableRole(normalizedRole)) throw new Error(buildSupabaseCollaborationErrorMessages().unsupportedRole);
     return {
       normalizedEmail,
       normalizedRole
@@ -3121,10 +3127,10 @@
   }
   function resolveShareTargetUser(targetUserId, authUserId) {
     if (!targetUserId) {
-      throw new Error("User with this email was not found. They need to register first.");
+      throw new Error(buildSupabaseCollaborationErrorMessages().userNotFound);
     }
     if (targetUserId === authUserId) {
-      throw new Error("You already have access to this project as the owner.");
+      throw new Error(buildSupabaseCollaborationErrorMessages().ownerAlreadyHasAccess);
     }
     return targetUserId;
   }
@@ -3135,7 +3141,7 @@
   }
   function buildShareRoleUpdateRequest(role, isShareableRole) {
     const normalizedRole = normalizeProjectRole(role);
-    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
+    if (!isShareableRole(normalizedRole)) throw new Error(buildSupabaseCollaborationErrorMessages().unsupportedRole);
     return buildProjectShareRoleUpdatePayload(normalizedRole);
   }
   function buildShareRoleUpdateResult(role) {
@@ -3163,6 +3169,17 @@
     return {
       projectId,
       limit: resolveActivityLogLimit(limit)
+    };
+  }
+  function buildSupabaseCollaborationErrorMessages() {
+    return {
+      invitePermissionDenied: "You do not have permission to invite users.",
+      manageAccessPermissionDenied: "You do not have permission to manage access.",
+      removeAccessPermissionDenied: "You do not have permission to remove access.",
+      emptyEmail: "Enter email.",
+      unsupportedRole: "Unsupported access role.",
+      userNotFound: "User with this email was not found. They need to register first.",
+      ownerAlreadyHasAccess: "You already have access to this project as the owner."
     };
   }
 
@@ -3314,6 +3331,7 @@
     buildRuntimeAuthRedirectUrl: buildAuthRedirectUrl,
     buildRuntimeSupabaseRegisterRequest: buildSupabaseRegisterRequest,
     buildRuntimeSupabaseLoginRequest: buildSupabaseLoginRequest,
+    buildRuntimeSupabaseAccountErrorMessages: buildSupabaseAccountErrorMessages,
     buildRuntimeSupabaseProfileSelectRequest: buildSupabaseProfileSelectRequest,
     buildRuntimeSupabaseProfileUpdatePayload: buildSupabaseProfileUpdatePayload,
     buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
@@ -3338,6 +3356,7 @@
     buildRuntimeBuildShareGrantRequest: buildShareGrantRequest,
     buildRuntimeBuildShareGrantResult: buildShareGrantResult,
     buildRuntimeBuildShareUpsertOptions: buildShareUpsertOptions,
+    buildRuntimeSupabaseCollaborationErrorMessages: buildSupabaseCollaborationErrorMessages,
     buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
     buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
     buildRuntimeBuildShareListRpcRequest: buildShareListRpcRequest,

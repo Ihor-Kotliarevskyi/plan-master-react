@@ -27,6 +27,11 @@ export interface SupabaseProfileUpdatePayload {
   default_nm?: number;
 }
 
+export interface SupabaseAccountErrorMessages {
+  missingConfig: string;
+  emailConfirmationRequired: string;
+}
+
 export function buildAuthRedirectUrl(origin: string, pathname: string): string {
   return `${origin}${pathname}`;
 }
@@ -80,4 +85,11 @@ export function buildSupabaseProfileUpdatePayload(updates: {
     if (updates.defaults.nm !== undefined) dbUpdates.default_nm = updates.defaults.nm;
   }
   return dbUpdates;
+}
+
+export function buildSupabaseAccountErrorMessages(): SupabaseAccountErrorMessages {
+  return {
+    missingConfig: "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+    emailConfirmationRequired: "Check your email to confirm registration.",
+  };
 }

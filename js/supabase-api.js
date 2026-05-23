@@ -10,7 +10,12 @@ const SUPABASE_URL = SUPABASE_ENV.SUPABASE_URL || "";
 const SUPABASE_KEY = SUPABASE_ENV.SUPABASE_PUBLISHABLE_KEY || "";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  throw new Error("Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.");
+  const accountErrors = typeof buildRuntimeSupabaseAccountErrorMessages === "function"
+    ? buildRuntimeSupabaseAccountErrorMessages()
+    : {
+        missingConfig: "Missing Supabase configuration. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY.",
+      };
+  throw new Error(accountErrors.missingConfig);
 }
 
 const { createClient } = supabase;
@@ -64,7 +69,14 @@ async function apiRegister(name, email, password) {
       };
   const { data, error } = await sb.auth.signUp(registerRequest);
   if (error) throw new Error(error.message);
-  if (!data.user) throw new Error("Check your email to confirm registration.");
+  if (!data.user) {
+    const accountErrors = typeof buildRuntimeSupabaseAccountErrorMessages === "function"
+      ? buildRuntimeSupabaseAccountErrorMessages()
+      : {
+          emailConfirmationRequired: "Check your email to confirm registration.",
+        };
+    throw new Error(accountErrors.emailConfirmationRequired);
+  }
   _sbUser = data.user;
   const profile = await _loadProfile();
   const hydrated = typeof buildRuntimeHydratedAuthState === "function"
@@ -603,7 +615,12 @@ async function apiShareProject(email, role = "viewer") {
   const authUser = await _getCurrentAuthUser();
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return;
-  if (!canInviteUsers()) throw new Error("You do not have permission to invite users.");
+  const collaborationErrors = typeof buildRuntimeSupabaseCollaborationErrorMessages === "function"
+    ? buildRuntimeSupabaseCollaborationErrorMessages()
+    : {
+        invitePermissionDenied: "You do not have permission to invite users.",
+      };
+  if (!canInviteUsers()) throw new Error(collaborationErrors.invitePermissionDenied);
 
   const shareGrantInput = typeof buildRuntimeNormalizeShareGrantInput === "function"
     ? buildRuntimeNormalizeShareGrantInput(email, role, isShareableProjectRole)
@@ -661,7 +678,12 @@ async function apiShareProject(email, role = "viewer") {
 }
 
 async function apiUpdateShareRole(shareId, role) {
-  if (!canManageShares()) throw new Error("You do not have permission to manage access.");
+  const collaborationErrors = typeof buildRuntimeSupabaseCollaborationErrorMessages === "function"
+    ? buildRuntimeSupabaseCollaborationErrorMessages()
+    : {
+        manageAccessPermissionDenied: "You do not have permission to manage access.",
+      };
+  if (!canManageShares()) throw new Error(collaborationErrors.manageAccessPermissionDenied);
 
   const shareRoleUpdateRequest = typeof buildRuntimeBuildShareRoleUpdateRequest === "function"
     ? buildRuntimeBuildShareRoleUpdateRequest(role, isShareableProjectRole)
@@ -684,7 +706,12 @@ async function apiUpdateShareRole(shareId, role) {
 }
 
 async function apiRemoveShare(shareId) {
-  if (!canManageShares()) throw new Error("You do not have permission to remove access.");
+  const collaborationErrors = typeof buildRuntimeSupabaseCollaborationErrorMessages === "function"
+    ? buildRuntimeSupabaseCollaborationErrorMessages()
+    : {
+        removeAccessPermissionDenied: "You do not have permission to remove access.",
+      };
+  if (!canManageShares()) throw new Error(collaborationErrors.removeAccessPermissionDenied);
   const shareRemoveRequest = typeof buildRuntimeBuildShareRemoveRequest === "function"
     ? buildRuntimeBuildShareRemoveRequest(shareId)
     : { shareId };

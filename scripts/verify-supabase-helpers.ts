@@ -246,6 +246,7 @@ import {
 import {
   buildAuthRedirectUrl,
   buildSupabaseLoginRequest,
+  buildSupabaseAccountErrorMessages,
   buildSupabaseProfileSelectRequest,
   buildSupabaseProfileUpdatePayload,
   buildSupabaseRegisterRequest,
@@ -284,6 +285,7 @@ import {
   buildShareGrantRequest,
   buildShareGrantResult,
   buildShareLookupRequest,
+  buildSupabaseCollaborationErrorMessages,
   buildShareRemoveRequest,
   buildShareRoleUpdateRequest,
   buildShareRoleUpdateResult,
@@ -387,6 +389,7 @@ assert.equal(buildFallbackSyncIndicatorPlan().timeoutMs, 1800);
 assert.equal(buildFallbackHttpRequestOptions("token-1").headers.Authorization, "Bearer token-1");
 assert.equal(resolveFallbackHttpOutcome(401, { expired: true }).kind, "session_expired");
 assert.equal(resolveFallbackHttpOutcome(500, { error: "Boom" }).message, "Boom");
+assert.equal(buildSupabaseAccountErrorMessages().emailConfirmationRequired, "Check your email to confirm registration.");
 const fallbackAuthModalRenderModel = buildFallbackAuthModalRenderModel("register", buildApiUiModel().auth);
 assert.equal(fallbackAuthModalRenderModel.showNameField, true);
 assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.registerSubmitLabel);
@@ -712,6 +715,7 @@ assert.equal(shareGrantRequest.user_id, "user-2");
 assert.equal(buildShareGrantResult("user-2", "user@example.com", "viewer").email, "user@example.com");
 assert.equal(buildShareLookupRequest("user@example.com").p_email, "user@example.com");
 assert.equal(resolveShareTargetUser("user-2", "owner-1"), "user-2");
+assert.equal(buildSupabaseCollaborationErrorMessages().invitePermissionDenied, "You do not have permission to invite users.");
 assert.equal(buildShareUpsertOptions().onConflict, "project_id,user_id");
 assert.equal(buildShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
 assert.equal(buildShareRoleUpdateResult("admin"), "manager");

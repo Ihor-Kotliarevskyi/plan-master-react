@@ -118,6 +118,7 @@ and Supabase adapters happen against stable interfaces.
   - created snapshot server-id/owner-role update
   - auth redirect URL construction
   - register/login request construction
+  - account-level configuration and confirmation error messages
   - profile select/update request construction
   - auth-state reset and hydration model
   - logout sync-decision
@@ -131,6 +132,7 @@ and Supabase adapters happen against stable interfaces.
   - activity write request model
   - activity read request model
   - share grant normalization/request/result
+  - collaboration permission and lookup error messages
   - share lookup/target validation/upsert options
   - share role update request/result
   - share list RPC/fallback request models
