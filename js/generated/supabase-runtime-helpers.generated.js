@@ -2846,6 +2846,25 @@
       role
     };
   }
+  function buildShareLookupRequest(email) {
+    return {
+      p_email: email
+    };
+  }
+  function resolveShareTargetUser(targetUserId, authUserId) {
+    if (!targetUserId) {
+      throw new Error("User with this email was not found. They need to register first.");
+    }
+    if (targetUserId === authUserId) {
+      throw new Error("You already have access to this project as the owner.");
+    }
+    return targetUserId;
+  }
+  function buildShareUpsertOptions() {
+    return {
+      onConflict: "project_id,user_id"
+    };
+  }
   function buildShareRoleUpdateRequest(role, isShareableRole) {
     const normalizedRole = normalizeProjectRole(role);
     if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
@@ -2854,8 +2873,29 @@
   function buildShareRoleUpdateResult(role) {
     return normalizeProjectRole(role);
   }
+  function buildShareListRpcRequest(projectId) {
+    return {
+      p_project_id: projectId
+    };
+  }
+  function buildShareListFallbackRequest(projectId) {
+    return {
+      projectId
+    };
+  }
+  function buildShareRemoveRequest(shareId) {
+    return {
+      shareId
+    };
+  }
   function resolveActivityLogLimit(limit) {
     return Math.max(1, Math.min(500, Number(limit) || 100));
+  }
+  function buildActivityLogReadRequest(projectId, limit) {
+    return {
+      projectId,
+      limit: resolveActivityLogLimit(limit)
+    };
   }
 
   // src/services/supabase/ui-runtime.ts
@@ -2950,11 +2990,18 @@
     buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
     buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
     buildRuntimeSupabaseActivityWriteRequest: buildActivityWriteRequest,
+    buildRuntimeSupabaseActivityLogReadRequest: buildActivityLogReadRequest,
     buildRuntimeNormalizeShareGrantInput: normalizeShareGrantInput,
+    buildRuntimeBuildShareLookupRequest: buildShareLookupRequest,
+    buildRuntimeResolveShareTargetUser: resolveShareTargetUser,
     buildRuntimeBuildShareGrantRequest: buildShareGrantRequest,
     buildRuntimeBuildShareGrantResult: buildShareGrantResult,
+    buildRuntimeBuildShareUpsertOptions: buildShareUpsertOptions,
     buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
     buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
+    buildRuntimeBuildShareListRpcRequest: buildShareListRpcRequest,
+    buildRuntimeBuildShareListFallbackRequest: buildShareListFallbackRequest,
+    buildRuntimeBuildShareRemoveRequest: buildShareRemoveRequest,
     buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
     buildRuntimeResolveLoadedProjectRole: resolveLoadedProjectRole,
     buildRuntimeProjectTasksRpcRequest: buildProjectTasksRpcRequest,

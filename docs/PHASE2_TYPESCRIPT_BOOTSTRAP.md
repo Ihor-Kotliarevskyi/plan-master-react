@@ -119,8 +119,12 @@ and Supabase adapters happen against stable interfaces.
   - share success toast models
   - sync-indicator timing plan
   - activity write request model
+  - activity read request model
   - share grant normalization/request/result
+  - share lookup/target validation/upsert options
   - share role update request/result
+  - share list RPC/fallback request models
+  - share remove request model
   - activity log limit resolution
   - loaded-project role resolution
   - project create/sync request construction

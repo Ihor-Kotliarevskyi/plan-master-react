@@ -562,17 +562,21 @@ async function apiGetShares() {
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return [];
 
-  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", {
-    p_project_id: serverId,
-  });
+  const shareListRpcRequest = typeof buildRuntimeBuildShareListRpcRequest === "function"
+    ? buildRuntimeBuildShareListRpcRequest(serverId)
+    : { p_project_id: serverId };
+  const { data: rpcShares, error: rpcSharesError } = await sb.rpc("list_project_shares", shareListRpcRequest);
   if (!rpcSharesError && Array.isArray(rpcShares)) {
     return rpcShares.map(mapSupabaseShareRecord);
   }
 
+  const shareListFallbackRequest = typeof buildRuntimeBuildShareListFallbackRequest === "function"
+    ? buildRuntimeBuildShareListFallbackRequest(serverId)
+    : { projectId: serverId };
   const { data, error } = await sb
     .from("project_shares")
     .select("id, role, user_id, created_at")
-    .eq("project_id", serverId)
+    .eq("project_id", shareListFallbackRequest.projectId)
     .order("created_at", { ascending: true });
 
   if (error) return [];
@@ -594,45 +598,50 @@ async function apiShareProject(email, role = "viewer") {
   const shareRole = shareGrantInput.normalizedRole;
   const normalizedEmail = shareGrantInput.normalizedEmail;
 
-  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", {
-    p_email: normalizedEmail,
-  });
+  const shareLookupRequest = typeof buildRuntimeBuildShareLookupRequest === "function"
+    ? buildRuntimeBuildShareLookupRequest(normalizedEmail)
+    : { p_email: normalizedEmail };
+  const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", shareLookupRequest);
   if (lookupError) throw new Error(lookupError.message);
-  if (!targetUserId) {
-    throw new Error("User with this email was not found. They need to register first.");
-  }
-  if (targetUserId === authUser.id) {
-    throw new Error("You already have access to this project as the owner.");
-  }
+  const resolvedTargetUserId = typeof buildRuntimeResolveShareTargetUser === "function"
+    ? buildRuntimeResolveShareTargetUser(targetUserId, authUser.id)
+    : (() => {
+        if (!targetUserId) throw new Error("User with this email was not found. They need to register first.");
+        if (targetUserId === authUser.id) throw new Error("You already have access to this project as the owner.");
+        return targetUserId;
+      })();
 
   const sharePayload = typeof buildRuntimeBuildShareGrantRequest === "function"
     ? buildRuntimeBuildShareGrantRequest({
         projectId: serverId,
-        userId: targetUserId,
+        userId: resolvedTargetUserId,
         role: shareRole,
         invitedBy: authUser.id,
       })
     : buildSupabaseProjectShareUpsertPayload({
         projectId: serverId,
-        userId: targetUserId,
+        userId: resolvedTargetUserId,
         role: shareRole,
         invitedBy: authUser.id,
       });
 
+  const shareUpsertOptions = typeof buildRuntimeBuildShareUpsertOptions === "function"
+    ? buildRuntimeBuildShareUpsertOptions()
+    : { onConflict: "project_id,user_id" };
   const { error } = await sb.from("project_shares").upsert(
     sharePayload,
-    { onConflict: "project_id,user_id" },
+    shareUpsertOptions,
   );
 
   if (error) throw new Error(error.message);
   _showSyncIndicator();
-  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, targetUserId, {
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_GRANTED, resolvedTargetUserId, {
     email: normalizedEmail,
     role: shareRole,
   });
   return typeof buildRuntimeBuildShareGrantResult === "function"
-    ? buildRuntimeBuildShareGrantResult(targetUserId, normalizedEmail, shareRole)
-    : { userId: targetUserId, email: normalizedEmail, role: shareRole };
+    ? buildRuntimeBuildShareGrantResult(resolvedTargetUserId, normalizedEmail, shareRole)
+    : { userId: resolvedTargetUserId, email: normalizedEmail, role: shareRole };
 }
 
 async function apiUpdateShareRole(shareId, role) {
@@ -660,26 +669,34 @@ async function apiUpdateShareRole(shareId, role) {
 
 async function apiRemoveShare(shareId) {
   if (!canManageShares()) throw new Error("You do not have permission to remove access.");
-  const { error } = await sb.from("project_shares").delete().eq("id", shareId);
+  const shareRemoveRequest = typeof buildRuntimeBuildShareRemoveRequest === "function"
+    ? buildRuntimeBuildShareRemoveRequest(shareId)
+    : { shareId };
+  const { error } = await sb.from("project_shares").delete().eq("id", shareRemoveRequest.shareId);
   if (error) throw new Error(error.message);
   _showSyncIndicator();
-  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_REVOKED, shareId);
+  await logShareActivity(AUDIT_EVENT_TYPES.SHARE_REVOKED, shareRemoveRequest.shareId);
 }
 
 async function apiGetActivityLog(limit = 100) {
   const authUser = await _getCurrentAuthUser();
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return [];
-  const safeLimit = typeof buildRuntimeResolveActivityLogLimit === "function"
-    ? buildRuntimeResolveActivityLogLimit(limit)
-    : Math.max(1, Math.min(500, Number(limit) || 100));
+  const activityLogReadRequest = typeof buildRuntimeSupabaseActivityLogReadRequest === "function"
+    ? buildRuntimeSupabaseActivityLogReadRequest(serverId, limit)
+    : {
+        projectId: serverId,
+        limit: typeof buildRuntimeResolveActivityLogLimit === "function"
+          ? buildRuntimeResolveActivityLogLimit(limit)
+          : Math.max(1, Math.min(500, Number(limit) || 100)),
+      };
 
   const { data, error } = await sb
     .from("activity_log")
     .select("id, project_id, actor_id, actor_name, actor_email, event_type, entity_type, entity_id, payload, created_at")
-    .eq("project_id", serverId)
+    .eq("project_id", activityLogReadRequest.projectId)
     .order("created_at", { ascending: false })
-    .limit(safeLimit);
+    .limit(activityLogReadRequest.limit);
 
   if (error) throw new Error(error.message);
   return (data || []).map(mapSupabaseActivityRow);

@@ -239,13 +239,20 @@ import {
   buildSupabaseSyncIndicatorPlan,
 } from "../src/services/supabase/ui-runtime";
 import {
+  buildActivityLogReadRequest,
   buildActivityWriteRequest,
+  buildShareListFallbackRequest,
+  buildShareListRpcRequest,
   buildShareGrantRequest,
   buildShareGrantResult,
+  buildShareLookupRequest,
+  buildShareRemoveRequest,
   buildShareRoleUpdateRequest,
   buildShareRoleUpdateResult,
+  buildShareUpsertOptions,
   normalizeShareGrantInput,
   resolveActivityLogLimit,
+  resolveShareTargetUser,
 } from "../src/services/supabase/collaboration-runtime";
 import {
   buildProjectInsertPayload,
@@ -573,10 +580,19 @@ const shareGrantRequest = buildShareGrantRequest({
 assert.equal(shareGrantRequest.project_id, "project-1");
 assert.equal(shareGrantRequest.user_id, "user-2");
 assert.equal(buildShareGrantResult("user-2", "user@example.com", "viewer").email, "user@example.com");
+assert.equal(buildShareLookupRequest("user@example.com").p_email, "user@example.com");
+assert.equal(resolveShareTargetUser("user-2", "owner-1"), "user-2");
+assert.equal(buildShareUpsertOptions().onConflict, "project_id,user_id");
 assert.equal(buildShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
 assert.equal(buildShareRoleUpdateResult("admin"), "manager");
+assert.equal(buildShareListRpcRequest("project-1").p_project_id, "project-1");
+assert.equal(buildShareListFallbackRequest("project-1").projectId, "project-1");
+assert.equal(buildShareRemoveRequest("share-1").shareId, "share-1");
 assert.equal(resolveActivityLogLimit(999), 500);
 assert.equal(resolveActivityLogLimit(0), 100);
+const activityLogReadRequest = buildActivityLogReadRequest("project-1", 999);
+assert.equal(activityLogReadRequest.projectId, "project-1");
+assert.equal(activityLogReadRequest.limit, 500);
 assert.equal(resolveLoadedProjectRole("owner-1", "owner-1", "viewer"), "owner");
 assert.equal(resolveLoadedProjectRole("owner-1", "user-2", "editor"), "editor");
 const projectTasksRpcRequest = buildProjectTasksRpcRequest("project-1", snapshot.tasks);

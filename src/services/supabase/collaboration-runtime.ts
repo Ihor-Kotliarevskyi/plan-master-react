@@ -17,6 +17,27 @@ export interface ShareGrantResult {
   role: string;
 }
 
+export interface ShareLookupRequest {
+  p_email: string;
+}
+
+export interface ShareListRpcRequest {
+  p_project_id: string;
+}
+
+export interface ShareListFallbackRequest {
+  projectId: string;
+}
+
+export interface ShareRemoveRequest {
+  shareId: string;
+}
+
+export interface ActivityLogReadRequest {
+  projectId: string;
+  limit: number;
+}
+
 export function buildActivityWriteRequest(params: {
   projectId: string;
   actorId: string;
@@ -88,6 +109,28 @@ export function buildShareGrantResult(userId: string, email: string, role: strin
   };
 }
 
+export function buildShareLookupRequest(email: string): ShareLookupRequest {
+  return {
+    p_email: email,
+  };
+}
+
+export function resolveShareTargetUser(targetUserId: string | null, authUserId: string): string {
+  if (!targetUserId) {
+    throw new Error("User with this email was not found. They need to register first.");
+  }
+  if (targetUserId === authUserId) {
+    throw new Error("You already have access to this project as the owner.");
+  }
+  return targetUserId;
+}
+
+export function buildShareUpsertOptions() {
+  return {
+    onConflict: "project_id,user_id",
+  } as const;
+}
+
 export function buildShareRoleUpdateRequest(role: string, isShareableRole: (role: string) => boolean) {
   const normalizedRole = normalizeProjectRole(role);
   if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
@@ -98,6 +141,31 @@ export function buildShareRoleUpdateResult(role: string): string {
   return normalizeProjectRole(role);
 }
 
+export function buildShareListRpcRequest(projectId: string): ShareListRpcRequest {
+  return {
+    p_project_id: projectId,
+  };
+}
+
+export function buildShareListFallbackRequest(projectId: string): ShareListFallbackRequest {
+  return {
+    projectId,
+  };
+}
+
+export function buildShareRemoveRequest(shareId: string): ShareRemoveRequest {
+  return {
+    shareId,
+  };
+}
+
 export function resolveActivityLogLimit(limit: number): number {
   return Math.max(1, Math.min(500, Number(limit) || 100));
+}
+
+export function buildActivityLogReadRequest(projectId: string, limit: number): ActivityLogReadRequest {
+  return {
+    projectId,
+    limit: resolveActivityLogLimit(limit),
+  };
 }
