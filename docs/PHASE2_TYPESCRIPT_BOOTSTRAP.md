@@ -59,6 +59,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/runtime.ts`
   - `src/services/supabase/auth-runtime.ts`
   - `src/services/supabase/ui-runtime.ts`
+  - `src/services/supabase/collaboration-runtime.ts`
 - fixture-based verification script:
   - `npm run verify:supabase-helpers`
   - `scripts/verify-supabase-helpers.ts`
@@ -116,6 +117,10 @@ and Supabase adapters happen against stable interfaces.
   - share modal list projection
   - share success toast models
   - sync-indicator timing plan
+  - activity write request model
+  - share grant normalization/request/result
+  - share role update request/result
+  - activity log limit resolution
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels

@@ -501,20 +501,31 @@ async function apiLogActivity(eventType, payload = {}) {
   const serverId = getCurrentProjectServerId();
   if (!serverId) return;
 
-  const activityPayload = buildSupabaseActivityInsertPayload({
-    projectId: serverId,
-    actorId: authUser.id,
-    actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
-    actorEmail: authUser?.email || null,
-    eventType,
-    entityType: payload.entityType || "project",
-    entityId: payload.entityId,
-    payload: Object.fromEntries(
-      Object.entries(payload || {}).filter(([key]) => key !== "entityType" && key !== "entityId"),
-    ),
-  });
+  const activityRequest = typeof buildRuntimeSupabaseActivityWriteRequest === "function"
+    ? buildRuntimeSupabaseActivityWriteRequest({
+        projectId: serverId,
+        actorId: authUser.id,
+        actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
+        actorEmail: authUser?.email || null,
+        eventType,
+        payload,
+      })
+    : {
+        payload: buildSupabaseActivityInsertPayload({
+          projectId: serverId,
+          actorId: authUser.id,
+          actorName: _sbProfile?.name || authUser?.user_metadata?.name || null,
+          actorEmail: authUser?.email || null,
+          eventType,
+          entityType: payload.entityType || "project",
+          entityId: payload.entityId,
+          payload: Object.fromEntries(
+            Object.entries(payload || {}).filter(([key]) => key !== "entityType" && key !== "entityId"),
+          ),
+        }),
+      };
 
-  const { error } = await sb.from("activity_log").insert(activityPayload);
+  const { error } = await sb.from("activity_log").insert(activityRequest.payload);
   if (error) throw error;
 }
 
@@ -546,11 +557,14 @@ async function apiShareProject(email, role = "viewer") {
   if (!serverId || !authUser) return;
   if (!canInviteUsers()) throw new Error("You do not have permission to invite users.");
 
-  const shareRole = normalizeProjectRole(role);
-  if (!isShareableProjectRole(shareRole)) throw new Error("Unsupported access role.");
-
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  if (!normalizedEmail) throw new Error("Enter email.");
+  const shareGrantInput = typeof buildRuntimeNormalizeShareGrantInput === "function"
+    ? buildRuntimeNormalizeShareGrantInput(email, role, isShareableProjectRole)
+    : {
+        normalizedEmail: String(email || "").trim().toLowerCase(),
+        normalizedRole: normalizeProjectRole(role),
+      };
+  const shareRole = shareGrantInput.normalizedRole;
+  const normalizedEmail = shareGrantInput.normalizedEmail;
 
   const { data: targetUserId, error: lookupError } = await sb.rpc("get_user_id_by_email", {
     p_email: normalizedEmail,
@@ -563,12 +577,19 @@ async function apiShareProject(email, role = "viewer") {
     throw new Error("You already have access to this project as the owner.");
   }
 
-  const sharePayload = buildSupabaseProjectShareUpsertPayload({
-    projectId: serverId,
-    userId: targetUserId,
-    role: shareRole,
-    invitedBy: authUser.id,
-  });
+  const sharePayload = typeof buildRuntimeBuildShareGrantRequest === "function"
+    ? buildRuntimeBuildShareGrantRequest({
+        projectId: serverId,
+        userId: targetUserId,
+        role: shareRole,
+        invitedBy: authUser.id,
+      })
+    : buildSupabaseProjectShareUpsertPayload({
+        projectId: serverId,
+        userId: targetUserId,
+        role: shareRole,
+        invitedBy: authUser.id,
+      });
 
   const { error } = await sb.from("project_shares").upsert(
     sharePayload,
@@ -581,22 +602,24 @@ async function apiShareProject(email, role = "viewer") {
     email: normalizedEmail,
     role: shareRole,
   });
-  return {
-    userId: targetUserId,
-    email: normalizedEmail,
-    role: shareRole,
-  };
+  return typeof buildRuntimeBuildShareGrantResult === "function"
+    ? buildRuntimeBuildShareGrantResult(targetUserId, normalizedEmail, shareRole)
+    : { userId: targetUserId, email: normalizedEmail, role: shareRole };
 }
 
 async function apiUpdateShareRole(shareId, role) {
   if (!canManageShares()) throw new Error("You do not have permission to manage access.");
 
-  const shareRole = normalizeProjectRole(role);
-  if (!isShareableProjectRole(shareRole)) throw new Error("Unsupported access role.");
+  const shareRoleUpdateRequest = typeof buildRuntimeBuildShareRoleUpdateRequest === "function"
+    ? buildRuntimeBuildShareRoleUpdateRequest(role, isShareableProjectRole)
+    : buildSupabaseProjectShareRoleUpdatePayload(normalizeProjectRole(role));
+  const shareRole = typeof buildRuntimeBuildShareRoleUpdateResult === "function"
+    ? buildRuntimeBuildShareRoleUpdateResult(role)
+    : normalizeProjectRole(role);
 
   const { error } = await sb
     .from("project_shares")
-    .update(buildSupabaseProjectShareRoleUpdatePayload(shareRole))
+    .update(shareRoleUpdateRequest)
     .eq("id", shareId);
 
   if (error) throw new Error(error.message);
@@ -619,13 +642,16 @@ async function apiGetActivityLog(limit = 100) {
   const authUser = await _getCurrentAuthUser();
   const serverId = getCurrentProjectServerId();
   if (!serverId || !authUser) return [];
+  const safeLimit = typeof buildRuntimeResolveActivityLogLimit === "function"
+    ? buildRuntimeResolveActivityLogLimit(limit)
+    : Math.max(1, Math.min(500, Number(limit) || 100));
 
   const { data, error } = await sb
     .from("activity_log")
     .select("id, project_id, actor_id, actor_name, actor_email, event_type, entity_type, entity_id, payload, created_at")
     .eq("project_id", serverId)
     .order("created_at", { ascending: false })
-    .limit(Math.max(1, Math.min(500, Number(limit) || 100)));
+    .limit(safeLimit);
 
   if (error) throw new Error(error.message);
   return (data || []).map(mapSupabaseActivityRow);

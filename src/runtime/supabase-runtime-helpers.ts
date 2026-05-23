@@ -227,6 +227,15 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../services/supabase/auth-runtime";
 import {
+  buildActivityWriteRequest,
+  buildShareGrantRequest,
+  buildShareGrantResult,
+  buildShareRoleUpdateRequest,
+  buildShareRoleUpdateResult,
+  normalizeShareGrantInput,
+  resolveActivityLogLimit,
+} from "../services/supabase/collaboration-runtime";
+import {
   buildSupabaseReadOnlyUiState,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
@@ -294,6 +303,13 @@ const runtimeHelpers = {
   buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
   buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
   buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
+  buildRuntimeSupabaseActivityWriteRequest: buildActivityWriteRequest,
+  buildRuntimeNormalizeShareGrantInput: normalizeShareGrantInput,
+  buildRuntimeBuildShareGrantRequest: buildShareGrantRequest,
+  buildRuntimeBuildShareGrantResult: buildShareGrantResult,
+  buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
+  buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
+  buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
   mapSupabaseTaskRow: mapTaskRowToTask,
   buildSupabaseProjectSnapshot: (
     localId: string,

@@ -231,6 +231,15 @@ import {
   buildSupabaseSyncIndicatorPlan,
 } from "../src/services/supabase/ui-runtime";
 import {
+  buildActivityWriteRequest,
+  buildShareGrantRequest,
+  buildShareGrantResult,
+  buildShareRoleUpdateRequest,
+  buildShareRoleUpdateResult,
+  normalizeShareGrantInput,
+  resolveActivityLogLimit,
+} from "../src/services/supabase/collaboration-runtime";
+import {
   buildProjectInsertPayload,
   buildActivityInsertPayload,
   buildProjectShareRoleUpdatePayload,
@@ -532,6 +541,34 @@ assert.equal(buildSupabaseShareGrantedToast("Viewer", "mail@example.com").text, 
 assert.equal(buildSupabaseShareRemovedToast().title, "Access removed");
 assert.equal(buildSupabaseSyncIndicatorPlan().status, "syncing");
 assert.equal(buildSupabaseSyncIndicatorPlan().timeoutMs, 1800);
+const activityWriteRequest = buildActivityWriteRequest({
+  projectId: "project-1",
+  actorId: "owner-1",
+  actorName: "Owner Name",
+  actorEmail: "owner@example.com",
+  eventType: "share.granted",
+  payload: { entityType: "share", entityId: "share-1", role: "manager" },
+});
+assert.equal(activityWriteRequest.payload.project_id, "project-1");
+assert.equal(activityWriteRequest.payload.entity_type, "share");
+assert.equal(activityWriteRequest.payload.entity_id, "share-1");
+assert.equal(activityWriteRequest.payload.payload.role, "manager");
+const shareGrantInput = normalizeShareGrantInput(" USER@Example.com ", "manager", (role) => ["viewer", "editor", "manager"].includes(role));
+assert.equal(shareGrantInput.normalizedEmail, "user@example.com");
+assert.equal(shareGrantInput.normalizedRole, "manager");
+const shareGrantRequest = buildShareGrantRequest({
+  projectId: "project-1",
+  userId: "user-2",
+  role: "manager",
+  invitedBy: "owner-1",
+});
+assert.equal(shareGrantRequest.project_id, "project-1");
+assert.equal(shareGrantRequest.user_id, "user-2");
+assert.equal(buildShareGrantResult("user-2", "user@example.com", "viewer").email, "user@example.com");
+assert.equal(buildShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
+assert.equal(buildShareRoleUpdateResult("admin"), "manager");
+assert.equal(resolveActivityLogLimit(999), 500);
+assert.equal(resolveActivityLogLimit(0), 100);
 
 const groupedProjects = groupProjectEntriesByAccess([
   ["local-only", buffered.localOnly],

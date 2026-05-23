@@ -2759,6 +2759,64 @@
     };
   }
 
+  // src/services/supabase/collaboration-runtime.ts
+  function buildActivityWriteRequest(params) {
+    const activityPayload = { ...params.payload || {} };
+    const entityType = typeof activityPayload.entityType === "string" && activityPayload.entityType ? activityPayload.entityType : "project";
+    const entityId = activityPayload.entityId != null ? String(activityPayload.entityId) : null;
+    delete activityPayload.entityType;
+    delete activityPayload.entityId;
+    return {
+      eventType: params.eventType,
+      payload: buildActivityInsertPayload({
+        projectId: params.projectId,
+        actorId: params.actorId,
+        actorName: params.actorName ?? null,
+        actorEmail: params.actorEmail ?? null,
+        eventType: params.eventType,
+        entityType,
+        entityId,
+        payload: activityPayload
+      })
+    };
+  }
+  function normalizeShareGrantInput(email, role, isShareableRole) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) throw new Error("Enter email.");
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
+    return {
+      normalizedEmail,
+      normalizedRole
+    };
+  }
+  function buildShareGrantRequest(params) {
+    return buildProjectShareUpsertPayload({
+      projectId: params.projectId,
+      userId: params.userId,
+      role: params.role,
+      invitedBy: params.invitedBy
+    });
+  }
+  function buildShareGrantResult(userId, email, role) {
+    return {
+      userId,
+      email,
+      role
+    };
+  }
+  function buildShareRoleUpdateRequest(role, isShareableRole) {
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role.");
+    return buildProjectShareRoleUpdatePayload(normalizedRole);
+  }
+  function buildShareRoleUpdateResult(role) {
+    return normalizeProjectRole(role);
+  }
+  function resolveActivityLogLimit(limit) {
+    return Math.max(1, Math.min(500, Number(limit) || 100));
+  }
+
   // src/services/supabase/ui-runtime.ts
   function buildSupabaseShareModalState(params) {
     return {
@@ -2850,6 +2908,13 @@
     buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
     buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
     buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
+    buildRuntimeSupabaseActivityWriteRequest: buildActivityWriteRequest,
+    buildRuntimeNormalizeShareGrantInput: normalizeShareGrantInput,
+    buildRuntimeBuildShareGrantRequest: buildShareGrantRequest,
+    buildRuntimeBuildShareGrantResult: buildShareGrantResult,
+    buildRuntimeBuildShareRoleUpdateRequest: buildShareRoleUpdateRequest,
+    buildRuntimeBuildShareRoleUpdateResult: buildShareRoleUpdateResult,
+    buildRuntimeResolveActivityLogLimit: resolveActivityLogLimit,
     mapSupabaseTaskRow: mapTaskRowToTask,
     buildSupabaseProjectSnapshot: (localId, projectRow, taskRows, previousSnapshot, role) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole),
     buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,
