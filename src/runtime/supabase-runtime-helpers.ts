@@ -9,6 +9,10 @@ import {
   resetFallbackAuthState,
 } from "../services/api/account-runtime";
 import {
+  buildFallbackHttpRequestOptions,
+  resolveFallbackHttpOutcome,
+} from "../services/api/http-runtime";
+import {
   buildFallbackLoadedProjectSnapshot,
   buildFallbackProjectCreateRequest,
   buildFallbackProjectDeleteRequest,
@@ -342,6 +346,8 @@ const runtimeHelpers = {
   buildRuntimeFallbackProfileUpdateRequest: buildFallbackProfileUpdateRequest,
   buildRuntimeFallbackAuthHydratedState: buildFallbackAuthHydratedState,
   buildRuntimeFallbackSyncIndicatorPlan: buildFallbackSyncIndicatorPlan,
+  buildRuntimeFallbackHttpRequestOptions: buildFallbackHttpRequestOptions,
+  buildRuntimeFallbackHttpOutcome: resolveFallbackHttpOutcome,
   buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
   buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
   buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,

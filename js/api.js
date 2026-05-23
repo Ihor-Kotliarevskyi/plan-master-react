@@ -65,13 +65,26 @@ function canEdit() {
 }
 
 async function _fetch(path, options = {}) {
-  const headers = { "Content-Type": "application/json" };
-  if (_authToken) headers["Authorization"] = `Bearer ${_authToken}`;
-
-  const res = await fetch(`${V1}${path}`, { ...options, headers });
+  const requestOptions = typeof buildRuntimeFallbackHttpRequestOptions === "function"
+    ? buildRuntimeFallbackHttpRequestOptions(_authToken)
+    : {
+        headers: {
+          "Content-Type": "application/json",
+          ...(_authToken ? { Authorization: `Bearer ${_authToken}` } : {}),
+        },
+      };
+  const res = await fetch(`${V1}${path}`, { ...options, headers: requestOptions.headers });
   const data = await res.json().catch(() => ({}));
 
-  if (res.status === 401 && data.expired) {
+  const outcome = typeof buildRuntimeFallbackHttpOutcome === "function"
+    ? buildRuntimeFallbackHttpOutcome(res.status, data)
+    : (() => {
+        if (res.status === 401 && data.expired) return { kind: "session_expired" };
+        if (res.ok) return { kind: "ok" };
+        return { kind: "error", message: data.error || `HTTP ${res.status}` };
+      })();
+
+  if (outcome.kind === "session_expired") {
     apiLogout();
     Swal.fire({
       toast: true, position: "top-end", icon: "warning",
@@ -80,7 +93,7 @@ async function _fetch(path, options = {}) {
     });
     return null;
   }
-  if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+  if (outcome.kind === "error") throw new Error(outcome.message);
   return data;
 }
 

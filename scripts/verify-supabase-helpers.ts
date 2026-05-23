@@ -9,6 +9,10 @@ import {
   resetFallbackAuthState,
 } from "../src/services/api/account-runtime";
 import {
+  buildFallbackHttpRequestOptions,
+  resolveFallbackHttpOutcome,
+} from "../src/services/api/http-runtime";
+import {
   buildFallbackLoadedProjectSnapshot,
   buildFallbackProjectCreateRequest,
   buildFallbackProjectDeleteRequest,
@@ -378,6 +382,9 @@ assert.equal(buildFallbackLoginRequest("mail@example.com", "secret").password, "
 assert.equal(buildFallbackProfileUpdateRequest({ theme: "dark" }).body.theme, "dark");
 assert.equal(buildFallbackAuthHydratedState("token-1", { name: "Ihor" }).token, "token-1");
 assert.equal(buildFallbackSyncIndicatorPlan().timeoutMs, 1800);
+assert.equal(buildFallbackHttpRequestOptions("token-1").headers.Authorization, "Bearer token-1");
+assert.equal(resolveFallbackHttpOutcome(401, { expired: true }).kind, "session_expired");
+assert.equal(resolveFallbackHttpOutcome(500, { error: "Boom" }).message, "Boom");
 const fallbackAuthModalRenderModel = buildFallbackAuthModalRenderModel("register", buildApiUiModel().auth);
 assert.equal(fallbackAuthModalRenderModel.showNameField, true);
 assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.registerSubmitLabel);

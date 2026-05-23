@@ -77,6 +77,27 @@
     };
   }
 
+  // src/services/api/http-runtime.ts
+  function buildFallbackHttpRequestOptions(authToken) {
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    if (authToken) headers.Authorization = `Bearer ${authToken}`;
+    return { headers };
+  }
+  function resolveFallbackHttpOutcome(status, data) {
+    if (status === 401 && data?.expired) {
+      return { kind: "session_expired" };
+    }
+    if (status >= 200 && status < 300) {
+      return { kind: "ok" };
+    }
+    return {
+      kind: "error",
+      message: typeof data?.error === "string" && data.error ? data.error : `HTTP ${status}`
+    };
+  }
+
   // src/services/api/fallback-runtime.ts
   function buildFallbackProjectShell(project) {
     const normalizedRole = normalizeProjectRole(project.role || "owner");
@@ -3212,6 +3233,8 @@
     buildRuntimeFallbackProfileUpdateRequest: buildFallbackProfileUpdateRequest,
     buildRuntimeFallbackAuthHydratedState: buildFallbackAuthHydratedState,
     buildRuntimeFallbackSyncIndicatorPlan: buildFallbackSyncIndicatorPlan,
+    buildRuntimeFallbackHttpRequestOptions: buildFallbackHttpRequestOptions,
+    buildRuntimeFallbackHttpOutcome: resolveFallbackHttpOutcome,
     buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
     buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
     buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,

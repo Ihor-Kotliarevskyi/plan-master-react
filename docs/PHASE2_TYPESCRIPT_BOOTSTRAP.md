@@ -55,6 +55,7 @@ and Supabase adapters happen against stable interfaces.
 - typed fallback API helpers in:
   - `src/services/api/account-runtime.ts`
   - `src/services/api/fallback-runtime.ts`
+  - `src/services/api/http-runtime.ts`
 - typed Supabase extraction helpers in:
   - `src/services/supabase/mappers.ts`
   - `src/services/supabase/payloads.ts`
@@ -256,6 +257,8 @@ and Supabase adapters happen against stable interfaces.
   - auth success/error/logout prompt copy
   - fallback auth modal render model
   - fallback auth button state model
+  - fallback HTTP request header construction
+  - fallback HTTP/session outcome resolution
   - share modal titles, empty states, and validation copy
   - fallback auth reset and hydration state
   - fallback register/login request construction
