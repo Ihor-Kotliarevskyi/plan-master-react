@@ -137,6 +137,14 @@ import {
   snapToHalfWeek,
 } from "../domain/modal";
 import {
+  applyTaskSave,
+  buildTaskModalEditState,
+  buildTaskModalSaveModel,
+  cloneModalCostItems,
+  cloneModalPhasesFromTask,
+  removeTaskAt,
+} from "../domain/modal-orchestration";
+import {
   buildAuditEntryViewModel,
   buildAuditLogModalModel,
   getAuditActorLabel,
@@ -445,6 +453,12 @@ const runtimeHelpers = {
   buildRuntimeRemWeeks: remWeeks,
   buildRuntimeTaskCalcModel: buildTaskCalcModel,
   buildRuntimeDependencyListState: buildDependencyListState,
+  buildRuntimeCloneModalCostItems: cloneModalCostItems,
+  buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+  buildRuntimeTaskModalEditState: buildTaskModalEditState,
+  buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
+  buildRuntimeApplyTaskSave: applyTaskSave,
+  buildRuntimeRemoveTaskAt: removeTaskAt,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,
   buildRuntimeSharedProjectMetaText: buildSharedProjectMetaText,

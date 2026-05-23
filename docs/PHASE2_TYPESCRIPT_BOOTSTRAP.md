@@ -27,6 +27,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
   - `src/domain/modal.ts`
+  - `src/domain/modal-orchestration.ts`
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
@@ -113,6 +114,10 @@ and Supabase adapters happen against stable interfaces.
   - empty-project and demo-project snapshot creation
   - delete-project guard evaluation
   - next-project resolution after deletion
+  - task modal edit-state projection
+  - task modal save-model construction
+  - task save apply/update orchestration
+  - task remove-at mutation helper
   - modal phase/date conversion helpers
   - weighted progress and active-phase resolution
   - task cost summary calculation for modal footer

@@ -869,31 +869,47 @@ function openEdit(ti) {
   editIdx = ti;
   _editingDepId = null;
   const t = tasks[ti];
+  const totalBudget = typeof _totalBudget === "function" ? _totalBudget() : 0;
+  const totalSpent = typeof _totalSpent === "function" ? _totalSpent() : 0;
+  const editState = typeof buildRuntimeTaskModalEditState === "function"
+    ? buildRuntimeTaskModalEditState({
+        task: t,
+        editFallbackTitle: taskFormPanel.editTaskFallbackTitle,
+        totalBudget,
+        totalSpent,
+        normDep,
+      })
+    : {
+        modalPhases: t.phases && t.phases.length > 0
+          ? t.phases.map((p) => ({ ...p, prog: p.prog ?? 0 }))
+          : [{ ms: t.ms, ws: t.ws, me: t.me, we: t.we, prog: t.prog || 0, dsExact: t.dsExact || null, deExact: t.deExact || null }],
+        modalDeps: (t.deps || []).map((d) => normDep(d)),
+        costItems: (t.costItems || []).map((it) => ({
+          ...it,
+          payments: (it.payments || []).map((p) => ({ ...p })),
+          acts: (it.acts || []).map((a) => ({ ...a })),
+        })),
+        hasItems: !!(t.costItems || []).length,
+        title: t.name || taskFormPanel.editTaskFallbackTitle,
+        budgetValue: t.budget || "",
+        spentValue: t.spent || "",
+        contractsOverrideBudget: !!t.contractsOverrideBudget,
+      };
 
-  if (t.phases && t.phases.length > 0) {
-    _modalPhases = t.phases.map((p) => ({ ...p, prog: p.prog ?? 0 }));
-  } else {
-    _modalPhases = [{ ms: t.ms, ws: t.ws, me: t.me, we: t.we, prog: t.prog || 0,
-                      dsExact: t.dsExact || null, deExact: t.deExact || null }];
-  }
-
-  _modalDeps = (t.deps || []).map((d) => normDep(d));
+  _modalPhases = editState.modalPhases;
+  _modalDeps = editState.modalDeps;
   _costTi = ti;
   _expandedIds = new Set();
-  _costItems = (t.costItems || []).map((it) => ({
-    ...it,
-    payments: (it.payments || []).map((p) => ({ ...p })),
-    acts: (it.acts || []).map((a) => ({ ...a })),
-  }));
+  _costItems = editState.costItems;
 
-  const hasItems = _costItems.length > 0;
+  const hasItems = editState.hasItems;
 
-  document.getElementById("m-title").textContent = t.name || taskFormPanel.editTaskFallbackTitle;
+  document.getElementById("m-title").textContent = editState.title;
   document.getElementById("f-name").value = t.name;
-  document.getElementById("f-contracts-override-budget").checked = !!t.contractsOverrideBudget;
-  document.getElementById("f-budget").value = hasItems && ((+t.budget || 0) <= 0 || t.contractsOverrideBudget) ? _totalBudget() : t.budget || "";
-  document.getElementById("f-spent").value = hasItems ? _totalSpent() : t.spent || "";
-  _updateAutoBadges(hasItems, hasItems && (!!t.contractsOverrideBudget || (+t.budget || 0) <= 0));
+  document.getElementById("f-contracts-override-budget").checked = editState.contractsOverrideBudget;
+  document.getElementById("f-budget").value = editState.budgetValue;
+  document.getElementById("f-spent").value = editState.spentValue;
+  _updateAutoBadges(hasItems, hasItems && (!!editState.contractsOverrideBudget || (+t.budget || 0) <= 0));
 
   buildChips(t.cat);
   renderModalPhases();
@@ -924,7 +940,6 @@ function closeModal() {
 /** Зберігає задачу (нову або відредаговану). */
 async function saveTask() {
   if (typeof canEditTasks === "function" && !canEditTasks()) return;
-  const isEdit = editIdx !== null;
 
   const name = document.getElementById("f-name").value.trim();
   if (!name) {
@@ -935,49 +950,57 @@ async function saveTask() {
   _flushModalPhases();
   _flushCostEdits();
 
-  const ms = _modalPhases[0].ms,
-    ws = _modalPhases[0].ws;
-  const me = _modalPhases[_modalPhases.length - 1].me;
-  const we = _modalPhases[_modalPhases.length - 1].we;
+  const contractsOverrideBudget = !!document.getElementById("f-contracts-override-budget")?.checked;
+  const manualBudget = +document.getElementById("f-budget").value || 0;
+  const manualSpent = +document.getElementById("f-spent").value || 0;
+  const totalBudget = typeof _totalBudget === "function" ? _totalBudget() : 0;
+  const totalSpent = typeof _totalSpent === "function" ? _totalSpent() : 0;
+  const saveModel = typeof buildRuntimeTaskModalSaveModel === "function"
+    ? buildRuntimeTaskModalSaveModel({
+        name,
+        cat: selCat,
+        phases: _modalPhases,
+        deps: _modalDeps,
+        costItems: _costItems,
+        contractsOverrideBudget,
+        manualBudget,
+        manualSpent,
+        totalBudget,
+        totalSpent,
+      })
+    : null;
 
-  if (ms * 4 + ws > me * 4 + we) {
+  if (saveModel && !saveModel.isValidRange) {
     const warningModel = _getTaskRangeWarningModel();
     Swal.fire({ icon: "warning", title: warningModel.title, text: warningModel.text });
     return;
   }
 
-  const prog = _weightedProg(_modalPhases);
-
-  const costItemsSaved =
-    _costItems.length > 0
-      ? _costItems.map((it) => ({
-          ...it,
-          payments: (it.payments || []).map((p) => ({ ...p })),
-          acts: (it.acts || []).map((a) => ({ ...a })),
-        }))
-      : null;
-
-  const contractsOverrideBudget = !!document.getElementById("f-contracts-override-budget")?.checked;
-  const manualBudget = +document.getElementById("f-budget").value || 0;
-  const budget = costItemsSaved && (contractsOverrideBudget || manualBudget <= 0)
-    ? _totalBudget()
-    : manualBudget;
-  const spent = costItemsSaved
-    ? _totalSpent()
-    : +document.getElementById("f-spent").value || 0;
-
-  const obj = {
-    name,
-    cat: selCat,
-    ms, ws, me, we, prog,
-    budget, spent,
-    contractsOverrideBudget,
-    deps: _modalDeps,
-    phases: _modalPhases.length > 1 ? _modalPhases.map((p) => ({ ...p })) : null,
-    costItems: costItemsSaved,
-    dsExact: _modalPhases.length === 1 ? (_modalPhases[0].dsExact || null) : null,
-    deExact: _modalPhases.length === 1 ? (_modalPhases[0].deExact || null) : null,
-  };
+  const obj = saveModel
+    ? saveModel.taskPatch
+    : {
+        name,
+        cat: selCat,
+        ms: _modalPhases[0].ms,
+        ws: _modalPhases[0].ws,
+        me: _modalPhases[_modalPhases.length - 1].me,
+        we: _modalPhases[_modalPhases.length - 1].we,
+        prog: _weightedProg(_modalPhases),
+        budget: _costItems.length > 0 && (contractsOverrideBudget || manualBudget <= 0) ? totalBudget : manualBudget,
+        spent: _costItems.length > 0 ? totalSpent : manualSpent,
+        contractsOverrideBudget,
+        deps: _modalDeps,
+        phases: _modalPhases.length > 1 ? _modalPhases.map((p) => ({ ...p })) : null,
+        costItems: _costItems.length > 0
+          ? _costItems.map((it) => ({
+              ...it,
+              payments: (it.payments || []).map((p) => ({ ...p })),
+              acts: (it.acts || []).map((a) => ({ ...a })),
+            }))
+          : null,
+        dsExact: _modalPhases.length === 1 ? (_modalPhases[0].dsExact || null) : null,
+        deExact: _modalPhases.length === 1 ? (_modalPhases[0].deExact || null) : null,
+      };
 
   const warns = checkDeps(obj);
   if (warns.length) {
@@ -993,14 +1016,25 @@ async function saveTask() {
     if (!res.isConfirmed) return;
   }
 
-  let savedTask = null;
-  if (isEdit) {
+  const applied = typeof buildRuntimeApplyTaskSave === "function"
+    ? buildRuntimeApplyTaskSave({
+        tasks,
+        editIdx,
+        nextN,
+        taskPatch: obj,
+        newTaskId: genId(),
+      })
+    : null;
+  const isEdit = applied ? applied.isEdit : editIdx !== null;
+  if (applied) {
+    tasks = applied.tasks;
+    nextN = applied.nextN;
+  } else if (isEdit) {
     tasks[editIdx] = { ...tasks[editIdx], ...obj, notes: tasks[editIdx].notes || [] };
-    savedTask = tasks[editIdx];
   } else {
     tasks.push({ id: genId(), n: nextN++, ...obj, notes: [] });
-    savedTask = tasks[tasks.length - 1];
   }
+  const savedTask = applied ? applied.savedTask : (isEdit ? tasks[editIdx] : tasks[tasks.length - 1]);
 
   closeModal();
   saveAll();
@@ -1035,10 +1069,13 @@ async function delTask(ti) {
     cancelButtonText: deleteDialog.cancelButtonText,
   });
   if (!res.isConfirmed) return;
-  tasks.splice(ti, 1);
+  const removed = typeof buildRuntimeRemoveTaskAt === "function"
+    ? buildRuntimeRemoveTaskAt(tasks, ti)
+    : null;
+  tasks = removed ? removed.tasks : tasks.filter((_, index) => index !== ti);
   saveAll();
   render();
-  await logTaskActivity(AUDIT_EVENT_TYPES.TASK_DELETED, task);
+  await logTaskActivity(AUDIT_EVENT_TYPES.TASK_DELETED, removed?.removedTask || task);
 }
 
 function openNotesModal(ti) {

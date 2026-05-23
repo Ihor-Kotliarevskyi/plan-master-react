@@ -136,6 +136,14 @@ import {
   remWeeks,
   snapToHalfWeek,
 } from "../src/domain/modal";
+import {
+  applyTaskSave,
+  buildTaskModalEditState,
+  buildTaskModalSaveModel,
+  cloneModalCostItems,
+  cloneModalPhasesFromTask,
+  removeTaskAt,
+} from "../src/domain/modal-orchestration";
 import { buildAuthFlowMessages, buildProfileFeedbackMessages } from "../src/domain/user-feedback-ui";
 import {
   buildAuditEntryViewModel,
@@ -1143,6 +1151,69 @@ assert.equal(depListState.counts.SS, 1);
 assert.equal(depListState.rows[0]?.typeLabel, "FS");
 assert.equal(depListState.rows[1]?.typeLabel, "SS+25%");
 assert.equal(depListState.rows[0]?.isCritical, true);
+const clonedCostItems = cloneModalCostItems([{
+  id: "ci-1",
+  payments: [{ id: "pay-1", amount: 100 }],
+  acts: [{ id: "act-1", amount: 50 }],
+}]);
+assert.notEqual(clonedCostItems[0], undefined);
+assert.notEqual(clonedCostItems[0], null);
+assert.notEqual(clonedCostItems[0]?.payments, undefined);
+assert.notEqual(clonedCostItems[0]?.payments, null);
+assert.notEqual(clonedCostItems[0]?.payments, ([{ id: "pay-1", amount: 100 }]));
+const clonedPhases = cloneModalPhasesFromTask({
+  ms: 1, ws: 0, me: 2, we: 0, prog: 10, dsExact: "2026-02-01", deExact: "2026-03-01",
+});
+assert.equal(clonedPhases.length, 1);
+assert.equal(clonedPhases[0]?.prog, 10);
+const modalEditState = buildTaskModalEditState({
+  task: {
+    name: "Modal Task",
+    budget: 0,
+    spent: 200,
+    contractsOverrideBudget: true,
+    deps: [{ id: "dep-1", type: "FS" }],
+    phases: [{ ms: 0, ws: 0, me: 1, we: 1, prog: 25 }],
+    costItems: [{ payments: [{ amount: 100 }], acts: [{ amount: 50 }] }],
+  },
+  editFallbackTitle: "Fallback",
+  totalBudget: 1200,
+  totalSpent: 200,
+  normDep: (dep) => dep,
+});
+assert.equal(modalEditState.title, "Modal Task");
+assert.equal(modalEditState.hasItems, true);
+assert.equal(modalEditState.budgetValue, 1200);
+assert.equal(modalEditState.modalDeps.length, 1);
+const modalSaveModel = buildTaskModalSaveModel({
+  name: "Saved Task",
+  cat: 2,
+  phases: [{ ms: 0, ws: 0, me: 1, we: 1, prog: 50, dsExact: "2026-01-01", deExact: "2026-02-01" }],
+  deps: [{ id: "dep-1", type: "FS" }],
+  costItems: [{ payments: [{ amount: 100 }], acts: [{ amount: 40 }] }],
+  contractsOverrideBudget: true,
+  manualBudget: 0,
+  manualSpent: 0,
+  totalBudget: 900,
+  totalSpent: 100,
+});
+assert.equal(modalSaveModel.isValidRange, true);
+assert.equal(modalSaveModel.taskPatch.budget, 900);
+assert.equal(modalSaveModel.taskPatch.spent, 100);
+assert.equal(modalSaveModel.taskPatch.phases, null);
+const appliedTaskSave = applyTaskSave({
+  tasks: [{ id: "t-1", n: 1, name: "Old", notes: [] }],
+  editIdx: null,
+  nextN: 2,
+  taskPatch: modalSaveModel.taskPatch,
+  newTaskId: "t-2",
+});
+assert.equal(appliedTaskSave.isEdit, false);
+assert.equal(appliedTaskSave.savedTask.id, "t-2");
+assert.equal(appliedTaskSave.nextN, 3);
+const removedTaskState = removeTaskAt(appliedTaskSave.tasks, 1);
+assert.equal(removedTaskState.removedTask?.id, "t-2");
+assert.equal(removedTaskState.tasks.length, 1);
 
 const resolvedSyncStatus = resolveSyncStatus(null, {
   loggedIn: true,
