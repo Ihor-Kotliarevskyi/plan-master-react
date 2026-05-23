@@ -52,7 +52,11 @@ import {
   buildVisibleYearGroups,
 } from "../src/domain/render";
 import { buildAppUiModel } from "../src/domain/app-ui";
-import { buildApiUiModel } from "../src/domain/api-ui";
+import {
+  buildApiUiModel,
+  buildFallbackAuthButtonModel,
+  buildFallbackAuthModalRenderModel,
+} from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
 import {
   buildChartColors,
@@ -374,6 +378,12 @@ assert.equal(buildFallbackLoginRequest("mail@example.com", "secret").password, "
 assert.equal(buildFallbackProfileUpdateRequest({ theme: "dark" }).body.theme, "dark");
 assert.equal(buildFallbackAuthHydratedState("token-1", { name: "Ihor" }).token, "token-1");
 assert.equal(buildFallbackSyncIndicatorPlan().timeoutMs, 1800);
+const fallbackAuthModalRenderModel = buildFallbackAuthModalRenderModel("register", buildApiUiModel().auth);
+assert.equal(fallbackAuthModalRenderModel.showNameField, true);
+assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.registerSubmitLabel);
+const fallbackAuthButtonModel = buildFallbackAuthButtonModel(true, "Ihor", buildApiUiModel().auth);
+assert.equal(fallbackAuthButtonModel.mode, "logout");
+assert.equal(fallbackAuthButtonModel.title.length > 0, true);
 
 const fallbackProjectShell = buildFallbackProjectShell({
   id: "fallback-1",

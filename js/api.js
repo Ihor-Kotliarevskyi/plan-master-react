@@ -523,18 +523,26 @@ function closeAuthModal() {
 }
 
 function _renderAuthModal(tab) {
-  const isLogin = tab === "login";
+  const modalModel = typeof buildRuntimeFallbackAuthModalRenderModel === "function"
+    ? buildRuntimeFallbackAuthModalRenderModel(tab, API_UI.auth)
+    : {
+        isLogin: tab === "login",
+        loginTabClassName: `auth-tab${tab === "login" ? " active" : ""}`,
+        registerTabClassName: `auth-tab${tab !== "login" ? " active" : ""}`,
+        submitLabel: tab === "login" ? API_UI.auth.loginSubmitLabel : API_UI.auth.registerSubmitLabel,
+        showNameField: tab !== "login",
+      };
   document.getElementById("auth-modal-body").innerHTML = `
     <div class="auth-tabs">
-      <button class="auth-tab${isLogin ? " active" : ""}" onclick="_renderAuthModal('login')">${API_UI.auth.loginTabLabel}</button>
-      <button class="auth-tab${!isLogin ? " active" : ""}" onclick="_renderAuthModal('register')">${API_UI.auth.registerTabLabel}</button>
+      <button class="${modalModel.loginTabClassName}" onclick="_renderAuthModal('login')">${API_UI.auth.loginTabLabel}</button>
+      <button class="${modalModel.registerTabClassName}" onclick="_renderAuthModal('register')">${API_UI.auth.registerTabLabel}</button>
     </div>
-    ${!isLogin ? `<div class="fg"><label>${API_UI.auth.nameLabel}</label><input id="auth-name" placeholder="${API_UI.auth.namePlaceholder}"/></div>` : ""}
+    ${modalModel.showNameField ? `<div class="fg"><label>${API_UI.auth.nameLabel}</label><input id="auth-name" placeholder="${API_UI.auth.namePlaceholder}"/></div>` : ""}
     <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
     <div class="fg"><label>${API_UI.auth.passwordLabel}</label><input id="auth-pass" type="password" placeholder="${API_UI.auth.passwordPlaceholder}"/></div>
     <div id="auth-error" class="auth-error" style="display:none"></div>
     <button class="btn btn-acc auth-submit-btn" onclick="_submitAuth('${tab}')">
-      ${isLogin ? API_UI.auth.loginSubmitLabel : API_UI.auth.registerSubmitLabel}</button>`;
+      ${modalModel.submitLabel}</button>`;
 }
 
 async function _submitAuth(tab) {
@@ -737,3 +745,39 @@ async function openShareModal() {
   }
   updateAuthBtn();
 })();
+
+function updateAuthBtn() {
+  const btn = document.getElementById("auth-status-btn");
+  if (!btn) return;
+  const buttonModel = typeof buildRuntimeFallbackAuthButtonModel === "function"
+    ? buildRuntimeFallbackAuthButtonModel(isLoggedIn(), _apiUser?.name, API_UI.auth)
+    : (isLoggedIn() && _apiUser
+        ? { text: `вЃ ${_apiUser.name}`, title: API_UI.auth.syncedTitle, mode: "logout" }
+        : { text: API_UI.auth.loginButtonLabel, title: "", mode: "login" });
+
+  if (buttonModel.mode === "logout") {
+    btn.textContent = buttonModel.text;
+    btn.title = buttonModel.title;
+    btn.onclick = async () => {
+      const r = await Swal.fire({
+        icon: "question",
+        title: API_UI.auth.syncedLogoutPromptTitle,
+        text: API_UI.auth.syncedLogoutPromptText,
+        showCancelButton: true,
+        confirmButtonText: API_UI.auth.logoutConfirmButtonText,
+        cancelButtonText: API_UI.share.cancelButtonText,
+      });
+      if (r.isConfirmed) {
+        apiLogout();
+        _projectRole = null;
+        updateAuthBtn();
+        _updateReadOnlyUI();
+      }
+    };
+  } else {
+    btn.textContent = buttonModel.text;
+    btn.title = buttonModel.title;
+    btn.onclick = () => openAuthModal("login");
+  }
+  _updateReadOnlyUI();
+}

@@ -613,6 +613,30 @@
       }
     };
   }
+  function buildFallbackAuthModalRenderModel(tab, ui) {
+    const isLogin = tab === "login";
+    return {
+      isLogin,
+      loginTabClassName: `auth-tab${isLogin ? " active" : ""}`,
+      registerTabClassName: `auth-tab${!isLogin ? " active" : ""}`,
+      submitLabel: isLogin ? ui.loginSubmitLabel : ui.registerSubmitLabel,
+      showNameField: !isLogin
+    };
+  }
+  function buildFallbackAuthButtonModel(isLoggedIn, userName, ui) {
+    if (isLoggedIn && userName) {
+      return {
+        text: `☃ ${userName}`,
+        title: ui.syncedTitle,
+        mode: "logout"
+      };
+    }
+    return {
+      text: ui.loginButtonLabel,
+      title: "",
+      mode: "login"
+    };
+  }
 
   // src/domain/charts-ui.ts
   function buildChartsUiModel() {
@@ -3285,6 +3309,8 @@
     buildRuntimeTaskWindowModel: buildTaskWindowModel,
     buildRuntimeAppUiModel: buildAppUiModel,
     buildRuntimeApiUiModel: buildApiUiModel,
+    buildRuntimeFallbackAuthModalRenderModel: buildFallbackAuthModalRenderModel,
+    buildRuntimeFallbackAuthButtonModel: buildFallbackAuthButtonModel,
     buildRuntimeChartsUiModel: buildChartsUiModel,
     buildRuntimeChartData: buildChartData,
     buildRuntimeChartColors: buildChartColors,

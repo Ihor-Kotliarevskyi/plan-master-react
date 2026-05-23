@@ -53,7 +53,11 @@ import {
   buildVisibleYearGroups,
 } from "../domain/render";
 import { buildAppUiModel } from "../domain/app-ui";
-import { buildApiUiModel } from "../domain/api-ui";
+import {
+  buildApiUiModel,
+  buildFallbackAuthButtonModel,
+  buildFallbackAuthModalRenderModel,
+} from "../domain/api-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
 import {
   buildChartColors,
@@ -441,6 +445,8 @@ const runtimeHelpers = {
   buildRuntimeTaskWindowModel: buildTaskWindowModel,
   buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeApiUiModel: buildApiUiModel,
+  buildRuntimeFallbackAuthModalRenderModel: buildFallbackAuthModalRenderModel,
+  buildRuntimeFallbackAuthButtonModel: buildFallbackAuthButtonModel,
   buildRuntimeChartsUiModel: buildChartsUiModel,
   buildRuntimeChartData: buildChartData,
   buildRuntimeChartColors: buildChartColors,

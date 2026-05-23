@@ -254,6 +254,8 @@ and Supabase adapters happen against stable interfaces.
 - `js/api.js` now uses the generated helper layer for:
   - auth modal labels and submit copy
   - auth success/error/logout prompt copy
+  - fallback auth modal render model
+  - fallback auth button state model
   - share modal titles, empty states, and validation copy
   - fallback auth reset and hydration state
   - fallback register/login request construction
