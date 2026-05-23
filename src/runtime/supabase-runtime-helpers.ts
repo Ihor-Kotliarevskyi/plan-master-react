@@ -221,6 +221,13 @@ import {
   resolveProjectLoadDecision,
 } from "../services/supabase/runtime";
 import {
+  buildAuthRedirectUrl,
+  buildSupabaseLoginRequest,
+  buildSupabaseProfileSelectRequest,
+  buildSupabaseProfileUpdatePayload,
+  buildSupabaseRegisterRequest,
+} from "../services/supabase/account-runtime";
+import {
   buildHydratedAuthState,
   buildLogoutSyncDecision,
   resetSupabaseAuthState,
@@ -308,6 +315,11 @@ const runtimeHelpers = {
   mergeAccessibleProjectsIntoLocalState,
   buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
   buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
+  buildRuntimeAuthRedirectUrl: buildAuthRedirectUrl,
+  buildRuntimeSupabaseRegisterRequest: buildSupabaseRegisterRequest,
+  buildRuntimeSupabaseLoginRequest: buildSupabaseLoginRequest,
+  buildRuntimeSupabaseProfileSelectRequest: buildSupabaseProfileSelectRequest,
+  buildRuntimeSupabaseProfileUpdatePayload: buildSupabaseProfileUpdatePayload,
   buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
   buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
   buildRuntimeHydratedAuthState: buildHydratedAuthState,

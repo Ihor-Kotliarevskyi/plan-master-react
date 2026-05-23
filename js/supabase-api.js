@@ -23,7 +23,9 @@ const sb = createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 function _getAuthRedirectUrl() {
-  return `${window.location.origin}${window.location.pathname}`;
+  return typeof buildRuntimeAuthRedirectUrl === "function"
+    ? buildRuntimeAuthRedirectUrl(window.location.origin, window.location.pathname)
+    : `${window.location.origin}${window.location.pathname}`;
 }
 
 let _sbUser = null;
@@ -50,14 +52,17 @@ async function apiRegister(name, email, password) {
   _sbUser = resetState.user;
   _sbProfile = resetState.profile;
   _projectRole = resetState.projectRole;
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { name },
-      emailRedirectTo: _getAuthRedirectUrl(),
-    },
-  });
+  const registerRequest = typeof buildRuntimeSupabaseRegisterRequest === "function"
+    ? buildRuntimeSupabaseRegisterRequest(name, email, password, _getAuthRedirectUrl())
+    : {
+        email,
+        password,
+        options: {
+          data: { name },
+          emailRedirectTo: _getAuthRedirectUrl(),
+        },
+      };
+  const { data, error } = await sb.auth.signUp(registerRequest);
   if (error) throw new Error(error.message);
   if (!data.user) throw new Error("Check your email to confirm registration.");
   _sbUser = data.user;
@@ -78,7 +83,10 @@ async function apiLogin(email, password) {
   _sbUser = resetState.user;
   _sbProfile = resetState.profile;
   _projectRole = resetState.projectRole;
-  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  const loginRequest = typeof buildRuntimeSupabaseLoginRequest === "function"
+    ? buildRuntimeSupabaseLoginRequest(email, password)
+    : { email, password };
+  const { data, error } = await sb.auth.signInWithPassword(loginRequest);
   if (error) throw new Error(error.message);
   _sbUser = data.user;
   const profile = await _loadProfile();
@@ -137,11 +145,14 @@ async function apiGetMe() {
 
 async function _loadProfile() {
   if (!_sbUser) return null;
+  const profileSelectRequest = typeof buildRuntimeSupabaseProfileSelectRequest === "function"
+    ? buildRuntimeSupabaseProfileSelectRequest(_sbUser.id)
+    : { userId: _sbUser.id };
 
   const { data, error } = await sb
     .from("profiles")
     .select("*")
-    .eq("id", _sbUser.id)
+    .eq("id", profileSelectRequest.userId)
     .maybeSingle();
 
   if (data) return data;
@@ -155,15 +166,20 @@ async function _loadProfile() {
 async function apiUpdateProfile(updates) {
   if (!_sbUser) return;
 
-  const dbUpdates = {};
-  if (updates.name !== undefined) dbUpdates.name = updates.name;
-  if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
-  if (updates.theme !== undefined) dbUpdates.theme = updates.theme;
-  if (updates.defaults) {
-    if (updates.defaults.sm !== undefined) dbUpdates.default_sm = updates.defaults.sm;
-    if (updates.defaults.sy !== undefined) dbUpdates.default_sy = updates.defaults.sy;
-    if (updates.defaults.nm !== undefined) dbUpdates.default_nm = updates.defaults.nm;
-  }
+  const dbUpdates = typeof buildRuntimeSupabaseProfileUpdatePayload === "function"
+    ? buildRuntimeSupabaseProfileUpdatePayload(updates)
+    : (() => {
+        const fallbackUpdates = {};
+        if (updates.name !== undefined) fallbackUpdates.name = updates.name;
+        if (updates.avatar !== undefined) fallbackUpdates.avatar = updates.avatar;
+        if (updates.theme !== undefined) fallbackUpdates.theme = updates.theme;
+        if (updates.defaults) {
+          if (updates.defaults.sm !== undefined) fallbackUpdates.default_sm = updates.defaults.sm;
+          if (updates.defaults.sy !== undefined) fallbackUpdates.default_sy = updates.defaults.sy;
+          if (updates.defaults.nm !== undefined) fallbackUpdates.default_nm = updates.defaults.nm;
+        }
+        return fallbackUpdates;
+      })();
 
   const { error } = await sb.from("profiles").update(dbUpdates).eq("id", _sbUser.id);
   if (error) throw new Error(error.message);

@@ -58,6 +58,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/project-list.ts`
   - `src/services/supabase/runtime.ts`
   - `src/services/supabase/auth-runtime.ts`
+  - `src/services/supabase/account-runtime.ts`
   - `src/services/supabase/ui-runtime.ts`
   - `src/services/supabase/collaboration-runtime.ts`
   - `src/services/supabase/project-runtime.ts`
@@ -111,6 +112,9 @@ and Supabase adapters happen against stable interfaces.
   - current project resolution after bootstrap
   - synced snapshot version update
   - created snapshot server-id/owner-role update
+  - auth redirect URL construction
+  - register/login request construction
+  - profile select/update request construction
   - auth-state reset and hydration model
   - logout sync-decision
   - auth-event planning for `INITIAL_SESSION` / `SIGNED_IN` / `TOKEN_REFRESHED` / `USER_UPDATED` / `SIGNED_OUT`

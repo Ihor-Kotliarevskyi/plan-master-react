@@ -217,6 +217,13 @@ import {
   resolveProjectLoadDecision,
 } from "../src/services/supabase/runtime";
 import {
+  buildAuthRedirectUrl,
+  buildSupabaseLoginRequest,
+  buildSupabaseProfileSelectRequest,
+  buildSupabaseProfileUpdatePayload,
+  buildSupabaseRegisterRequest,
+} from "../src/services/supabase/account-runtime";
+import {
   buildHydratedAuthState,
   buildLogoutSyncDecision,
   resetSupabaseAuthState,
@@ -556,6 +563,21 @@ assert.equal(buildSupabaseShareGrantedToast("Viewer", "mail@example.com").text, 
 assert.equal(buildSupabaseShareRemovedToast().title, "Access removed");
 assert.equal(buildSupabaseSyncIndicatorPlan().status, "syncing");
 assert.equal(buildSupabaseSyncIndicatorPlan().timeoutMs, 1800);
+assert.equal(buildAuthRedirectUrl("http://localhost:5173", "/app"), "http://localhost:5173/app");
+const registerRequest = buildSupabaseRegisterRequest("Ihor", "mail@example.com", "secret", "http://localhost:5173/app");
+assert.equal(registerRequest.options.data.name, "Ihor");
+assert.equal(registerRequest.options.emailRedirectTo, "http://localhost:5173/app");
+assert.equal(buildSupabaseLoginRequest("mail@example.com", "secret").password, "secret");
+assert.equal(buildSupabaseProfileSelectRequest("user-1").userId, "user-1");
+const profileUpdatePayload = buildSupabaseProfileUpdatePayload({
+  name: "Ihor",
+  theme: "dark",
+  defaults: { sm: 5, sy: 2026, nm: 12 },
+});
+assert.equal(profileUpdatePayload.name, "Ihor");
+assert.equal(profileUpdatePayload.default_sm, 5);
+assert.equal(profileUpdatePayload.default_sy, 2026);
+assert.equal(profileUpdatePayload.default_nm, 12);
 const activityWriteRequest = buildActivityWriteRequest({
   projectId: "project-1",
   actorId: "owner-1",

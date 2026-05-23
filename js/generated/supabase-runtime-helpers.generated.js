@@ -2708,6 +2708,44 @@
     return Object.keys(projects)[0] || null;
   }
 
+  // src/services/supabase/account-runtime.ts
+  function buildAuthRedirectUrl(origin, pathname) {
+    return `${origin}${pathname}`;
+  }
+  function buildSupabaseRegisterRequest(name, email, password, redirectUrl) {
+    return {
+      email,
+      password,
+      options: {
+        data: { name },
+        emailRedirectTo: redirectUrl
+      }
+    };
+  }
+  function buildSupabaseLoginRequest(email, password) {
+    return {
+      email,
+      password
+    };
+  }
+  function buildSupabaseProfileSelectRequest(userId) {
+    return {
+      userId
+    };
+  }
+  function buildSupabaseProfileUpdatePayload(updates) {
+    const dbUpdates = {};
+    if (updates.name !== void 0) dbUpdates.name = updates.name;
+    if (updates.avatar !== void 0) dbUpdates.avatar = updates.avatar;
+    if (updates.theme !== void 0) dbUpdates.theme = updates.theme;
+    if (updates.defaults) {
+      if (updates.defaults.sm !== void 0) dbUpdates.default_sm = updates.defaults.sm;
+      if (updates.defaults.sy !== void 0) dbUpdates.default_sy = updates.defaults.sy;
+      if (updates.defaults.nm !== void 0) dbUpdates.default_nm = updates.defaults.nm;
+    }
+    return dbUpdates;
+  }
+
   // src/services/supabase/auth-runtime.ts
   function resetSupabaseAuthState() {
     return {
@@ -2979,6 +3017,11 @@
     mergeAccessibleProjectsIntoLocalState,
     buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,
     buildRuntimeResolveCurrentProjectId: resolveCurrentProjectId,
+    buildRuntimeAuthRedirectUrl: buildAuthRedirectUrl,
+    buildRuntimeSupabaseRegisterRequest: buildSupabaseRegisterRequest,
+    buildRuntimeSupabaseLoginRequest: buildSupabaseLoginRequest,
+    buildRuntimeSupabaseProfileSelectRequest: buildSupabaseProfileSelectRequest,
+    buildRuntimeSupabaseProfileUpdatePayload: buildSupabaseProfileUpdatePayload,
     buildRuntimeResetSupabaseAuthState: resetSupabaseAuthState,
     buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
     buildRuntimeHydratedAuthState: buildHydratedAuthState,
