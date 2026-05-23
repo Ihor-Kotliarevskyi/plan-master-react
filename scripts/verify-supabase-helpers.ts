@@ -81,6 +81,16 @@ import {
   selectedContractorKeys,
   summarizeContractorBulkDelete,
 } from "../src/domain/contractors";
+import {
+  buildContractorBulkDeleteModel,
+  buildContractorSummaryModel,
+  buildPaymentRegisterCurrentState,
+  buildPaymentRegisterListItems,
+  buildSavedPaymentRegister,
+  findPaymentRegisterById,
+  getVisibleDeletableContractorRows,
+  hasContractorFilters,
+} from "../src/domain/contractors-panel";
 import { buildCostUiModel } from "../src/domain/costs-ui";
 import {
   addPaymentToCostItem,
@@ -932,6 +942,20 @@ assert.deepEqual(summarizeContractorBulkDelete([{ itemsCount: 2, paymentsCount: 
   payments: 3,
   acts: 1,
 });
+assert.equal(
+  hasContractorFilters(
+    { status: ["debt"], type: [], cat: [] },
+    (selected) => Array.isArray(selected) ? selected.map(String) : [],
+  ),
+  true,
+);
+assert.equal(
+  hasContractorFilters(
+    { status: [], type: [], cat: [] },
+    (selected) => Array.isArray(selected) ? selected.map(String) : [],
+  ),
+  false,
+);
 
 const contractorRows = buildContractorRows(
   [
@@ -968,6 +992,20 @@ assert.equal(contractorRows[0]?.supplier, "Acme");
 assert.equal(contractorRows[0]?.budget, 300);
 assert.equal(contractorRows[0]?.paid, 100);
 assert.equal(contractorRows[0]?.status, "debt");
+const contractorSummary = buildContractorSummaryModel(contractorRows);
+assert.equal(contractorSummary.realContractors, 1);
+assert.equal(contractorSummary.total.budget, 300);
+assert.equal(contractorSummary.total.paid, 100);
+const visibleContractors = getVisibleDeletableContractorRows(contractorRows, (key) => key === "__blocked__");
+assert.equal(visibleContractors.length, 1);
+const contractorBulkDelete = buildContractorBulkDeleteModel(
+  ["acme", "__blocked__", "acme"],
+  contractorRows,
+  (key) => key === "__blocked__",
+  summarizeContractorBulkDelete,
+);
+assert.deepEqual(contractorBulkDelete.uniqueKeys, ["acme"]);
+assert.equal(contractorBulkDelete.summary.contractors, 1);
 
 const registerRows = paymentRegisterRowsFromContractorRows([{
   supplier: "Acme",
@@ -986,6 +1024,33 @@ assert.equal(
   ),
   "пошук: acme; статус: debt; тип: Роботи; категорія: General",
 );
+
+const currentPaymentRegister = buildPaymentRegisterCurrentState(
+  [{
+    supplier: "Acme",
+    isForecast: false,
+    payments: [{ date: "2026-05-01", amount: 100, type: "act", taskNo: 1, taskName: "Foundation", itemName: "Work", note: "" }],
+  }],
+  (type) => ({ act: "Act" }[type] || type),
+);
+assert.equal(currentPaymentRegister.count, 1);
+assert.equal(currentPaymentRegister.total, 100);
+assert.equal(currentPaymentRegister.rows[0]?.type, "Act");
+const savedRegister = buildSavedPaymentRegister({
+  id: "reg-1",
+  name: "Register",
+  createdAt: "2026-05-23",
+  filters: { q: "acme" },
+  filtersLabel: "РїРѕС€СѓРє: acme",
+  total: 100,
+  rows: currentPaymentRegister.rows,
+});
+assert.equal(savedRegister.name, "Register");
+assert.equal(savedRegister.filters.q, "acme");
+const registerListItems = buildPaymentRegisterListItems([savedRegister]);
+assert.equal(registerListItems[0]?.count, 1);
+assert.equal(registerListItems[0]?.total, 100);
+assert.equal(findPaymentRegisterById([savedRegister], "reg-1")?.name, "Register");
 
 const costUi = buildCostUiModel();
 assert.equal(costUi.labels.addPaymentLabel, "+ Платіж");

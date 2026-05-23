@@ -46,6 +46,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/costs.ts`
   - `src/domain/finance.ts`
   - `src/domain/contractors.ts`
+  - `src/domain/contractors-panel.ts`
   - `src/domain/print.ts`
 - typed Supabase row/RPC contracts in:
   - `src/services/supabase/contracts.ts`
@@ -193,9 +194,15 @@ and Supabase adapters happen against stable interfaces.
   - access-guard capability labels and denial toast copy
 - `js/contractors.js` now uses the generated helper layer for:
   - contractor row aggregation and sorting
+  - contractor summary aggregation
+  - contractor filter-state detection
   - selected-key normalization
-  - bulk delete summary calculation
-  - payment register row extraction and totals
+  - visible bulk-delete row resolution
+  - bulk delete normalization and summary calculation
+  - payment register current-state calculation
+  - saved payment-register list projection
+  - saved payment-register snapshot creation
+  - payment-register lookup by id
   - payment register filter-summary text
 - `js/api.js` now uses the generated helper layer for:
   - auth modal labels and submit copy

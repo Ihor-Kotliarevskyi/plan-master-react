@@ -81,6 +81,16 @@ import {
   selectedContractorKeys,
   summarizeContractorBulkDelete,
 } from "../domain/contractors";
+import {
+  buildContractorBulkDeleteModel,
+  buildContractorSummaryModel,
+  buildPaymentRegisterCurrentState,
+  buildPaymentRegisterListItems,
+  buildSavedPaymentRegister,
+  findPaymentRegisterById,
+  getVisibleDeletableContractorRows,
+  hasContractorFilters,
+} from "../domain/contractors-panel";
 import { buildCostUiModel } from "../domain/costs-ui";
 import {
   addPaymentToCostItem,
@@ -376,6 +386,14 @@ const runtimeHelpers = {
   buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
   buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
   buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
+  buildRuntimeContractorSummaryModel: buildContractorSummaryModel,
+  buildRuntimeHasContractorFilters: hasContractorFilters,
+  buildRuntimeVisibleDeletableContractorRows: getVisibleDeletableContractorRows,
+  buildRuntimeContractorBulkDeleteModel: buildContractorBulkDeleteModel,
+  buildRuntimePaymentRegisterCurrentState: buildPaymentRegisterCurrentState,
+  buildRuntimePaymentRegisterListItems: buildPaymentRegisterListItems,
+  buildRuntimeSavedPaymentRegister: buildSavedPaymentRegister,
+  buildRuntimeFindPaymentRegisterById: findPaymentRegisterById,
   buildRuntimeCostUiModel: buildCostUiModel,
   buildRuntimeCreateCostItem: createCostItem,
   buildRuntimeCreateCostPayment: createCostPayment,

@@ -1280,6 +1280,96 @@
     return rows;
   }
 
+  // src/domain/contractors-panel.ts
+  function buildContractorSummaryModel(rows) {
+    const total = rows.reduce(
+      (acc, row) => {
+        acc.budget += +row?.budget || 0;
+        acc.paid += +row?.paid || 0;
+        acc.rest += +row?.rest || 0;
+        acc.actsAmount += +row?.actsAmount || 0;
+        acc.actsDebt += +row?.actsDebt || 0;
+        acc.payments += +row?.paymentsCount || 0;
+        acc.items += +row?.itemsCount || 0;
+        return acc;
+      },
+      { budget: 0, paid: 0, rest: 0, actsAmount: 0, actsDebt: 0, payments: 0, items: 0 }
+    );
+    return {
+      total,
+      realContractors: rows.filter((row) => !row?.isForecast).length,
+      withDebt: rows.filter((row) => (+row?.rest || 0) > 0.5).length
+    };
+  }
+  function hasContractorFilters(filters, multiValues) {
+    return !!(multiValues(filters?.status).length || multiValues(filters?.type).length || multiValues(filters?.cat).length);
+  }
+  function getVisibleDeletableContractorRows(rows, isBlocked) {
+    return (rows || []).filter((row) => !isBlocked(String(row?.key || "")) && !row?.isForecast);
+  }
+  function buildContractorBulkDeleteModel(keys, rows, isBlocked, summarize) {
+    const uniqueKeys = Array.from(new Set(Array.from(keys || []))).filter((key) => !isBlocked(String(key || "")));
+    const matchedRows = (rows || []).filter((row) => uniqueKeys.includes(String(row?.key || "")));
+    return {
+      uniqueKeys,
+      rows: matchedRows,
+      summary: summarize(matchedRows)
+    };
+  }
+  function buildPaymentRegisterCurrentState(contractorRows, typeLabel) {
+    const rows = (contractorRows || []).map((row) => ({
+      ...row,
+      payments: (row?.payments || []).map((payment) => ({
+        ...payment,
+        typeLabel: typeLabel(String(payment?.type || ""))
+      }))
+    }));
+    const registerRows = rows.filter((row) => !row?.isForecast).flatMap(
+      (row) => (row.payments || []).map((payment) => ({
+        supplier: row.supplier,
+        date: payment.date || "",
+        amount: +payment.amount || 0,
+        type: payment.typeLabel || payment.type || "",
+        taskNo: payment.taskNo,
+        taskName: payment.taskName,
+        itemName: payment.itemName,
+        note: payment.note || ""
+      }))
+    ).sort(
+      (a, b) => String(a.date || "").localeCompare(String(b.date || "")) || String(a.supplier || "").localeCompare(String(b.supplier || ""), "uk")
+    );
+    const total = registerRows.reduce((sum, row) => sum + (+row.amount || 0), 0);
+    return {
+      rows: registerRows,
+      total,
+      count: registerRows.length
+    };
+  }
+  function buildPaymentRegisterListItems(registers) {
+    return (registers || []).map((register) => ({
+      id: String(register?.id || ""),
+      name: String(register?.name || ""),
+      createdAt: String(register?.createdAt || ""),
+      count: Array.isArray(register?.rows) ? register.rows.length : 0,
+      total: +register?.total || 0,
+      filtersLabel: String(register?.filtersLabel || "")
+    }));
+  }
+  function buildSavedPaymentRegister(params) {
+    return {
+      id: params.id,
+      name: params.name,
+      createdAt: params.createdAt,
+      filters: { ...params.filters },
+      filtersLabel: params.filtersLabel,
+      total: params.total,
+      rows: params.rows
+    };
+  }
+  function findPaymentRegisterById(registers, id) {
+    return (registers || []).find((register) => String(register?.id) === String(id));
+  }
+
   // src/domain/costs-ui.ts
   function buildCostUiModel() {
     return {
@@ -2501,6 +2591,14 @@
     buildRuntimePaymentRegisterRowsFromContractorRows: paymentRegisterRowsFromContractorRows,
     buildRuntimePaymentRegisterTotal: paymentRegisterTotal,
     buildRuntimePaymentRegisterFiltersLabel: paymentRegisterFiltersLabel,
+    buildRuntimeContractorSummaryModel: buildContractorSummaryModel,
+    buildRuntimeHasContractorFilters: hasContractorFilters,
+    buildRuntimeVisibleDeletableContractorRows: getVisibleDeletableContractorRows,
+    buildRuntimeContractorBulkDeleteModel: buildContractorBulkDeleteModel,
+    buildRuntimePaymentRegisterCurrentState: buildPaymentRegisterCurrentState,
+    buildRuntimePaymentRegisterListItems: buildPaymentRegisterListItems,
+    buildRuntimeSavedPaymentRegister: buildSavedPaymentRegister,
+    buildRuntimeFindPaymentRegisterById: findPaymentRegisterById,
     buildRuntimeCostUiModel: buildCostUiModel,
     buildRuntimeCreateCostItem: createCostItem,
     buildRuntimeCreateCostPayment: createCostPayment,

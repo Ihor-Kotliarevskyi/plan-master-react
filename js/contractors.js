@@ -446,21 +446,28 @@ function _renderContractorSummary(rows) {
   const el = document.getElementById("contractor-summary");
   if (!el) return;
 
-  const total = rows.reduce(
-    (acc, r) => {
-      acc.budget += r.budget;
-      acc.paid += r.paid;
-      acc.rest += r.rest;
-      acc.actsAmount += r.actsAmount || 0;
-      acc.actsDebt += r.actsDebt || 0;
-      acc.payments += r.paymentsCount;
-      acc.items += r.itemsCount;
-      return acc;
-    },
-    { budget: 0, paid: 0, rest: 0, actsAmount: 0, actsDebt: 0, payments: 0, items: 0 },
-  );
-  const realContractors = rows.filter((r) => !r.isForecast).length;
-  const withDebt = rows.filter((r) => r.rest > 0.5).length;
+  const summary = typeof buildRuntimeContractorSummaryModel === "function"
+    ? buildRuntimeContractorSummaryModel(rows)
+    : {
+        total: rows.reduce(
+          (acc, r) => {
+            acc.budget += r.budget;
+            acc.paid += r.paid;
+            acc.rest += r.rest;
+            acc.actsAmount += r.actsAmount || 0;
+            acc.actsDebt += r.actsDebt || 0;
+            acc.payments += r.paymentsCount;
+            acc.items += r.itemsCount;
+            return acc;
+          },
+          { budget: 0, paid: 0, rest: 0, actsAmount: 0, actsDebt: 0, payments: 0, items: 0 },
+        ),
+        realContractors: rows.filter((r) => !r.isForecast).length,
+        withDebt: rows.filter((r) => r.rest > 0.5).length,
+      };
+  const total = summary.total;
+  const realContractors = summary.realContractors;
+  const withDebt = summary.withDebt;
 
   el.innerHTML = `
     <div class="contractor-card"><div class="lbl">${CONTRACTOR_SUMMARY_UI.contractors}</div><div class="val">${realContractors}</div></div>
@@ -1337,6 +1344,9 @@ function resetContractorFilters() {
 }
 
 function _hasContractorFilters() {
+  if (typeof buildRuntimeHasContractorFilters === "function") {
+    return buildRuntimeHasContractorFilters(contractorFilters, multiFilterValues);
+  }
   return !!(
     multiFilterValues(contractorFilters.status).length ||
     multiFilterValues(contractorFilters.type).length ||
@@ -1356,6 +1366,9 @@ function _selectedContractorKeys() {
 }
 
 function _visibleDeletableContractorRows() {
+  if (typeof buildRuntimeVisibleDeletableContractorRows === "function") {
+    return buildRuntimeVisibleDeletableContractorRows(_getContractorRows(), _isBulkDeleteBlockedKey);
+  }
   return _getContractorRows().filter((row) => !_isBulkDeleteBlockedKey(row.key) && !row.isForecast);
 }
 
@@ -1424,19 +1437,35 @@ async function deleteVisibleContractors() {
 
 async function _bulkDeleteContractors(keys, scopeLabel) {
   if (!_canMutateContractors(true)) return;
-  const uniqueKeys = Array.from(new Set(keys)).filter((key) => !_isBulkDeleteBlockedKey(key));
+  const bulkDelete = typeof buildRuntimeContractorBulkDeleteModel === "function"
+    ? buildRuntimeContractorBulkDeleteModel(
+        keys,
+        _getContractorRows(),
+        _isBulkDeleteBlockedKey,
+        typeof buildRuntimeSummarizeContractorBulkDelete === "function"
+          ? buildRuntimeSummarizeContractorBulkDelete
+          : (rows) => rows.reduce((acc, row) => {
+              acc.contractors += 1;
+              acc.items += row.itemsCount || 0;
+              acc.payments += row.paymentsCount || 0;
+              acc.acts += (row.acts || []).length || 0;
+              return acc;
+            }, { contractors: 0, items: 0, payments: 0, acts: 0 }),
+      )
+    : null;
+  const uniqueKeys = bulkDelete?.uniqueKeys || Array.from(new Set(keys)).filter((key) => !_isBulkDeleteBlockedKey(key));
   if (!uniqueKeys.length) return;
-
-  const rows = _getContractorRows().filter((row) => uniqueKeys.includes(row.key));
-  const summary = typeof buildRuntimeSummarizeContractorBulkDelete === "function"
-    ? buildRuntimeSummarizeContractorBulkDelete(rows)
-    : rows.reduce((acc, row) => {
-        acc.contractors += 1;
-        acc.items += row.itemsCount || 0;
-        acc.payments += row.paymentsCount || 0;
-        acc.acts += (row.acts || []).length || 0;
-        return acc;
-      }, { contractors: 0, items: 0, payments: 0, acts: 0 });
+  const summary = bulkDelete?.summary || (typeof buildRuntimeSummarizeContractorBulkDelete === "function"
+    ? buildRuntimeSummarizeContractorBulkDelete(_getContractorRows().filter((row) => uniqueKeys.includes(row.key)))
+    : _getContractorRows()
+        .filter((row) => uniqueKeys.includes(row.key))
+        .reduce((acc, row) => {
+          acc.contractors += 1;
+          acc.items += row.itemsCount || 0;
+          acc.payments += row.paymentsCount || 0;
+          acc.acts += (row.acts || []).length || 0;
+          return acc;
+        }, { contractors: 0, items: 0, payments: 0, acts: 0 }));
 
   const confirmOne = await Swal.fire({
     icon: "warning",
@@ -1943,7 +1972,36 @@ function _ensurePaymentRegisters() {
   return proj.paymentRegisters;
 }
 
+function _paymentRegisterCurrentState() {
+  const rows = _getContractorRows();
+  if (typeof buildRuntimePaymentRegisterCurrentState === "function") {
+    return buildRuntimePaymentRegisterCurrentState(
+      rows,
+      (type) => PAYMENT_TYPES[type] || type || "Р†РЅС€Рµ",
+    );
+  }
+  const registerRows = rows
+    .filter((row) => !row.isForecast)
+    .flatMap((row) => row.payments.map((payment) => ({
+      supplier: row.supplier,
+      date: payment.date || "",
+      amount: +payment.amount || 0,
+      type: PAYMENT_TYPES[payment.type] || payment.type || "Р†РЅС€Рµ",
+      taskNo: payment.taskNo,
+      taskName: payment.taskName,
+      itemName: payment.itemName,
+      note: payment.note || "",
+    })))
+    .sort((a, b) => (a.date || "").localeCompare(b.date || "") || a.supplier.localeCompare(b.supplier, "uk"));
+  return {
+    rows: registerRows,
+    total: registerRows.reduce((sum, row) => sum + (+row.amount || 0), 0),
+    count: registerRows.length,
+  };
+}
+
 function _paymentRegisterRowsFromFilters() {
+  return _paymentRegisterCurrentState().rows;
   const rows = _getContractorRows();
   if (typeof buildRuntimePaymentRegisterRowsFromContractorRows === "function") {
     return buildRuntimePaymentRegisterRowsFromContractorRows(
@@ -2014,8 +2072,9 @@ function renderPaymentRegisterModal() {
   const listEl = document.getElementById("payment-register-list");
   if (!currentEl || !listEl) return;
 
-  const currentRows = _paymentRegisterRowsFromFilters();
-  const currentTotal = _paymentRegisterTotal(currentRows);
+  const currentState = _paymentRegisterCurrentState();
+  const currentRows = currentState.rows;
+  const currentTotal = currentState.total;
   currentEl.innerHTML = `
     <div class="payment-register-current-card">
       <div><b>Поточний фільтр:</b> ${_ctEsc(_paymentRegisterFiltersLabel())}</div>
@@ -2027,7 +2086,20 @@ function renderPaymentRegisterModal() {
   if (!registers.length) {
     listEl.innerHTML = `<div class="contractor-empty">Збережених реєстрів ще немає</div>`;
   } else {
-    listEl.innerHTML = registers
+    const registerItems = typeof buildRuntimePaymentRegisterListItems === "function"
+      ? buildRuntimePaymentRegisterListItems(registers)
+      : registers.map((register) => ({
+          id: String(register.id || ""),
+          name: String(register.name || ""),
+          createdAt: String(register.createdAt || ""),
+          count: register.rows?.length || 0,
+          total: +register.total || 0,
+          filtersLabel: String(register.filtersLabel || ""),
+        }));
+    registerItems.forEach((register) => {
+      if (!Array.isArray(register.rows)) register.rows = Array(register.count || 0).fill(null);
+    });
+    listEl.innerHTML = registerItems
       .map((register) => `
         <div class="payment-register-item">
           <div class="payment-register-info">
@@ -2048,7 +2120,8 @@ function renderPaymentRegisterModal() {
 }
 
 async function createPaymentRegisterFromFilters() {
-  const rows = _paymentRegisterRowsFromFilters();
+  const currentState = _paymentRegisterCurrentState();
+  const rows = currentState.rows;
   if (!rows.length) {
     Swal.fire({ icon: "info", title: CONTRACTOR_UI.noPaymentsTitle, text: CONTRACTOR_UI.noPaymentsRegisterText });
     return;
@@ -2066,20 +2139,34 @@ async function createPaymentRegisterFromFilters() {
   });
   if (!result.isConfirmed) return;
 
-  _ensurePaymentRegisters().unshift({
-    id: typeof genId === "function" ? genId() : `reg_${Date.now()}`,
-    name: _ctText(result.value) || suggested,
-    createdAt: new Date().toLocaleString("uk-UA"),
-    filters: { ...contractorFilters },
-    filtersLabel: _paymentRegisterFiltersLabel(),
-    total: _paymentRegisterTotal(rows),
-    rows,
-  });
+  const register = typeof buildRuntimeSavedPaymentRegister === "function"
+    ? buildRuntimeSavedPaymentRegister({
+        id: typeof genId === "function" ? genId() : `reg_${Date.now()}`,
+        name: _ctText(result.value) || suggested,
+        createdAt: new Date().toLocaleString("uk-UA"),
+        filters: { ...contractorFilters },
+        filtersLabel: _paymentRegisterFiltersLabel(),
+        total: currentState.total,
+        rows,
+      })
+    : {
+        id: typeof genId === "function" ? genId() : `reg_${Date.now()}`,
+        name: _ctText(result.value) || suggested,
+        createdAt: new Date().toLocaleString("uk-UA"),
+        filters: { ...contractorFilters },
+        filtersLabel: _paymentRegisterFiltersLabel(),
+        total: currentState.total,
+        rows,
+      };
+  _ensurePaymentRegisters().unshift(register);
   saveAll();
   renderPaymentRegisterModal();
 }
 
 function _findPaymentRegister(id) {
+  if (typeof buildRuntimeFindPaymentRegisterById === "function") {
+    return buildRuntimeFindPaymentRegisterById(_ensurePaymentRegisters(), id);
+  }
   return _ensurePaymentRegisters().find((register) => String(register.id) === String(id));
 }
 
