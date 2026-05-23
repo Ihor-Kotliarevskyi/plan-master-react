@@ -57,6 +57,35 @@ import {
   buildVisibleYearGroups,
 } from "../domain/render";
 import { buildAppUiModel } from "../domain/app-ui";
+import { buildApiUiModel } from "../domain/api-ui";
+import { buildChartsUiModel } from "../domain/charts-ui";
+import {
+  buildChartColors,
+  buildChartData,
+  buildChartDefinition,
+  buildChartOptions,
+  getChartAutoDefaults,
+  normalizeChartRenderType,
+} from "../domain/charts";
+import { buildFinanceUiModel } from "../domain/finance-ui";
+import {
+  buildFinanceRows,
+  buildFinanceSearchText,
+  calculateFinanceOverview,
+  financeItemTotal,
+  financeScopedCostItems,
+  financeTaskScope,
+  hasFinanceFilters,
+  summarizeFinanceDeletion,
+} from "../domain/finance";
+import { buildPrintUiModel } from "../domain/print-ui";
+import {
+  getPrintMetrics,
+  getPrintPreviewState,
+  resolvePrintGanttLayout,
+  resolvePrintSections,
+  resolvePrintSettings,
+} from "../domain/print";
 import {
   buildApiUiModel,
   buildFallbackAuthButtonModel,
