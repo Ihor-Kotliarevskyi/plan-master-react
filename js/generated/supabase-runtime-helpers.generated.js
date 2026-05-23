@@ -2759,6 +2759,58 @@
     };
   }
 
+  // src/services/supabase/ui-runtime.ts
+  function buildSupabaseShareModalState(params) {
+    return {
+      projectName: params.projectName,
+      items: (params.shares || []).map((share) => ({
+        id: String(share.id || ""),
+        role: String(share.role || "viewer"),
+        roleLabel: params.getRoleLabel(String(share.role || "viewer")),
+        displayLabel: share.user?.email || share.user?.name || share.user?.id || "-"
+      }))
+    };
+  }
+  function buildSupabaseReadOnlyUiState(params) {
+    return {
+      readonly: params.readonly,
+      showReadonlyBanner: params.readonly,
+      headerBannerVisible: params.bannerModel.shouldShow,
+      headerBannerClassName: `project-access-banner${params.readonly ? " is-readonly" : " is-limited"}`,
+      headerBannerHtml: params.bannerModel.shouldShow ? `<span class="project-access-pill">${params.bannerModel.roleLabel}</span><span class="project-access-text">${params.bannerModel.roleHint}${params.bannerModel.sharedMetaText ? ` ${params.bannerModel.sharedMetaText}` : ""}</span>` : "",
+      ganttPointerEvents: params.readonly ? "none" : "",
+      ganttOpacity: params.readonly ? "0.85" : "",
+      ganttTitle: params.readonly ? "View-only mode - editing is disabled" : "",
+      addButtonVisible: !params.readonly,
+      shareButtonVisible: params.isLoggedIn && params.canShare
+    };
+  }
+  function buildSupabaseRoleUpdatedToast(roleLabel) {
+    return {
+      title: `Role updated: ${roleLabel}`,
+      timer: 2600
+    };
+  }
+  function buildSupabaseShareGrantedToast(roleLabel, email) {
+    return {
+      title: `Access granted: ${roleLabel}`,
+      text: email,
+      timer: 2800
+    };
+  }
+  function buildSupabaseShareRemovedToast() {
+    return {
+      title: "Access removed",
+      timer: 2400
+    };
+  }
+  function buildSupabaseSyncIndicatorPlan(timeoutMs = 1800) {
+    return {
+      status: "syncing",
+      timeoutMs
+    };
+  }
+
   // src/runtime/supabase-runtime-helpers.ts
   function getStoredRole(localId, role) {
     const scope = globalThis;
@@ -2792,6 +2844,12 @@
     buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
     buildRuntimeHydratedAuthState: buildHydratedAuthState,
     buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+    buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
+    buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
+    buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
+    buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
+    buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
+    buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
     mapSupabaseTaskRow: mapTaskRowToTask,
     buildSupabaseProjectSnapshot: (localId, projectRow, taskRows, previousSnapshot, role) => buildSupabaseProjectSnapshot(localId, projectRow, taskRows, previousSnapshot, role, getStoredRole),
     buildRuntimeProjectSyncSuccessSnapshot: buildProjectSyncSuccessSnapshot,

@@ -226,6 +226,14 @@ import {
   resetSupabaseAuthState,
   resolveSupabaseAuthEventPlan,
 } from "../services/supabase/auth-runtime";
+import {
+  buildSupabaseReadOnlyUiState,
+  buildSupabaseRoleUpdatedToast,
+  buildSupabaseShareGrantedToast,
+  buildSupabaseShareModalState,
+  buildSupabaseShareRemovedToast,
+  buildSupabaseSyncIndicatorPlan,
+} from "../services/supabase/ui-runtime";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -280,6 +288,12 @@ const runtimeHelpers = {
   buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
   buildRuntimeHydratedAuthState: buildHydratedAuthState,
   buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+  buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
+  buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
+  buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
+  buildRuntimeSupabaseShareGrantedToast: buildSupabaseShareGrantedToast,
+  buildRuntimeSupabaseShareRemovedToast: buildSupabaseShareRemovedToast,
+  buildRuntimeSupabaseSyncIndicatorPlan: buildSupabaseSyncIndicatorPlan,
   mapSupabaseTaskRow: mapTaskRowToTask,
   buildSupabaseProjectSnapshot: (
     localId: string,

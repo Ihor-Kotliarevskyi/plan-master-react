@@ -58,6 +58,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/project-list.ts`
   - `src/services/supabase/runtime.ts`
   - `src/services/supabase/auth-runtime.ts`
+  - `src/services/supabase/ui-runtime.ts`
 - fixture-based verification script:
   - `npm run verify:supabase-helpers`
   - `scripts/verify-supabase-helpers.ts`
@@ -111,6 +112,10 @@ and Supabase adapters happen against stable interfaces.
   - auth-state reset and hydration model
   - logout sync-decision
   - auth-event planning for `INITIAL_SESSION` / `SIGNED_IN` / `TOKEN_REFRESHED` / `USER_UPDATED` / `SIGNED_OUT`
+  - readonly/share-button UI state model
+  - share modal list projection
+  - share success toast models
+  - sync-indicator timing plan
 - `js/render.js` and `js/modal.js` now use the generated helper layer for:
   - grouping project lists into own/shared sections
   - deriving shared-project owner/inviter labels

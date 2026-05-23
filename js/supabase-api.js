@@ -649,42 +649,69 @@ function _updateReadOnlyUI() {
           : "",
       };
 
+  const uiState = typeof buildRuntimeSupabaseReadOnlyUiState === "function"
+    ? buildRuntimeSupabaseReadOnlyUiState({
+        readonly,
+        canShare,
+        isLoggedIn: isLoggedIn(),
+        bannerModel,
+      })
+    : {
+        showReadonlyBanner: readonly,
+        headerBannerVisible: bannerModel.shouldShow,
+        headerBannerClassName: `project-access-banner${readonly ? " is-readonly" : " is-limited"}`,
+        headerBannerHtml: bannerModel.shouldShow
+          ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
+          : "",
+        ganttPointerEvents: readonly ? "none" : "",
+        ganttOpacity: readonly ? "0.85" : "",
+        ganttTitle: readonly ? "View-only mode - editing is disabled" : "",
+        addButtonVisible: !readonly,
+        shareButtonVisible: isLoggedIn() && canShare,
+      };
+
   const banner = document.getElementById("readonly-banner");
-  if (banner) banner.style.display = readonly ? "flex" : "none";
+  if (banner) banner.style.display = uiState.showReadonlyBanner ? "flex" : "none";
 
   const headerBanner = document.getElementById("project-access-banner");
   if (headerBanner) {
-    headerBanner.style.display = bannerModel.shouldShow ? "flex" : "none";
-    headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
-    headerBanner.innerHTML = bannerModel.shouldShow
-      ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
-      : "";
+    headerBanner.style.display = uiState.headerBannerVisible ? "flex" : "none";
+    headerBanner.className = uiState.headerBannerClassName;
+    headerBanner.innerHTML = uiState.headerBannerHtml;
   }
 
   const ganttTable = document.getElementById("gtbl-wrap");
   if (ganttTable) {
-    ganttTable.style.pointerEvents = readonly ? "none" : "";
-    ganttTable.style.opacity = readonly ? "0.85" : "";
-    ganttTable.title = readonly ? "View-only mode - editing is disabled" : "";
+    ganttTable.style.pointerEvents = uiState.ganttPointerEvents;
+    ganttTable.style.opacity = uiState.ganttOpacity;
+    ganttTable.title = uiState.ganttTitle;
   }
 
   const addBtn = document.querySelector(".btn-acc[onclick='openAdd()']");
-  if (addBtn) addBtn.style.display = readonly ? "none" : "";
+  if (addBtn) addBtn.style.display = uiState.addButtonVisible ? "" : "none";
 
   const shareBtn = document.getElementById("share-btn");
-  if (shareBtn) shareBtn.style.display = isLoggedIn() && canShare ? "" : "none";
+  if (shareBtn) shareBtn.style.display = uiState.shareButtonVisible ? "" : "none";
 }
 
 async function handleShareRoleChange(shareId, role) {
   try {
     const nextRole = await apiUpdateShareRole(shareId, role);
+    const toastModel = typeof buildRuntimeSupabaseRoleUpdatedToast === "function"
+      ? buildRuntimeSupabaseRoleUpdatedToast(
+          typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole),
+        )
+      : {
+          title: `Role updated: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole)}`,
+          timer: 2600,
+        };
     Swal.fire({
       toast: true,
       position: "top-end",
       icon: "success",
-      title: `Role updated: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(nextRole) : (PROJECT_ROLE_LABELS[nextRole] || nextRole)}`,
+      title: toastModel.title,
       showConfirmButton: false,
-      timer: 2600,
+      timer: toastModel.timer,
     });
     await openShareModal();
   } catch (err) {
@@ -699,13 +726,16 @@ async function handleShareRoleChange(shareId, role) {
 async function handleShareRemoval(shareId) {
   try {
     await apiRemoveShare(shareId);
+    const toastModel = typeof buildRuntimeSupabaseShareRemovedToast === "function"
+      ? buildRuntimeSupabaseShareRemovedToast()
+      : { title: "Access removed", timer: 2400 };
     Swal.fire({
       toast: true,
       position: "top-end",
       icon: "success",
-      title: "Access removed",
+      title: toastModel.title,
       showConfirmButton: false,
-      timer: 2400,
+      timer: toastModel.timer,
     });
     await openShareModal();
   } catch (err) {
@@ -735,13 +765,28 @@ async function openShareModal() {
       <div><b>Viewer:</b> read-only access.</div>
     </div>`;
 
-  const list = shares.length
-    ? shares.map((share) => {
+  const shareModalState = typeof buildRuntimeSupabaseShareModalState === "function"
+    ? buildRuntimeSupabaseShareModalState({
+        shares,
+        projectName: proj.name,
+        getRoleLabel: (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role],
+      })
+    : {
+        projectName: proj.name,
+        items: shares.map((share) => ({
+          id: share.id,
+          role: normalizeProjectRole(share.role),
+          roleLabel: typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(share.role) : PROJECT_ROLE_LABELS[share.role],
+          displayLabel: share.user?.email || share.user?.name || share.user?.id || "-",
+        })),
+      };
+
+  const list = shareModalState.items.length
+    ? shareModalState.items.map((share) => {
       const shareRole = normalizeProjectRole(share.role);
-      const shareLabel = share.user?.email || share.user?.name || share.user?.id || "-";
       return `
         <div class="share-row">
-          <span>${shareLabel}</span>
+          <span>${share.displayLabel}</span>
           <select class="cost-sel" onchange="handleShareRoleChange('${share.id}',this.value)">
             ${SHAREABLE_PROJECT_ROLES.map(
               (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
@@ -756,7 +801,7 @@ async function openShareModal() {
     title: "Shared Access",
     html: `
       <div class="share-modal-body">
-        <div class="share-proj-name">Project: <b>${proj.name}</b></div>
+        <div class="share-proj-name">Project: <b>${shareModalState.projectName}</b></div>
         <div class="share-list">${list}</div>
         <hr class="share-divider">
         <div class="share-add-title">Grant access:</div>
@@ -781,14 +826,24 @@ async function openShareModal() {
       }
       try {
         const result = await apiShareProject(email, role);
+        const toastModel = typeof buildRuntimeSupabaseShareGrantedToast === "function"
+          ? buildRuntimeSupabaseShareGrantedToast(
+              typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role),
+              result.email,
+            )
+          : {
+              title: `Access granted: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role)}`,
+              text: result.email,
+              timer: 2800,
+            };
         Swal.fire({
           toast: true,
           position: "top-end",
           icon: "success",
-          title: `Access granted: ${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(result.role) : (PROJECT_ROLE_LABELS[result.role] || result.role)}`,
-          text: result.email,
+          title: toastModel.title,
+          text: toastModel.text,
           showConfirmButton: false,
-          timer: 2800,
+          timer: toastModel.timer,
         });
       } catch (err) {
         Swal.showValidationMessage(err.message);
@@ -800,12 +855,15 @@ async function openShareModal() {
 
 function _showSyncIndicator() {
   if (typeof setUserSyncStatus === "function") {
-    setUserSyncStatus("syncing");
+    const plan = typeof buildRuntimeSupabaseSyncIndicatorPlan === "function"
+      ? buildRuntimeSupabaseSyncIndicatorPlan()
+      : { status: "syncing", timeoutMs: 1800 };
+    setUserSyncStatus(plan.status);
     clearTimeout(_syncTimer);
     _syncTimer = setTimeout(() => {
       if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
       else setUserSyncStatus("ok");
-    }, 1800);
+    }, plan.timeoutMs);
   }
 }
 

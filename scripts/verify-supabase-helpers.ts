@@ -223,6 +223,14 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../src/services/supabase/auth-runtime";
 import {
+  buildSupabaseReadOnlyUiState,
+  buildSupabaseRoleUpdatedToast,
+  buildSupabaseShareGrantedToast,
+  buildSupabaseShareModalState,
+  buildSupabaseShareRemovedToast,
+  buildSupabaseSyncIndicatorPlan,
+} from "../src/services/supabase/ui-runtime";
+import {
   buildProjectInsertPayload,
   buildActivityInsertPayload,
   buildProjectShareRoleUpdatePayload,
@@ -496,6 +504,34 @@ assert.equal(resolveSupabaseAuthEventPlan("USER_UPDATED", true).loadProjects, fa
 assert.equal(resolveSupabaseAuthEventPlan("TOKEN_REFRESHED", true).kind, "refresh");
 assert.equal(resolveSupabaseAuthEventPlan("SIGNED_OUT", false).kind, "signed_out");
 assert.equal(resolveSupabaseAuthEventPlan("SIGNED_OUT", false).refreshStatus, "offline");
+const shareModalState = buildSupabaseShareModalState({
+  shares: [{ id: "share-1", role: "manager", user: { email: "user@example.com" } }],
+  projectName: "Shared Project",
+  getRoleLabel: (role) => role.toUpperCase(),
+});
+assert.equal(shareModalState.projectName, "Shared Project");
+assert.equal(shareModalState.items[0]?.displayLabel, "user@example.com");
+assert.equal(shareModalState.items[0]?.roleLabel, "MANAGER");
+const readOnlyUiState = buildSupabaseReadOnlyUiState({
+  readonly: true,
+  canShare: false,
+  isLoggedIn: true,
+  bannerModel: {
+    shouldShow: true,
+    roleLabel: "Viewer",
+    roleHint: "Read-only access",
+    sharedMetaText: "Owner · Manager",
+  },
+});
+assert.equal(readOnlyUiState.showReadonlyBanner, true);
+assert.equal(readOnlyUiState.headerBannerVisible, true);
+assert.equal(readOnlyUiState.addButtonVisible, false);
+assert.equal(readOnlyUiState.shareButtonVisible, false);
+assert.equal(buildSupabaseRoleUpdatedToast("Manager").title, "Role updated: Manager");
+assert.equal(buildSupabaseShareGrantedToast("Viewer", "mail@example.com").text, "mail@example.com");
+assert.equal(buildSupabaseShareRemovedToast().title, "Access removed");
+assert.equal(buildSupabaseSyncIndicatorPlan().status, "syncing");
+assert.equal(buildSupabaseSyncIndicatorPlan().timeoutMs, 1800);
 
 const groupedProjects = groupProjectEntriesByAccess([
   ["local-only", buffered.localOnly],
