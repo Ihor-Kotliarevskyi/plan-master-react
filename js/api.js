@@ -137,14 +137,16 @@ async function apiLoadProjects() {
 
     data.projects.forEach((sp) => {
       if (!allProjects[sp.id]) {
-        allProjects[sp.id] = {
-          proj: { name: sp.name, sm: sp.sm, sy: sp.sy, nm: sp.nm },
-          cats: [],
-          tasks: [],
-          nextN: 1,
-          _serverId: sp.id,
-          _role: typeof normalizeProjectRole === "function" ? normalizeProjectRole(sp.role || "owner") : (sp.role || "owner"),
-        };
+        allProjects[sp.id] = typeof buildRuntimeFallbackProjectShell === "function"
+          ? buildRuntimeFallbackProjectShell(sp)
+          : {
+              proj: { name: sp.name, sm: sp.sm, sy: sp.sy, nm: sp.nm },
+              cats: [],
+              tasks: [],
+              nextN: 1,
+              _serverId: sp.id,
+              _role: typeof normalizeProjectRole === "function" ? normalizeProjectRole(sp.role || "owner") : (sp.role || "owner"),
+            };
       }
     });
     updateProjSel?.();
@@ -172,23 +174,31 @@ async function apiLoadProject(localId) {
     const taskData = await _fetch(`/projects/${serverId}/tasks`);
     const tasks = taskData?.tasks || [];
 
-    allProjects[localId] = {
-      proj: {
-        name: p.name,
-        sm: p.sm,
-        sy: p.sy,
-        nm: p.nm,
-        baseline: p.baseline,
-        baselineDate: p.baselineDate,
-      },
-      cats: p.cats || [],
-      tasks,
-      nextN: p.nextN || 1,
-      _serverId: p._id,
-      _role: typeof getStoredProjectRole === "function"
-        ? getStoredProjectRole(localId, resolvedRole)
-        : (typeof normalizeProjectRole === "function" ? normalizeProjectRole(_projectRole, _projectRole) : _projectRole),
-    };
+    allProjects[localId] = typeof buildRuntimeFallbackLoadedProjectSnapshot === "function"
+      ? buildRuntimeFallbackLoadedProjectSnapshot(
+          localId,
+          p,
+          tasks,
+          resolvedRole,
+          typeof getStoredProjectRole === "function" ? getStoredProjectRole : undefined,
+        )
+      : {
+          proj: {
+            name: p.name,
+            sm: p.sm,
+            sy: p.sy,
+            nm: p.nm,
+            baseline: p.baseline,
+            baselineDate: p.baselineDate,
+          },
+          cats: p.cats || [],
+          tasks,
+          nextN: p.nextN || 1,
+          _serverId: p._id,
+          _role: typeof getStoredProjectRole === "function"
+            ? getStoredProjectRole(localId, resolvedRole)
+            : (typeof normalizeProjectRole === "function" ? normalizeProjectRole(_projectRole, _projectRole) : _projectRole),
+        };
 
     loadCurrent();
     render();
@@ -209,18 +219,24 @@ async function apiSyncProject() {
   clearTimeout(_syncProjTimer);
   _syncProjTimer = setTimeout(async () => {
     try {
+      const syncRequest = typeof buildRuntimeFallbackProjectSyncRequest === "function"
+        ? buildRuntimeFallbackProjectSyncRequest(p)
+        : {
+            projectPayload: {
+              name: p.proj.name,
+              sm: p.proj.sm,
+              sy: p.proj.sy,
+              nm: p.proj.nm,
+              cats: p.cats,
+              nextN: p.nextN,
+              baseline: p.proj.baseline || null,
+              baselineDate: p.proj.baselineDate || null,
+            },
+            tasksPayload: { tasks: p.tasks },
+          };
       await _fetch(`/projects/${serverId}`, {
         method: "PUT",
-        body: JSON.stringify({
-          name: p.proj.name,
-          sm: p.proj.sm,
-          sy: p.proj.sy,
-          nm: p.proj.nm,
-          cats: p.cats,
-          nextN: p.nextN,
-          baseline: p.proj.baseline || null,
-          baselineDate: p.proj.baselineDate || null,
-        }),
+        body: JSON.stringify(syncRequest.projectPayload),
       });
       _showSyncIndicator();
     } catch (_) {}
@@ -229,9 +245,15 @@ async function apiSyncProject() {
   clearTimeout(_syncTasksTimer);
   _syncTasksTimer = setTimeout(async () => {
     try {
+      const syncRequest = typeof buildRuntimeFallbackProjectSyncRequest === "function"
+        ? buildRuntimeFallbackProjectSyncRequest(p)
+        : {
+            projectPayload: {},
+            tasksPayload: { tasks: p.tasks },
+          };
       await _fetch(`/projects/${serverId}/tasks/bulk`, {
         method: "PUT",
-        body: JSON.stringify({ tasks: p.tasks }),
+        body: JSON.stringify(syncRequest.tasksPayload),
       });
     } catch (_) {}
   }, 800);
@@ -241,17 +263,22 @@ async function apiCreateProject() {
   if (!_authToken || !currentId) return;
   const p = typeof getCurrentProjectSnapshot === "function" ? getCurrentProjectSnapshot() : allProjects[currentId];
   try {
+    const createRequest = typeof buildRuntimeFallbackProjectCreateRequest === "function"
+      ? buildRuntimeFallbackProjectCreateRequest(p)
+      : {
+          payload: {
+            name: p.proj.name,
+            sm: p.proj.sm,
+            sy: p.proj.sy,
+            nm: p.proj.nm,
+            cats: p.cats,
+            tasks: p.tasks,
+            nextN: p.nextN,
+          },
+        };
     const data = await _fetch("/projects", {
       method: "POST",
-      body: JSON.stringify({
-        name: p.proj.name,
-        sm: p.proj.sm,
-        sy: p.proj.sy,
-        nm: p.proj.nm,
-        cats: p.cats,
-        tasks: p.tasks,
-        nextN: p.nextN,
-      }),
+      body: JSON.stringify(createRequest.payload),
     });
     if (data?.project) {
       if (p) p._serverId = data.project.id;
@@ -275,7 +302,10 @@ async function apiDeleteProject(localId) {
     : allProjects[localId]?._serverId;
   if (!serverId) return;
   try {
-    await _fetch(`/projects/${serverId}`, { method: "DELETE" });
+    const deleteRequest = typeof buildRuntimeFallbackProjectDeleteRequest === "function"
+      ? buildRuntimeFallbackProjectDeleteRequest(serverId)
+      : { projectId: serverId };
+    await _fetch(`/projects/${deleteRequest.projectId}`, { method: "DELETE" });
   } catch (_) {}
 }
 
@@ -544,6 +574,130 @@ function updateAuthBtn() {
     btn.onclick = () => openAuthModal("login");
   }
   _updateReadOnlyUI();
+}
+
+async function apiShareProject(email, role = "viewer") {
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
+  if (!sid) return;
+  if (!canInviteUsers()) throw new Error("У вас немає прав на запрошення користувачів");
+  const shareRequest = typeof buildRuntimeFallbackShareGrantRequest === "function"
+    ? buildRuntimeFallbackShareGrantRequest(email, role, isShareableProjectRole)
+    : (() => {
+        const shareRole = normalizeProjectRole(role);
+        if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+        return { email, role: shareRole };
+      })();
+  return _fetch(`/projects/${sid}/shares`, {
+    method: "POST",
+    body: JSON.stringify(shareRequest),
+  });
+}
+
+async function apiUpdateShareRole(userId, role) {
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
+  if (!sid) return;
+  if (!canManageShares()) throw new Error("У вас немає прав на зміну доступу");
+  const shareRequest = typeof buildRuntimeFallbackShareRoleUpdateRequest === "function"
+    ? buildRuntimeFallbackShareRoleUpdateRequest(role, isShareableProjectRole)
+    : (() => {
+        const shareRole = normalizeProjectRole(role);
+        if (!isShareableProjectRole(shareRole)) throw new Error("Непідтримувана роль доступу");
+        return { role: shareRole };
+      })();
+  return _fetch(`/projects/${sid}/shares/${userId}`, {
+    method: "PATCH",
+    body: JSON.stringify(shareRequest),
+  });
+}
+
+async function apiRemoveShare(userId) {
+  const sid = typeof getCurrentProjectServerId === "function"
+    ? getCurrentProjectServerId()
+    : allProjects[currentId]?._serverId;
+  if (!sid) return;
+  if (!canManageShares()) throw new Error("У вас немає прав на видалення доступу");
+  const removeRequest = typeof buildRuntimeFallbackShareRemoveRequest === "function"
+    ? buildRuntimeFallbackShareRemoveRequest(userId)
+    : { userId };
+  return _fetch(`/projects/${sid}/shares/${removeRequest.userId}`, { method: "DELETE" });
+}
+
+async function openShareModal() {
+  if (!canManageShares()) {
+    Swal.fire({ icon: "info", title: API_UI.share.accessDeniedTitle });
+    return;
+  }
+  const shares = await apiGetShares();
+  const getRoleLabel = (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
+  const roleOptions = typeof buildRuntimeSupabaseShareRoleOptions === "function"
+    ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, "viewer")
+    : SHAREABLE_PROJECT_ROLES.map(
+        (role) => `<option value="${role}">${getRoleLabel(role)}</option>`,
+      ).join("");
+  const shareModalState = typeof buildRuntimeFallbackShareModalState === "function"
+    ? buildRuntimeFallbackShareModalState(shares, getRoleLabel)
+    : {
+        items: shares.map((share) => {
+          const normalizedRole = normalizeProjectRole(share.role);
+          return {
+            userId: share.userId?._id || "",
+            displayName: share.userId?.name || "-",
+            displayEmail: share.userId?.email || "",
+            normalizedRole,
+            roleLabel: getRoleLabel(normalizedRole),
+          };
+        }),
+      };
+  const list = shareModalState.items.length
+    ? shareModalState.items.map((share) => `
+        <div class="share-row">
+          <span class="share-name">${share.displayName}
+            <span class="share-email">${share.displayEmail}</span>
+          </span>
+          <select class="cost-sel" onchange="apiUpdateShareRole('${share.userId}',this.value)">
+            ${typeof buildRuntimeSupabaseShareRoleOptions === "function"
+              ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, share.normalizedRole)
+              : SHAREABLE_PROJECT_ROLES.map(
+                  (role) => `<option value="${role}"${share.normalizedRole === role ? " selected" : ""}>${getRoleLabel(role)}</option>`,
+                ).join("")}
+          </select>
+          <button class="cost-act-btn del" onclick="apiRemoveShare('${share.userId}');openShareModal()">✕</button>
+        </div>`)
+        .join("")
+    : `<div class="share-empty">${API_UI.share.emptyText}</div>`;
+
+  Swal.fire({
+    title: API_UI.share.modalTitle,
+    html: `<div class="share-modal-body">
+      <p class="share-proj-name">${API_UI.share.projectLabel}: <b>${proj.name}</b></p>
+      <div class="share-list">${list}</div>
+      <hr class="share-divider">
+      <div class="share-add-title">${API_UI.share.grantSectionTitle}</div>
+      <div class="share-add-row">
+        <input id="share-email" type="email" placeholder="email@example.com" class="share-email-inp">
+        <select id="share-role" class="share-role-sel">
+          ${roleOptions}
+        </select>
+      </div></div>`,
+    showCancelButton: true,
+    confirmButtonText: "Надати доступ",
+    cancelButtonText: "Закрити",
+    preConfirm: async () => {
+      const email = document.getElementById("share-email").value.trim();
+      const role = document.getElementById("share-role").value;
+      if (!email) { Swal.showValidationMessage(API_UI.share.emailRequiredMessage); return false; }
+      try {
+        await apiShareProject(email, role);
+      } catch (err) {
+        Swal.showValidationMessage(err.message);
+        return false;
+      }
+    },
+  });
 }
 
 (async () => {

@@ -37,6 +37,109 @@
     return PROJECT_ROLE_HINTS[normalizeProjectRole(role)];
   }
 
+  // src/services/api/fallback-runtime.ts
+  function buildFallbackProjectShell(project) {
+    const normalizedRole = normalizeProjectRole(project.role || "owner");
+    return {
+      proj: {
+        name: project.name,
+        sm: project.sm,
+        sy: project.sy,
+        nm: project.nm
+      },
+      cats: [],
+      tasks: [],
+      nextN: 1,
+      _serverId: project.id,
+      _role: normalizedRole
+    };
+  }
+  function buildFallbackLoadedProjectSnapshot(localId, project, tasks, resolvedRole, getStoredRole2) {
+    const normalizedRole = normalizeProjectRole(resolvedRole || "viewer");
+    return {
+      proj: {
+        name: project.name,
+        sm: project.sm,
+        sy: project.sy,
+        nm: project.nm,
+        baseline: project.baseline,
+        baselineDate: project.baselineDate || null
+      },
+      cats: project.cats || [],
+      tasks: tasks || [],
+      nextN: project.nextN || 1,
+      _serverId: project._id,
+      _role: typeof getStoredRole2 === "function" ? getStoredRole2(localId, normalizedRole) : normalizedRole
+    };
+  }
+  function buildFallbackProjectSyncRequest(snapshot) {
+    return {
+      projectPayload: {
+        name: snapshot.proj.name,
+        sm: snapshot.proj.sm,
+        sy: snapshot.proj.sy,
+        nm: snapshot.proj.nm,
+        cats: snapshot.cats,
+        nextN: snapshot.nextN,
+        baseline: snapshot.proj.baseline || null,
+        baselineDate: snapshot.proj.baselineDate || null
+      },
+      tasksPayload: {
+        tasks: snapshot.tasks
+      }
+    };
+  }
+  function buildFallbackProjectCreateRequest(snapshot) {
+    return {
+      payload: {
+        name: snapshot.proj.name,
+        sm: snapshot.proj.sm,
+        sy: snapshot.proj.sy,
+        nm: snapshot.proj.nm,
+        cats: snapshot.cats,
+        tasks: snapshot.tasks,
+        nextN: snapshot.nextN
+      }
+    };
+  }
+  function buildFallbackProjectDeleteRequest(projectId) {
+    return { projectId };
+  }
+  function buildFallbackShareGrantRequest(email, role, isShareableRole) {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    if (!normalizedEmail) throw new Error("Enter email");
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role");
+    return {
+      email: normalizedEmail,
+      role: normalizedRole
+    };
+  }
+  function buildFallbackShareRoleUpdateRequest(role, isShareableRole) {
+    const normalizedRole = normalizeProjectRole(role);
+    if (!isShareableRole(normalizedRole)) throw new Error("Unsupported access role");
+    return {
+      role: normalizedRole
+    };
+  }
+  function buildFallbackShareRemoveRequest(userId) {
+    return { userId };
+  }
+  function buildFallbackShareModalState(shares, getRoleLabel) {
+    return {
+      items: (shares || []).map((share) => {
+        const normalizedRole = normalizeProjectRole(share.role || "viewer");
+        return {
+          userId: String(share.userId?._id || ""),
+          displayName: share.userId?.name || "—",
+          displayEmail: share.userId?.email || "",
+          normalizedRole,
+          roleLabel: getRoleLabel(normalizedRole)
+        };
+      })
+    };
+  }
+
   // src/domain/project-access.ts
   function isSharedProjectEntry(projectSnapshot) {
     if (!projectSnapshot) return false;
@@ -3039,6 +3142,15 @@
     return mapActivityLogRow(activityRow);
   }
   var runtimeHelpers = {
+    buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
+    buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
+    buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,
+    buildRuntimeFallbackProjectCreateRequest: buildFallbackProjectCreateRequest,
+    buildRuntimeFallbackProjectDeleteRequest: buildFallbackProjectDeleteRequest,
+    buildRuntimeFallbackShareGrantRequest: buildFallbackShareGrantRequest,
+    buildRuntimeFallbackShareRoleUpdateRequest: buildFallbackShareRoleUpdateRequest,
+    buildRuntimeFallbackShareRemoveRequest: buildFallbackShareRemoveRequest,
+    buildRuntimeFallbackShareModalState: buildFallbackShareModalState,
     analyzeBufferedProjectsForUser: analyzeBufferedProjects,
     mergeAccessibleProjectsIntoLocalState,
     buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,

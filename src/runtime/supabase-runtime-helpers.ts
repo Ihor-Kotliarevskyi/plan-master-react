@@ -1,6 +1,17 @@
 import { normalizeProjectRole } from "../domain/permissions";
 import type { ProjectRole, ProjectSnapshot } from "../domain/types";
 import {
+  buildFallbackLoadedProjectSnapshot,
+  buildFallbackProjectCreateRequest,
+  buildFallbackProjectDeleteRequest,
+  buildFallbackProjectShell,
+  buildFallbackProjectSyncRequest,
+  buildFallbackShareGrantRequest,
+  buildFallbackShareModalState,
+  buildFallbackShareRemoveRequest,
+  buildFallbackShareRoleUpdateRequest,
+} from "../services/api/fallback-runtime";
+import {
   getSharedProjectLabels,
   groupProjectEntriesByAccess,
   isSharedProjectEntry,
@@ -313,6 +324,15 @@ function mapSupabaseActivityRow(activityRow: ActivityLogRow) {
 }
 
 const runtimeHelpers = {
+  buildRuntimeFallbackProjectShell: buildFallbackProjectShell,
+  buildRuntimeFallbackLoadedProjectSnapshot: buildFallbackLoadedProjectSnapshot,
+  buildRuntimeFallbackProjectSyncRequest: buildFallbackProjectSyncRequest,
+  buildRuntimeFallbackProjectCreateRequest: buildFallbackProjectCreateRequest,
+  buildRuntimeFallbackProjectDeleteRequest: buildFallbackProjectDeleteRequest,
+  buildRuntimeFallbackShareGrantRequest: buildFallbackShareGrantRequest,
+  buildRuntimeFallbackShareRoleUpdateRequest: buildFallbackShareRoleUpdateRequest,
+  buildRuntimeFallbackShareRemoveRequest: buildFallbackShareRemoveRequest,
+  buildRuntimeFallbackShareModalState: buildFallbackShareModalState,
   analyzeBufferedProjectsForUser: analyzeBufferedProjects,
   mergeAccessibleProjectsIntoLocalState,
   buildRuntimeResolveProjectLoadDecision: resolveProjectLoadDecision,

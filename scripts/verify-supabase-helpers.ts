@@ -1,6 +1,17 @@
 import assert from "node:assert/strict";
 
 import {
+  buildFallbackLoadedProjectSnapshot,
+  buildFallbackProjectCreateRequest,
+  buildFallbackProjectDeleteRequest,
+  buildFallbackProjectShell,
+  buildFallbackProjectSyncRequest,
+  buildFallbackShareGrantRequest,
+  buildFallbackShareModalState,
+  buildFallbackShareRemoveRequest,
+  buildFallbackShareRoleUpdateRequest,
+} from "../src/services/api/fallback-runtime";
+import {
   getSharedProjectLabels,
   groupProjectEntriesByAccess,
 } from "../src/domain/project-access";
@@ -347,6 +358,57 @@ const activityRow: ActivityLogRow = {
   payload: { field: "name" },
   created_at: "2026-05-19T10:30:00.000Z",
 };
+
+const fallbackProjectShell = buildFallbackProjectShell({
+  id: "fallback-1",
+  name: "Fallback Project",
+  sm: 4,
+  sy: 2026,
+  nm: 10,
+  role: "manager",
+});
+assert.equal(fallbackProjectShell._serverId, "fallback-1");
+assert.equal(fallbackProjectShell._role, "manager");
+const fallbackLoadedProjectSnapshot = buildFallbackLoadedProjectSnapshot(
+  "fallback-local-1",
+  {
+    _id: "fallback-1",
+    name: "Fallback Project",
+    sm: 4,
+    sy: 2026,
+    nm: 10,
+    baseline: { saved: true },
+    baselineDate: "2026-05-02",
+    cats: [{ name: "General", color: "#2563eb" }],
+    nextN: 8,
+  },
+  [mapTaskRowToTask(taskRow)],
+  "editor",
+  (localId, role) => role,
+);
+assert.equal(fallbackLoadedProjectSnapshot._serverId, "fallback-1");
+assert.equal(fallbackLoadedProjectSnapshot._role, "editor");
+const fallbackProjectSyncRequest = buildFallbackProjectSyncRequest(fallbackLoadedProjectSnapshot);
+assert.equal(fallbackProjectSyncRequest.projectPayload.name, "Fallback Project");
+assert.equal(fallbackProjectSyncRequest.tasksPayload.tasks.length, 1);
+const fallbackProjectCreateRequest = buildFallbackProjectCreateRequest(fallbackLoadedProjectSnapshot);
+assert.equal(fallbackProjectCreateRequest.payload.nextN, 8);
+assert.equal(buildFallbackProjectDeleteRequest("fallback-1").projectId, "fallback-1");
+assert.equal(buildFallbackShareGrantRequest(" USER@example.com ", "manager", (role) => ["viewer", "editor", "manager"].includes(role)).email, "user@example.com");
+assert.equal(buildFallbackShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
+assert.equal(buildFallbackShareRemoveRequest("user-2").userId, "user-2");
+const fallbackShareModalState = buildFallbackShareModalState([
+  {
+    role: "manager",
+    userId: {
+      _id: "user-2",
+      name: "Shared User",
+      email: "user2@example.com",
+    },
+  },
+], (role) => role.toUpperCase());
+assert.equal(fallbackShareModalState.items[0]?.userId, "user-2");
+assert.equal(fallbackShareModalState.items[0]?.normalizedRole, "manager");
 
 const shell = mapAccessibleProjectToSnapshotShell(accessibleRow, {
   localVersion: 3,
