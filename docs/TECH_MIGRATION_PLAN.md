@@ -24,6 +24,7 @@ What is true now:
 - Supabase schema, RLS, and sharing flows already support that model
 - audit logging foundation already exists
 - a first TypeScript and generated-helper bridge already exists
+- the first module-based UI island now exists for the user cabinet
 
 What is still legacy:
 
@@ -179,7 +180,7 @@ Best next targets:
 3. choose the first area that can move from legacy globals to a module-based UI
    bootstrap without touching the gantt core
 
-Good candidates for the first module-based UI island:
+Good candidates for the next module-based UI islands:
 
 - user cabinet
 - share modal

@@ -72,7 +72,7 @@
         </label>
       </div>
     </div>
-    <button id="user-btn" class="user-btn" onclick="openUserModal()" title="Кабінет користувача">
+    <button id="user-btn" class="user-btn" title="Кабінет користувача">
       <div class="user-avatar">К</div>
       <span>Профіль</span>
     </button>
@@ -756,16 +756,16 @@
   </div>
 
   <!-- MODAL: USER CABINET -->
-  <div class="overlay" id="user-modal" style="display: none" onclick="if (event.target === this) closeUserModal();">
+  <div class="overlay" id="user-modal" style="display: none" data-user-cabinet-root>
     <div class="modal um-modal">
       <div class="modal-header modal-header-lg">
         <h3><i data-lucide="user-circle"></i> Кабінет користувача</h3>
-        <button class="btn btn-sm" onclick="closeUserModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-user-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="user-modal-body" id="user-modal-body"></div>
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeUserModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveUserProfile()">Зберегти</button>
+        <button class="btn" data-user-action="close-modal">Скасувати</button>
+        <button class="btn btn-acc" data-user-action="save-profile">Зберегти</button>
       </div>
     </div>
   </div>
@@ -807,6 +807,7 @@
   <!-- <script src="./js/api.js"></script> -->
   <script src="./js/supabase-api.js"></script>
   <script src="./js/guard.js"></script>
+  <script type="module" src="/src/islands/user-cabinet.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
 
