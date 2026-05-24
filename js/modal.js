@@ -635,10 +635,11 @@ function renderDepTags() {
           ? `${TYPE_LABELS[dep.type]} ${dep.threshold}%`
           : TYPE_LABELS[dep.type] || "FS";
       return `<div class="dep-tag ${_editingDepId === dep.id ? "editing" : ""}"
-                   onclick="editDepTag('${dep.id}')">
+                   data-task-modal-action="edit-dependency" data-dependency-id="${dep.id}">
         <span class="dep-tag-label">${label}</span>
         <span class="dep-tag-badge" style="background:${TYPE_COLORS[dep.type] || "var(--acc)"}">${badge}</span>
-        <span class="dep-tag-del" title="${dependencyEditor.deleteBadgeLabel}" onclick="event.stopPropagation();removeDepTag('${dep.id}')">×</span>
+        <span class="dep-tag-del" title="${dependencyEditor.deleteBadgeLabel}"
+          data-task-modal-action="remove-dependency" data-dependency-id="${dep.id}">×</span>
       </div>`;
     })
     .join("");
@@ -674,7 +675,7 @@ function filterDepSearch(q) {
   dd.innerHTML = dropdownState.items
     .map(
       (item) =>
-        `<div class="dep-dd-item" onclick="addDepTag('${item.id}')">
+        `<div class="dep-dd-item" data-task-modal-action="add-dependency" data-dependency-id="${item.id}">
            <span class="dep-dd-num">#${item.taskNumber}</span> ${item.name}
          </div>`,
     )
@@ -745,20 +746,22 @@ function renderDepTypeEditor() {
           { v: "FF", l: dependencyEditor.independentLabel, tip: dependencyEditor.independentTip },
         ]
           .map(
-            (opt) => `<button class="dep-type-btn${dep.type === opt.v ? " active" : ""}"
+            (opt) => `<button class="dep-type-btn${dep.type === opt.v ? " active" : ""}" type="button"
               title="${opt.tip}"
-              onclick="setDepType('${dep.id}','${opt.v}')">${opt.l}</button>`,
+              data-task-modal-action="set-dependency-type" data-dependency-id="${dep.id}" data-dependency-type="${opt.v}">${opt.l}</button>`,
           )
           .join("")}
         ${
           dep.type === "SS"
             ? `<span class="dep-threshold-lbl">${dependencyEditor.minThresholdLabel}</span>
                <div class="dep-thr-wrap">
-                  <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',-5)">−</button>
+                  <button class="dep-thr-btn" type="button" data-task-modal-action="adjust-dependency-threshold"
+                    data-dependency-id="${dep.id}" data-delta="-5">−</button>
                  <input type="number" value="${dep.threshold || 25}" min="1" max="99"
-                        onchange="setDepThreshold('${dep.id}',this.value)"
+                        data-task-modal-input="dependency-threshold" data-dependency-id="${dep.id}"
                         class="dep-threshold-inp">
-                 <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',5)">+</button>
+                 <button class="dep-thr-btn" type="button" data-task-modal-action="adjust-dependency-threshold"
+                    data-dependency-id="${dep.id}" data-delta="5">+</button>
                </div>
                <span class="dep-threshold-unit">%</span>`
             : ""
@@ -796,13 +799,6 @@ function adjDepThr(id, delta) {
   renderDepTags();
   renderDepTypeEditor();
 }
-
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".dep-tag-panel")) {
-    const dd = document.getElementById("dep-dropdown");
-    if (dd) dd.style.display = "none";
-  }
-});
 
 function switchTaskTab(tab) {
   ["general", "costs"].forEach((t) => {
