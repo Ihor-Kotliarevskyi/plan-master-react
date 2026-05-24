@@ -199,6 +199,7 @@ import {
 import {
   addTaskNote,
   applyCategoryNamesFromValues,
+  closeTaskNotesSession,
   buildCategoryDeletionState,
   buildCategoryEditorState,
   buildNotesCellState,
@@ -215,6 +216,7 @@ import {
   isCategoryUsedByTasks,
   removeCategoryDraftAt,
   applyTaskNotesToTasks,
+  updateCategoryDraftAt,
 } from "../domain/modal-panels";
 import {
   buildAuditEntryViewModel,
@@ -243,6 +245,7 @@ import {
   addProjectToCollection,
   applyProjectDeletionToCollection,
   applyProjectSettingsUpdate,
+  buildProjectSettingsFormState,
   buildProjectDeletionState,
   canDeleteProjectCount,
   createDemoProjectSnapshot,
@@ -496,6 +499,7 @@ const runtimeHelpers = {
   buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   buildRuntimeStorageUiModel: buildStorageUiModel,
+  buildRuntimeProjectSettingsFormState: buildProjectSettingsFormState,
   buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
   buildRuntimeAddProjectToCollection: addProjectToCollection,
   buildRuntimeRenameProjectInCollection: renameProjectInCollection,
@@ -653,6 +657,7 @@ const runtimeHelpers = {
   buildRuntimeCloneTaskNotes: cloneTaskNotes,
   buildRuntimeTaskNotesSession: buildTaskNotesSession,
   buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,
+  buildRuntimeCloseTaskNotesSession: closeTaskNotesSession,
   buildRuntimeAddTaskNote: addTaskNote,
   buildRuntimeEditTaskNote: editTaskNote,
   buildRuntimeDeleteTaskNote: deleteTaskNote,
@@ -662,6 +667,7 @@ const runtimeHelpers = {
   buildRuntimeNotesCellState: buildNotesCellState,
   buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
   buildRuntimeCategoryEditorState: buildCategoryEditorState,
+  buildRuntimeUpdateCategoryDraftAt: updateCategoryDraftAt,
   buildRuntimeApplyCategoryNamesFromValues: applyCategoryNamesFromValues,
   buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
   buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,

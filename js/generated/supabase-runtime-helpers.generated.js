@@ -2410,7 +2410,8 @@
       taskIndex: null,
       title: String(task?.name || ""),
       notes: cloneTaskNotes(task?.notes || []),
-      exists: !!task
+      exists: !!task,
+      visible: !!task
     };
   }
   function buildTaskNotesOpenState(params) {
@@ -2419,7 +2420,17 @@
       taskIndex: params.taskIndex,
       title: String(task?.name || ""),
       notes: cloneTaskNotes(task?.notes || []),
-      exists: !!task
+      exists: !!task,
+      visible: !!task
+    };
+  }
+  function closeTaskNotesSession() {
+    return {
+      taskIndex: null,
+      title: "",
+      notes: [],
+      exists: false,
+      visible: false
     };
   }
   function getTaskNotesByIndex(tasks, taskIndex) {
@@ -2501,6 +2512,20 @@
   function buildCategoryEditorState(categories) {
     return {
       categories: cloneCategoryDrafts(categories)
+    };
+  }
+  function updateCategoryDraftAt(categories, index, patch) {
+    if (index < 0 || index >= (categories || []).length) {
+      return {
+        categories: cloneCategoryDrafts(categories),
+        changed: false
+      };
+    }
+    return {
+      categories: cloneCategoryDrafts(categories).map(
+        (category, categoryIndex) => categoryIndex === index ? { ...category, ...patch } : category
+      ),
+      changed: true
     };
   }
   function applyCategoryNamesFromValues(categories, values) {
@@ -2758,6 +2783,15 @@
       },
       shift,
       shiftedTasks
+    };
+  }
+  function buildProjectSettingsFormState(params) {
+    return {
+      name: params.project.name,
+      sm: params.project.sm,
+      sy: params.project.sy,
+      nm: params.project.nm,
+      canManage: params.canManage
     };
   }
   function createEmptyProjectSnapshot(input) {
@@ -4023,6 +4057,7 @@
     buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     buildRuntimeStorageUiModel: buildStorageUiModel,
+    buildRuntimeProjectSettingsFormState: buildProjectSettingsFormState,
     buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
     buildRuntimeAddProjectToCollection: addProjectToCollection,
     buildRuntimeRenameProjectInCollection: renameProjectInCollection,
@@ -4180,6 +4215,7 @@
     buildRuntimeCloneTaskNotes: cloneTaskNotes,
     buildRuntimeTaskNotesSession: buildTaskNotesSession,
     buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,
+    buildRuntimeCloseTaskNotesSession: closeTaskNotesSession,
     buildRuntimeAddTaskNote: addTaskNote,
     buildRuntimeEditTaskNote: editTaskNote,
     buildRuntimeDeleteTaskNote: deleteTaskNote,
@@ -4189,6 +4225,7 @@
     buildRuntimeNotesCellState: buildNotesCellState,
     buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
     buildRuntimeCategoryEditorState: buildCategoryEditorState,
+    buildRuntimeUpdateCategoryDraftAt: updateCategoryDraftAt,
     buildRuntimeApplyCategoryNamesFromValues: applyCategoryNamesFromValues,
     buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
     buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,

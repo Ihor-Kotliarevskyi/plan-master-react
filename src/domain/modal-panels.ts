@@ -40,6 +40,7 @@ export interface TaskNotesSessionState {
   title: string;
   notes: TaskNoteEntry[];
   exists: boolean;
+  visible: boolean;
 }
 
 export interface NotesCellState {
@@ -58,6 +59,11 @@ export interface CategoryDeletionState {
   categories: Category[];
 }
 
+export interface CategoryDraftUpdateResult {
+  categories: Category[];
+  changed: boolean;
+}
+
 export function cloneTaskNotes(notes: TaskNoteEntry[] | null | undefined): TaskNoteEntry[] {
   return (notes || []).map((note) => ({
     ...note,
@@ -71,6 +77,7 @@ export function buildTaskNotesSession(task: Task | null | undefined): TaskNotesS
     title: String(task?.name || ""),
     notes: cloneTaskNotes((task as AnyRecord)?.notes || []),
     exists: !!task,
+    visible: !!task,
   };
 }
 
@@ -84,6 +91,17 @@ export function buildTaskNotesOpenState(params: {
     title: String(task?.name || ""),
     notes: cloneTaskNotes((task as AnyRecord)?.notes || []),
     exists: !!task,
+    visible: !!task,
+  };
+}
+
+export function closeTaskNotesSession(): TaskNotesSessionState {
+  return {
+    taskIndex: null,
+    title: "",
+    notes: [],
+    exists: false,
+    visible: false,
   };
 }
 
@@ -203,6 +221,28 @@ export function cloneCategoryDrafts(categories: Category[]): Category[] {
 export function buildCategoryEditorState(categories: Category[]): CategoryEditorState {
   return {
     categories: cloneCategoryDrafts(categories),
+  };
+}
+
+export function updateCategoryDraftAt(
+  categories: Category[],
+  index: number,
+  patch: Partial<Category>,
+): CategoryDraftUpdateResult {
+  if (index < 0 || index >= (categories || []).length) {
+    return {
+      categories: cloneCategoryDrafts(categories),
+      changed: false,
+    };
+  }
+
+  return {
+    categories: cloneCategoryDrafts(categories).map((category, categoryIndex) =>
+      categoryIndex === index
+        ? { ...category, ...patch }
+        : category,
+    ),
+    changed: true,
   };
 }
 

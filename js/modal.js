@@ -1,7 +1,9 @@
 ﻿let _modalPhases = [];
 let _modalDeps = [];
 let _editingDepId = null;
-let _notesTi = null;
+let _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
+  ? buildRuntimeCloseTaskNotesSession()
+  : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
 
 function _getTaskRangeWarningModel() {
   if (typeof buildRuntimeTaskRangeWarningModel === "function") return buildRuntimeTaskRangeWarningModel();
@@ -1172,18 +1174,21 @@ function openNotesModal(ti) {
           ? buildRuntimeCloneTaskNotes(tasks?.[ti]?.notes || [])
           : (tasks?.[ti]?.notes || []),
         exists: !!tasks?.[ti],
+        visible: !!tasks?.[ti],
       };
   if (!session.exists) return;
-  _notesTi = session.taskIndex;
+  _notesSession = session;
   document.getElementById("notes-modal-title").textContent = session.title;
   renderNotes(session.notes);
-  document.getElementById("notes-modal").style.display = "flex";
+  document.getElementById("notes-modal").style.display = session.visible ? "flex" : "none";
   _applyNotesModalPermissions();
 }
 
 function closeNotesModal() {
   document.getElementById("notes-modal").style.display = "none";
-  _notesTi = null;
+  _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
+    ? buildRuntimeCloseTaskNotesSession()
+    : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
 }
 
 function renderNotes(notes) {
@@ -1237,26 +1242,26 @@ function renderNotes(notes) {
 
 function _getNotes() {
   return typeof buildRuntimeGetTaskNotesByIndex === "function"
-    ? buildRuntimeGetTaskNotesByIndex(tasks, _notesTi)
-    : (_notesTi !== null ? tasks?.[_notesTi]?.notes || [] : []);
+    ? buildRuntimeGetTaskNotesByIndex(tasks, _notesSession.taskIndex)
+    : (_notesSession.taskIndex !== null ? tasks?.[_notesSession.taskIndex]?.notes || [] : []);
 }
 function _setNotes(n) {
   const nextState = typeof buildRuntimeApplyTaskNotesToTasks === "function"
     ? buildRuntimeApplyTaskNotesToTasks({
         tasks,
-        taskIndex: _notesTi,
+        taskIndex: _notesSession.taskIndex,
         notes: n,
       })
     : {
-        tasks: _notesTi !== null
-          ? tasks.map((task, index) => index === _notesTi ? { ...task, notes: n } : task)
+        tasks: _notesSession.taskIndex !== null
+          ? tasks.map((task, index) => index === _notesSession.taskIndex ? { ...task, notes: n } : task)
           : tasks,
-        changed: _notesTi !== null,
+        changed: _notesSession.taskIndex !== null,
       };
   if (!nextState.changed) return;
   tasks = nextState.tasks;
   saveAll();
-  _syncNotesCell(_notesTi);
+  _syncNotesCell(_notesSession.taskIndex);
 }
 
 function _syncNotesCell(ti) {
@@ -1461,12 +1466,19 @@ function _buildColorDropdownHTML(catIdx) {
 }
 
 function setCatDraftName(catIdx, value) {
-  if (!tempCats[catIdx]) return;
-  tempCats[catIdx].name = value;
+  const updated = typeof buildRuntimeUpdateCategoryDraftAt === "function"
+    ? buildRuntimeUpdateCategoryDraftAt(tempCats, catIdx, { name: value })
+    : { categories: tempCats.map((cat, index) => index === catIdx ? { ...cat, name: value } : cat), changed: !!tempCats[catIdx] };
+  if (!updated.changed) return;
+  tempCats = updated.categories;
 }
 
 function pickCatColor(catIdx, hex, dotEl) {
-  tempCats[catIdx].color = hex;
+  const updated = typeof buildRuntimeUpdateCategoryDraftAt === "function"
+    ? buildRuntimeUpdateCategoryDraftAt(tempCats, catIdx, { color: hex })
+    : { categories: tempCats.map((cat, index) => index === catIdx ? { ...cat, color: hex } : cat), changed: !!tempCats[catIdx] };
+  if (!updated.changed) return;
+  tempCats = updated.categories;
   const rows = document.querySelectorAll("#cat-editor-list .cat-row");
   rows[catIdx]?.querySelector(".cat-swatch")?.style.setProperty("background", hex);
   rows[catIdx]
@@ -1677,34 +1689,43 @@ function depListGo(fromTi) {
 
 function openProj() {
   const canManage = typeof canManageProject === "function" ? canManageProject() : true;
+  const formState = typeof buildRuntimeProjectSettingsFormState === "function"
+    ? buildRuntimeProjectSettingsFormState({ project: proj, canManage })
+    : {
+        name: proj.name,
+        sm: proj.sm,
+        sy: proj.sy,
+        nm: proj.nm,
+        canManage,
+      };
   const sel = document.getElementById("p-sm");
   sel.innerHTML = MN.map((m, i) => `<option value="${i}">${m}</option>`).join("");
-  sel.value = String(proj.sm);
+  sel.value = String(formState.sm);
   const nameInput = document.getElementById("p-name");
   const yearInput = document.getElementById("p-sy");
   const durationInput = document.getElementById("p-nm");
   const modal = document.getElementById("proj-modal");
 
-  nameInput.value = proj.name;
-  yearInput.value = proj.sy;
-  durationInput.value = proj.nm;
+  nameInput.value = formState.name;
+  yearInput.value = formState.sy;
+  durationInput.value = formState.nm;
 
   [nameInput, sel, yearInput, durationInput].forEach((el) => {
     if (!el) return;
-    el.disabled = !canManage;
-    el.readOnly = !canManage;
+    el.disabled = !formState.canManage;
+    el.readOnly = !formState.canManage;
   });
 
   modal.querySelectorAll(".num-btn").forEach((btn) => {
-    btn.disabled = !canManage;
-    btn.style.display = canManage ? "" : "none";
+    btn.disabled = !formState.canManage;
+    btn.style.display = formState.canManage ? "" : "none";
   });
 
   const catsBtn = modal.querySelector(".proj-modal-cats .btn");
-  if (catsBtn) catsBtn.style.display = canManage ? "" : "none";
+  if (catsBtn) catsBtn.style.display = formState.canManage ? "" : "none";
 
   const saveBtn = modal.querySelector(".m-btns .btn-acc");
-  if (saveBtn) saveBtn.style.display = canManage ? "" : "none";
+  if (saveBtn) saveBtn.style.display = formState.canManage ? "" : "none";
 
   modal.style.display = "flex";
 }

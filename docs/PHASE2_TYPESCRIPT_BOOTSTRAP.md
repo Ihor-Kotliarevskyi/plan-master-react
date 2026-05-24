@@ -305,6 +305,10 @@ and Supabase adapters happen against stable interfaces.
   - initial local snapshot meta creation
   - persisted buffer payload shape
   - buffered role normalization
+- `js/modal.js` now uses the generated helper layer for:
+  - notes modal session open/close state
+  - category draft field/color updates
+  - project settings form-state projection
 - `js/app.js` now uses the generated helper layer for:
   - task copy snapshot building
   - project-name collision checks and unique-name suggestion
