@@ -319,15 +319,15 @@
   </div>
 
   <!-- MODAL: TASK -->
-  <div class="overlay" id="modal" style="display: none" onclick="if (event.target === this) closeModal();">
+  <div class="overlay" id="modal" style="display: none" data-task-modal-root>
     <div class="modal task-modal-wide">
       <div class="task-modal-header">
         <h3 id="m-title">Нова робота</h3>
         <div class="task-tabs">
-          <div class="task-tab active" id="ttab-general" onclick="switchTaskTab('general')">
+          <div class="task-tab active" id="ttab-general" data-task-modal-action="switch-tab" data-task-tab="general">
             <i data-lucide="clipboard-list"></i> Загальне
           </div>
-          <div class="task-tab" id="ttab-costs" onclick="switchTaskTab('costs')">
+          <div class="task-tab" id="ttab-costs" data-task-modal-action="switch-tab" data-task-tab="costs">
             <i data-lucide="wallet"></i> Кошторис
           </div>
         </div>
@@ -347,7 +347,7 @@
             <div class="fg">
               <div class="modal-section-header">
                 <label>Фази та терміни</label>
-                <button class="btn btn-sm" onclick="modalAddPhase()" type="button">+ Фаза</button>
+                <button class="btn btn-sm" data-task-modal-action="add-phase" type="button">+ Фаза</button>
               </div>
               <div id="modal-phases"></div>
             </div>
@@ -362,7 +362,7 @@
                   <div class="dep-search-wrap">
                     <i data-lucide="search" class="dep-search-icon"></i>
                     <input type="text" id="dep-search" placeholder="Знайти та додати залежність..." autocomplete="off"
-                      oninput="filterDepSearch(this.value)" onfocus="showDepDropdown()" />
+                       />
                   </div>
                 </div>
                 <div class="dep-dropdown" id="dep-dropdown"></div>
@@ -376,12 +376,12 @@
                   <span id="budget-auto-badge" class="auto-badge">авто</span>
                 </label>
                 <div class="num-wrap">
-                  <button class="num-btn" type="button" onclick="adjNum('f-budget',-1000)">−</button>
-                  <input id="f-budget" type="number" min="0" step="1000" placeholder="0" oninput="updCalc()" />
-                  <button class="num-btn" type="button" onclick="adjNum('f-budget',1000)">+</button>
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-budget" data-delta="-1000">−</button>
+                  <input id="f-budget" type="number" min="0" step="1000" placeholder="0" data-task-modal-input="budget" />
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-budget" data-delta="1000">+</button>
                 </div>
                 <label class="calc-toggle">
-                  <input id="f-contracts-override-budget" type="checkbox" onchange="updCalc()" />
+                  <input id="f-contracts-override-budget" type="checkbox" data-task-modal-input="contracts-override-budget" />
                   Договори формують суму роботи
                 </label>
               </div>
@@ -390,9 +390,9 @@
                   <span id="spent-auto-badge" class="auto-badge">авто</span>
                 </label>
                 <div class="num-wrap">
-                  <button class="num-btn" type="button" onclick="adjNum('f-spent',-1000)">−</button>
-                  <input id="f-spent" type="number" min="0" step="1000" placeholder="0" oninput="updCalc()" />
-                  <button class="num-btn" type="button" onclick="adjNum('f-spent',1000)">+</button>
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-spent" data-delta="-1000">−</button>
+                  <input id="f-spent" type="number" min="0" step="1000" placeholder="0" data-task-modal-input="spent" />
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-spent" data-delta="1000">+</button>
                 </div>
               </div>
             </div>
@@ -415,19 +415,19 @@
 
       <div id="task-pane-costs" class="task-pane">
         <div class="cost-toolbar">
-          <button class="btn btn-sm" onclick="addCostItem('material')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="material">
             <i data-lucide="layers"></i> Матеріали
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('work')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="work">
             <i data-lucide="hard-hat"></i> Роботи
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('equipment')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="equipment">
             <i data-lucide="wrench"></i> Техніка
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('service')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="service">
             <i data-lucide="handshake"></i> Послуги
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('other')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="other">
             <i data-lucide="box"></i> Інше
           </button>
         </div>
@@ -458,8 +458,8 @@
       </div>
 
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveTask()">Зберегти</button>
+        <button class="btn" data-task-modal-action="close-modal">Скасувати</button>
+        <button class="btn btn-acc" data-task-modal-action="save-task">Зберегти</button>
       </div>
     </div>
   </div>
@@ -812,10 +812,10 @@
   <script type="module" src="/src/islands/project-manager.ts"></script>
   <script type="module" src="/src/islands/print-dialog.ts"></script>
   <script type="module" src="/src/islands/chart-edit.ts"></script>
-  <script>lucide.createIcons();</script>
-</body>
-
+  <script type="module" src="/src/islands/task-modal.ts"></script>
   <script type="module" src="/src/islands/notes-modal.ts"></script>
   <script type="module" src="/src/islands/dependency-list.ts"></script>
+  <script>lucide.createIcons();</script>
+</body>
 </html>
 

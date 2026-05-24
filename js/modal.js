@@ -388,19 +388,19 @@ function renderModalPhases() {
         <input type="date" id="mph-ds-${pi}" class="mph-date-inp"
                value="${ph.dsExact || _phaseToDateStr(ph.ms, ph.ws)}"
                min="${minD}" max="${maxD}"
-               onchange="onModalPhaseChange()">
-        <span class="mph-arrow">→</span>
+               data-task-modal-input="phase-date" data-phase-index="${pi}">
+        <span class="mph-arrow">&rarr;</span>
         <input type="date" id="mph-de-${pi}" class="mph-date-inp"
                value="${ph.deExact || _phaseToDateStr(ph.me, ph.we)}"
                min="${minD}" max="${maxD}"
-               onchange="onModalPhaseChange()">
-        ${isMulti && pi > 0 ? `<span class="phase-del" onclick="modalRemovePhase(${pi})"><i data-lucide="x"></i></span>` : ""}
+               data-task-modal-input="phase-date" data-phase-index="${pi}">
+        ${isMulti && pi > 0 ? `<span class="phase-del" data-task-modal-action="remove-phase" data-phase-index="${pi}"><i data-lucide="x"></i></span>` : ""}
       </div>
       <div class="mph-prog-row">
         <span class="mph-hint">${taskFormPanel.progressLabel}</span>
         <input type="range" id="mph-prog-${pi}" class="mph-range-inp"
                min="0" max="100" step="5" value="${ph.prog || 0}"
-               ${locked ? "disabled" : ""} oninput="onModalProgChange(${pi},this.value)">
+               ${locked ? "disabled" : ""} data-task-modal-input="phase-progress" data-phase-index="${pi}">
         <span id="mph-prog-lbl-${pi}" class="mph-pct${activePct ? " mph-pct-active" : ""}">${ph.prog || 0}%</span>
       </div>
     </div>`;
