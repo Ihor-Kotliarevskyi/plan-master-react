@@ -1986,7 +1986,7 @@ function _paymentRegisterCurrentState() {
       supplier: row.supplier,
       date: payment.date || "",
       amount: +payment.amount || 0,
-      type: PAYMENT_TYPES[payment.type] || payment.type || "Р†РЅС€Рµ",
+      type: PAYMENT_TYPES[payment.type] || payment.type || "Інше",
       taskNo: payment.taskNo,
       taskName: payment.taskName,
       itemName: payment.itemName,
