@@ -1,7 +1,28 @@
 # Plan Master — Phase 1 implementation backlog
 
-> Статус документа: деталізований backlog для найближчої реалізації granular project roles станом на `2026-05-16`.
+> Статус документа: `completed for current scope` станом на `2026-05-24`.
+>
+> `Phase 1` вже закритий для поточного migration scope. Цей документ
+> залишається як зафіксований backlog і звіт по вже
+> виконаних кроках.
 
+## Поточний підсумок Phase 1
+
+Впроваджено:
+
+- project-level role model `owner / manager / editor / viewer`
+- capability-based permission checks з єдиним permission layer
+- Supabase schema, role migrations and RLS fixes під нову модель
+- share management з role-aware UI and backend guards
+- readonly and mutation gating для tasks, settings, contractors, finance, drag actions
+- own/shared project presentation
+- access banner and sync/status diagnostics
+- audit log foundation and lightweight read UI
+
+Залишок після Phase 1:
+
+- загальна stabilization/testing wave наприкінці міграцій
+- подальша UI/module migration, але вже поза межами `Phase 1`
 ## Призначення
 
 Цей документ деталізує `Phase 1` з:
@@ -385,3 +406,4 @@ MVP-рішення:
 - local role state
 
 Саме це дасть фундамент для audit, invites і подальшої міграції інтерфейсу.
+

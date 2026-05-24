@@ -71,7 +71,7 @@ Residual work:
 
 ### Phase 1 - Modular decomposition without UI stack rewrite
 
-Status: `substantially completed`
+Status: `completed for current scope`
 
 Implemented outcome:
 
@@ -83,8 +83,8 @@ Implemented outcome:
 
 Residual work:
 
-- continue shrinking mixed UI/domain logic in legacy runtime files
-- decide when to start a true module-based UI bootstrap
+- preserve the same permission semantics during later UI migration
+- keep new runtime slices aligned with the same capability model
 
 ### Phase 2 - TypeScript bootstrap
 
@@ -224,16 +224,18 @@ Document roles:
 
 The repo is past the dangerous early migration stage.
 
-What is already closed enough not to revisit:
+What is already closed enough not to revisit for the current migration scope:
 
 - capability model
 - project role model
 - sharing foundation
 - Supabase schema and RLS repair for the new role model
 - TypeScript bootstrap
+- Phase 1 roles/sharing decomposition
 
 What remains ahead:
 
 - more legacy runtime decomposition
 - a later UI bootstrap shift
 - only after that, any decision about company-level architecture
+
