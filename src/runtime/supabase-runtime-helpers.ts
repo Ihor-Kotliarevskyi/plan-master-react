@@ -158,6 +158,9 @@ import {
   buildDemoProjectSeedModel,
 } from "../domain/modal-ui";
 import {
+  applyDependencyListFilter,
+  buildDependencyListOpenSession,
+  buildDependencyNavigationPlan,
   buildDependencyListState,
   buildTaskCalcModel,
   dateStrToPhase,
@@ -622,6 +625,9 @@ const runtimeHelpers = {
   buildRuntimeActivePhaseIndex: getActivePhaseIndex,
   buildRuntimeRemWeeks: remWeeks,
   buildRuntimeTaskCalcModel: buildTaskCalcModel,
+  buildRuntimeDependencyListOpenSession: buildDependencyListOpenSession,
+  buildRuntimeApplyDependencyListFilter: applyDependencyListFilter,
+  buildRuntimeDependencyNavigationPlan: buildDependencyNavigationPlan,
   buildRuntimeDependencyListState: buildDependencyListState,
   buildRuntimeAddModalPhase: addModalPhase,
   buildRuntimeRemoveModalPhase: removeModalPhase,

@@ -2091,6 +2091,25 @@
       rows
     };
   }
+  function buildDependencyListOpenSession() {
+    return {
+      filter: "all",
+      visible: true
+    };
+  }
+  function applyDependencyListFilter(currentFilter, nextFilter) {
+    if (nextFilter === "FS" || nextFilter === "SS" || nextFilter === "FF" || nextFilter === "all") {
+      return nextFilter;
+    }
+    return currentFilter;
+  }
+  function buildDependencyNavigationPlan(taskIndex, ganttIsActive) {
+    return {
+      shouldActivateGantt: !ganttIsActive,
+      targetRowId: `tr${taskIndex}`,
+      taskIndex
+    };
+  }
 
   // src/domain/modal-state.ts
   function addModalPhase(phases, projectMonths) {
@@ -4120,6 +4139,9 @@
     buildRuntimeActivePhaseIndex: getActivePhaseIndex,
     buildRuntimeRemWeeks: remWeeks,
     buildRuntimeTaskCalcModel: buildTaskCalcModel,
+    buildRuntimeDependencyListOpenSession: buildDependencyListOpenSession,
+    buildRuntimeApplyDependencyListFilter: applyDependencyListFilter,
+    buildRuntimeDependencyNavigationPlan: buildDependencyNavigationPlan,
     buildRuntimeDependencyListState: buildDependencyListState,
     buildRuntimeAddModalPhase: addModalPhase,
     buildRuntimeRemoveModalPhase: removeModalPhase,

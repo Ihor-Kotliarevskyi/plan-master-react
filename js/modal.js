@@ -1568,9 +1568,12 @@ function closeCatModal() {
 let _dlFilter = "all"; // 'all' | 'FS' | 'SS' | 'FF'
 
 function openDepList() {
-  _dlFilter = "all";
+  const session = typeof buildRuntimeDependencyListOpenSession === "function"
+    ? buildRuntimeDependencyListOpenSession()
+    : { filter: "all", visible: true };
+  _dlFilter = session.filter;
   _renderDepList();
-  document.getElementById("dep-list-modal").style.display = "flex";
+  document.getElementById("dep-list-modal").style.display = session.visible ? "flex" : "none";
 }
 
 function closeDepList() {
@@ -1578,7 +1581,9 @@ function closeDepList() {
 }
 
 function setDepListFilter(f) {
-  _dlFilter = f;
+  _dlFilter = typeof buildRuntimeApplyDependencyListFilter === "function"
+    ? buildRuntimeApplyDependencyListFilter(_dlFilter, f)
+    : f;
   document.querySelectorAll(".dl-filter-btn").forEach(b =>
     b.classList.toggle("on", b.dataset.f === f));
   _renderDepList();
@@ -1652,14 +1657,20 @@ function _renderDepList() {
 
 function depListGo(fromTi) {
   closeDepList();
-  // Переключаємось на вкладку Графік якщо потрібно
   const ganttPane = document.getElementById("pane-gantt");
-  if (ganttPane && !ganttPane.classList.contains("active")) {
+  const navPlan = typeof buildRuntimeDependencyNavigationPlan === "function"
+    ? buildRuntimeDependencyNavigationPlan(fromTi, !!ganttPane?.classList.contains("active"))
+    : {
+        shouldActivateGantt: !!ganttPane && !ganttPane.classList.contains("active"),
+        targetRowId: `tr${fromTi}`,
+        taskIndex: fromTi,
+      };
+  if (navPlan.shouldActivateGantt) {
     document.querySelector('.tab[onclick*="gantt"]')?.click();
   }
   requestAnimationFrame(() => {
-    highlightDepChain(fromTi);
-    document.getElementById(`tr${fromTi}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    highlightDepChain(navPlan.taskIndex);
+    document.getElementById(navPlan.targetRowId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
 
