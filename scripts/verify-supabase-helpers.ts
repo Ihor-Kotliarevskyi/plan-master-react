@@ -55,6 +55,12 @@ import {
   buildTaskWindowModel,
   buildVisibleYearGroups,
 } from "../src/domain/render";
+import {
+  buildProjectSelectState,
+  buildRenderGroupStats,
+  hasActiveGanttFilters,
+  taskMatchesGanttFilters,
+} from "../src/domain/render-filters";
 import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildApiUiModel } from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
@@ -521,6 +527,31 @@ const shell = mapAccessibleProjectToSnapshotShell(accessibleRow, {
 assert.equal(shell._serverId, "project-1");
 assert.equal(shell._role, "editor");
 assert.equal(shell._access?.ownerEmail, "owner@example.com");
+const projectSelectState = buildProjectSelectState({
+  ownEntries: [["own-1", { proj: { name: "Own Project" }, _role: "owner" }]],
+  sharedEntries: [["shared-1", { proj: { name: "Shared Project" }, _role: "viewer" }]],
+  currentId: "shared-1",
+  getRoleLabel: (role) => role.toUpperCase(),
+  sharedRoleSeparator: " · ",
+  normalizeRole: (role) => role,
+});
+assert.equal(projectSelectState.own[0]?.selected, false);
+assert.equal(projectSelectState.shared[0]?.selected, true);
+assert.equal(projectSelectState.shared[0]?.roleLabelSuffix, " · VIEWER");
+assert.equal(hasActiveGanttFilters({ contractor: ["Acme"], pay: [] }, (value) => Array.isArray(value) ? value : []), true);
+assert.equal(hasActiveGanttFilters({ contractor: [], pay: [] }, (value) => Array.isArray(value) ? value : []), false);
+assert.equal(taskMatchesGanttFilters({
+  task: { cat: 0 },
+  hiddenCats: new Set([1]),
+  ganttFilters: { contractor: [], pay: ["debt"] },
+  multiFilterAny: () => true,
+  multiFilterValues: (value) => Array.isArray(value) ? value : [],
+  taskContractors: () => [],
+  taskCostSummary: () => ({ budget: 100, paid: 20, rest: 80, payments: 1 }),
+}), true);
+assert.deepEqual(buildRenderGroupStats({
+  tasks: [{ prog: 100, budget: 100 }, { prog: 50, budget: 40 }],
+}), { totalTasks: 2, doneTasks: 1, totalBudget: 140 });
 
 const mappedTask = mapTaskRowToTask(taskRow);
 assert.equal(mappedTask.budget, 1250.5);

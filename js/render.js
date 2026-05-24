@@ -25,22 +25,24 @@ function updateProjSel() {
   const grouped = typeof groupProjectEntriesByAccess === "function"
     ? groupProjectEntriesByAccess(entries)
     : { own: entries, shared: [] };
-  const own = grouped.own || [];
-  const shared = grouped.shared || [];
-
-  const renderOptions = (list, isShared = false) =>
-    list
-      .map(([id, p]) => {
-        const role = typeof normalizeProjectRole === "function" ? normalizeProjectRole(p?._role || "owner") : (p?._role || "owner");
-        const roleLabel = isShared
-          ? `${selectLabels.sharedRoleSeparator}${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : role}`
-          : "";
-        return `<option value="${id}"${id === currentId ? " selected" : ""}>${p.proj.name}${roleLabel}</option>`;
+  const selectState = typeof buildRuntimeProjectSelectState === "function"
+    ? buildRuntimeProjectSelectState({
+        ownEntries: grouped.own || [],
+        sharedEntries: grouped.shared || [],
+        currentId,
+        getRoleLabel: (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : role,
+        sharedRoleSeparator: selectLabels.sharedRoleSeparator,
+        normalizeRole: (role) => typeof normalizeProjectRole === "function" ? normalizeProjectRole(role) : role,
       })
+    : { own: [], shared: [] };
+
+  const renderOptions = (list) =>
+    list
+      .map((item) => `<option value="${item.id}"${item.selected ? " selected" : ""}>${item.name}${item.roleLabelSuffix}</option>`)
       .join("");
 
-  const ownMarkup = own.length ? `<optgroup label="${selectLabels.ownGroupLabel}">${renderOptions(own)}</optgroup>` : "";
-  const sharedMarkup = shared.length ? `<optgroup label="${selectLabels.sharedGroupLabel}">${renderOptions(shared, true)}</optgroup>` : "";
+  const ownMarkup = selectState.own.length ? `<optgroup label="${selectLabels.ownGroupLabel}">${renderOptions(selectState.own)}</optgroup>` : "";
+  const sharedMarkup = selectState.shared.length ? `<optgroup label="${selectLabels.sharedGroupLabel}">${renderOptions(selectState.shared)}</optgroup>` : "";
   sel.innerHTML = ownMarkup + sharedMarkup;
 }
 
@@ -100,7 +102,9 @@ function renderGanttToolbar() {
     { value: "hasPayments", label: toolbarLabels.hasPaymentsLabel },
     { value: "noPayments", label: toolbarLabels.noPaymentsLabel },
   ];
-  const hasGanttFilters = !!(multiFilterValues(ganttFilters.contractor).length || multiFilterValues(ganttFilters.pay).length);
+  const hasGanttFilters = typeof buildRuntimeHasActiveGanttFilters === "function"
+    ? buildRuntimeHasActiveGanttFilters(ganttFilters, multiFilterValues)
+    : !!(multiFilterValues(ganttFilters.contractor).length || multiFilterValues(ganttFilters.pay).length);
   tb.innerHTML = `
     <div class="gantt-nm-search-wrap">
       <i data-lucide="search" class="gantt-nm-search-icon"></i>
@@ -172,23 +176,17 @@ function _saveGanttFilters() {
 }
 
 function applyGanttFilters(t) {
-  if (hiddenCats.has(t.cat)) return false;
-  if (!multiFilterAny(ganttFilters.contractor, taskContractors(t))) return false;
-
-  const payFilters = multiFilterValues(ganttFilters.pay);
-  if (payFilters.length) {
-    const s = taskCostSummary(t);
-    const matchesPay =
-      (payFilters.includes("debt") && s.budget > 0 && s.rest > 0.5) ||
-      (payFilters.includes("paid") && s.budget > 0 && Math.abs(s.rest) <= 0.5) ||
-      (payFilters.includes("over") && s.rest < -0.5) ||
-      (payFilters.includes("unpaid") && s.budget > 0 && s.paid <= 0.5) ||
-      (payFilters.includes("hasPayments") && (s.paid > 0.5 || s.payments > 0)) ||
-      (payFilters.includes("noPayments") && s.paid <= 0.5 && s.payments === 0);
-    if (!matchesPay) return false;
-  }
-
-  return true;
+  return typeof buildRuntimeTaskMatchesGanttFilters === "function"
+    ? buildRuntimeTaskMatchesGanttFilters({
+        task: t,
+        hiddenCats,
+        ganttFilters,
+        multiFilterAny,
+        multiFilterValues,
+        taskContractors,
+        taskCostSummary,
+      })
+    : true;
 }
 
 function toggleGroupBy() {
@@ -272,9 +270,13 @@ function renderTable() {
       if (!groupTasks.length) return;
 
       const isCollapsed = collapsedGrps.has(catIdx);
-      const totalTasks = groupTasks.length;
-      const doneTasks = groupTasks.filter((t) => t.prog === 100).length;
-      const totalBudget = groupTasks.reduce((sum, task) => sum + (+task.budget || 0), 0);
+      const groupStats = typeof buildRuntimeRenderGroupStats === "function"
+        ? buildRuntimeRenderGroupStats({ tasks: groupTasks })
+        : {
+            totalTasks: groupTasks.length,
+            doneTasks: groupTasks.filter((t) => t.prog === 100).length,
+            totalBudget: groupTasks.reduce((sum, task) => sum + (+task.budget || 0), 0),
+          };
 
       h += `<tr class="group-header-row" onclick="toggleGroup(${catIdx})">
         <td class="td-h" style="background:${cat.color}20"></td>
@@ -284,7 +286,7 @@ function renderTable() {
             <span class="group-chevron">${isCollapsed ? '<i data-lucide="chevron-right"></i>' : '<i data-lucide="chevron-down"></i>'}</span>
             <span class="group-dot" style="background:${cat.color}"></span>
             <span class="group-title">${cat.name}</span>
-            <span class="group-stats">${tableLabels.groupDoneLabel(doneTasks, totalTasks, totalBudget ? fmtM(totalBudget) + " грн" : "")}</span>
+            <span class="group-stats">${tableLabels.groupDoneLabel(groupStats.doneTasks, groupStats.totalTasks, groupStats.totalBudget ? fmtM(groupStats.totalBudget) + " грн" : "")}</span>
           </div>
         </td>
         <td class="td-notes" style="background:${cat.color}10"></td>

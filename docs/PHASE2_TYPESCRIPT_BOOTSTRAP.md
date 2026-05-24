@@ -32,6 +32,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/modal-panels.ts`
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
+  - `src/domain/render-filters.ts`
   - `src/domain/render-ui.ts`
   - `src/domain/app.ts`
   - `src/domain/app-ui.ts`
@@ -152,6 +153,10 @@ and Supabase adapters happen against stable interfaces.
   - legend chip state projection
   - visible year-group projection
   - task row / bar / phase window projection
+  - project selector state projection
+  - gantt filter-state detection
+  - task visibility checks for gantt filters
+  - grouped category summary stats
 - `js/modal.js` now uses the generated helper layer for:
   - project settings update and timeline-shift orchestration
   - resolved project defaults for new-project creation
