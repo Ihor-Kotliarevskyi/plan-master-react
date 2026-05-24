@@ -24,7 +24,7 @@ What is true now:
 - Supabase schema, RLS, and sharing flows already support that model
 - audit logging foundation already exists
 - a first TypeScript and generated-helper bridge already exists
-- the first module-based UI island now exists for the user cabinet
+- module-based UI islands now exist for the user cabinet, share modal, and project settings
 
 What is still legacy:
 
@@ -182,10 +182,9 @@ Best next targets:
 
 Good candidates for the next module-based UI islands:
 
-- user cabinet
-- share modal
-- project settings
 - audit viewer
+- project manager
+- auth-only cabinet flows
 
 Bad candidates for the first UI island:
 

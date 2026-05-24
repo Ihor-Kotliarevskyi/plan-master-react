@@ -42,7 +42,7 @@
       <button class="btn btn-icon" onclick="openProjManager()" title="Управління проєктами">
         <i data-lucide="folder"></i>
       </button>
-      <button class="btn btn-icon" onclick="openProj()" title="Налаштування проєкту">
+      <button class="btn btn-icon" data-project-action="open-settings" title="Налаштування проєкту">
         <i data-lucide="settings"></i>
       </button>
       <span class="proj-dates" id="head-dates"></span>
@@ -76,7 +76,7 @@
       <div class="user-avatar">К</div>
       <span>Профіль</span>
     </button>
-    <button id="share-btn" class="btn btn-sm" style="display: none" onclick="openShareModal()"
+    <button id="share-btn" class="btn btn-sm" style="display: none" 
       title="Керувати доступом до проєкту">
       <i data-lucide="users"></i> Доступ
     </button>
@@ -487,7 +487,7 @@
   </div>
 
   <!-- MODAL: PROJECT SETTINGS -->
-  <div class="overlay" id="proj-modal" style="display: none" onclick="if (event.target === this) closeProjModal();">
+  <div class="overlay" id="proj-modal" style="display: none" data-project-settings-root>
     <div class="modal">
       <h3>Налаштування проєкту</h3>
       <div class="fg"><label>Назва</label><input id="p-name" /></div>
@@ -498,42 +498,42 @@
         <div class="fg">
           <label>Рік</label>
           <div class="num-wrap">
-            <button type="button" class="num-btn" onclick="numStep('p-sy',-1)">−</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-sy" data-delta="-1">−</button>
             <input id="p-sy" type="number" min="2020" max="2035" />
-            <button type="button" class="num-btn" onclick="numStep('p-sy',1)">+</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-sy" data-delta="1">+</button>
           </div>
         </div>
         <div class="fg">
           <label>Тривалість (міс.)</label>
           <div class="num-wrap">
-            <button type="button" class="num-btn" onclick="numStep('p-nm',-1)">−</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-nm" data-delta="-1">−</button>
             <input id="p-nm" type="number" min="3" max="120" />
-            <button type="button" class="num-btn" onclick="numStep('p-nm',1)">+</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-nm" data-delta="1">+</button>
           </div>
         </div>
       </div>
 
       <div class="proj-modal-cats">
-        <button class="btn btn-full" onclick="closeProjModal();openCatEditor()">
+        <button class="btn btn-full" data-project-action="open-categories">
           <i data-lucide="palette"></i> Редагувати категорії
         </button>
       </div>
       <div class="m-btns">
-        <button class="btn" onclick="closeProjModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveProjSettings()">Зберегти</button>
+        <button class="btn" data-project-action="close-settings">Скасувати</button>
+        <button class="btn btn-acc" data-project-action="save-settings">Зберегти</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: CATEGORY EDITOR -->
-  <div class="overlay" id="cat-modal" style="display: none" onclick="if (event.target === this) closeCatModal();">
+  <div class="overlay" id="cat-modal" style="display: none" data-project-categories-root>
     <div class="modal">
       <h3>Редагування категорій</h3>
       <div class="cat-editor-list" id="cat-editor-list"></div>
-      <button class="btn btn-acc btn-full" onclick="addCat()">+ Додати категорію</button>
+      <button class="btn btn-acc btn-full" data-project-action="add-category">+ Додати категорію</button>
       <div class="m-btns">
-        <button class="btn" onclick="closeCatModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveCats()">Зберегти</button>
+        <button class="btn" data-project-action="close-categories">Скасувати</button>
+        <button class="btn btn-acc" data-project-action="save-categories">Зберегти</button>
       </div>
     </div>
   </div>
@@ -808,6 +808,8 @@
   <script src="./js/supabase-api.js"></script>
   <script src="./js/guard.js"></script>
   <script type="module" src="/src/islands/user-cabinet.ts"></script>
+  <script type="module" src="/src/islands/share-modal.ts"></script>
+  <script type="module" src="/src/islands/project-settings.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
 

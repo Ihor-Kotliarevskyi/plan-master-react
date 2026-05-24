@@ -170,10 +170,10 @@ export function buildSupabaseShareListHtml(params: {
   return params.items.map((item) => `
         <div class="share-row">
           <span>${item.displayLabel}</span>
-          <select class="cost-sel" onchange="handleShareRoleChange('${item.id}',this.value)">
+          <select class="cost-sel" data-share-action="change-role" data-share-id="${item.id}">
             ${item.roleOptionsHtml}
           </select>
-          <button class="cost-act-btn del" onclick="handleShareRemoval('${item.id}')">×</button>
+          <button class="cost-act-btn del" data-share-action="remove-share" data-share-id="${item.id}">×</button>
         </div>`).join("");
 }
 
