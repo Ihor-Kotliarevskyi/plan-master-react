@@ -1152,14 +1152,20 @@ async function delTask(ti) {
 }
 
 function openNotesModal(ti) {
-  _notesTi = ti;
-  const t = tasks[ti];
-  const session = typeof buildRuntimeTaskNotesSession === "function"
-    ? buildRuntimeTaskNotesSession(t)
-    : { title: t?.name || "", notes: typeof buildRuntimeCloneTaskNotes === "function" ? buildRuntimeCloneTaskNotes(t?.notes || []) : (t?.notes || []) };
+  const session = typeof buildRuntimeTaskNotesOpenState === "function"
+    ? buildRuntimeTaskNotesOpenState({ tasks, taskIndex: ti })
+    : {
+        taskIndex: ti,
+        title: tasks?.[ti]?.name || "",
+        notes: typeof buildRuntimeCloneTaskNotes === "function"
+          ? buildRuntimeCloneTaskNotes(tasks?.[ti]?.notes || [])
+          : (tasks?.[ti]?.notes || []),
+        exists: !!tasks?.[ti],
+      };
+  if (!session.exists) return;
+  _notesTi = session.taskIndex;
   document.getElementById("notes-modal-title").textContent = session.title;
-  const notes = session.notes;
-  renderNotes(notes);
+  renderNotes(session.notes);
   document.getElementById("notes-modal").style.display = "flex";
   _applyNotesModalPermissions();
 }
@@ -1218,11 +1224,26 @@ function renderNotes(notes) {
   _applyNotesModalPermissions();
 }
 
-function _getNotesTask() { return _notesTi !== null ? tasks[_notesTi] : null; }
-function _getNotes() { return _getNotesTask()?.notes || []; }
+function _getNotes() {
+  return typeof buildRuntimeGetTaskNotesByIndex === "function"
+    ? buildRuntimeGetTaskNotesByIndex(tasks, _notesTi)
+    : (_notesTi !== null ? tasks?.[_notesTi]?.notes || [] : []);
+}
 function _setNotes(n) {
-  if (!_getNotesTask()) return;
-  _getNotesTask().notes = n;
+  const nextState = typeof buildRuntimeApplyTaskNotesToTasks === "function"
+    ? buildRuntimeApplyTaskNotesToTasks({
+        tasks,
+        taskIndex: _notesTi,
+        notes: n,
+      })
+    : {
+        tasks: _notesTi !== null
+          ? tasks.map((task, index) => index === _notesTi ? { ...task, notes: n } : task)
+          : tasks,
+        changed: _notesTi !== null,
+      };
+  if (!nextState.changed) return;
+  tasks = nextState.tasks;
   saveAll();
   _syncNotesCell(_notesTi);
 }

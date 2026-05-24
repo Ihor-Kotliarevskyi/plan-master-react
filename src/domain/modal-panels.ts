@@ -36,8 +36,10 @@ export interface ProjectManagerGroupModel {
 }
 
 export interface TaskNotesSessionState {
+  taskIndex: number | null;
   title: string;
   notes: TaskNoteEntry[];
+  exists: boolean;
 }
 
 export interface NotesCellState {
@@ -65,8 +67,53 @@ export function cloneTaskNotes(notes: TaskNoteEntry[] | null | undefined): TaskN
 
 export function buildTaskNotesSession(task: Task | null | undefined): TaskNotesSessionState {
   return {
+    taskIndex: null,
     title: String(task?.name || ""),
     notes: cloneTaskNotes((task as AnyRecord)?.notes || []),
+    exists: !!task,
+  };
+}
+
+export function buildTaskNotesOpenState(params: {
+  tasks: Task[];
+  taskIndex: number | null;
+}): TaskNotesSessionState {
+  const task = params.taskIndex !== null ? params.tasks?.[params.taskIndex] : null;
+  return {
+    taskIndex: params.taskIndex,
+    title: String(task?.name || ""),
+    notes: cloneTaskNotes((task as AnyRecord)?.notes || []),
+    exists: !!task,
+  };
+}
+
+export function getTaskNotesByIndex(tasks: Task[], taskIndex: number | null): TaskNoteEntry[] {
+  if (taskIndex === null || !tasks?.[taskIndex]) return [];
+  return cloneTaskNotes(((tasks[taskIndex] as AnyRecord)?.notes || []) as TaskNoteEntry[]);
+}
+
+export function applyTaskNotesToTasks(params: {
+  tasks: Task[];
+  taskIndex: number | null;
+  notes: TaskNoteEntry[];
+}): { tasks: Task[]; changed: boolean } {
+  if (params.taskIndex === null || !params.tasks?.[params.taskIndex]) {
+    return {
+      tasks: [...(params.tasks || [])],
+      changed: false,
+    };
+  }
+
+  return {
+    tasks: (params.tasks || []).map((task, index) =>
+      index === params.taskIndex
+        ? {
+            ...task,
+            notes: cloneTaskNotes(params.notes),
+          }
+        : task,
+    ),
+    changed: true,
   };
 }
 

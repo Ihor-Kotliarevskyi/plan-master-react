@@ -2317,8 +2317,40 @@
   }
   function buildTaskNotesSession(task) {
     return {
+      taskIndex: null,
       title: String(task?.name || ""),
-      notes: cloneTaskNotes(task?.notes || [])
+      notes: cloneTaskNotes(task?.notes || []),
+      exists: !!task
+    };
+  }
+  function buildTaskNotesOpenState(params) {
+    const task = params.taskIndex !== null ? params.tasks?.[params.taskIndex] : null;
+    return {
+      taskIndex: params.taskIndex,
+      title: String(task?.name || ""),
+      notes: cloneTaskNotes(task?.notes || []),
+      exists: !!task
+    };
+  }
+  function getTaskNotesByIndex(tasks, taskIndex) {
+    if (taskIndex === null || !tasks?.[taskIndex]) return [];
+    return cloneTaskNotes(tasks[taskIndex]?.notes || []);
+  }
+  function applyTaskNotesToTasks(params) {
+    if (params.taskIndex === null || !params.tasks?.[params.taskIndex]) {
+      return {
+        tasks: [...params.tasks || []],
+        changed: false
+      };
+    }
+    return {
+      tasks: (params.tasks || []).map(
+        (task, index) => index === params.taskIndex ? {
+          ...task,
+          notes: cloneTaskNotes(params.notes)
+        } : task
+      ),
+      changed: true
     };
   }
   function addTaskNote(params) {
@@ -4051,9 +4083,12 @@
     buildRuntimeRemoveTaskAt: removeTaskAt,
     buildRuntimeCloneTaskNotes: cloneTaskNotes,
     buildRuntimeTaskNotesSession: buildTaskNotesSession,
+    buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,
     buildRuntimeAddTaskNote: addTaskNote,
     buildRuntimeEditTaskNote: editTaskNote,
     buildRuntimeDeleteTaskNote: deleteTaskNote,
+    buildRuntimeGetTaskNotesByIndex: getTaskNotesByIndex,
+    buildRuntimeApplyTaskNotesToTasks: applyTaskNotesToTasks,
     buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
     buildRuntimeNotesCellState: buildNotesCellState,
     buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
