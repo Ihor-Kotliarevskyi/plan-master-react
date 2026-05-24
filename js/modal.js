@@ -286,6 +286,38 @@ function _resolveNextProjectAfterDeletion(projectIds, currentProjectId, deletedP
   return projectIds.find((projectId) => projectId !== deletedProjectId) || null;
 }
 
+function renameProjectFromManager(id, name) {
+  const role = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(id, "owner")
+    : allProjects?.[id]?._role || (id === currentId ? _projectRole : "owner");
+  if (typeof canManageProject === "function" && !canManageProject(role)) {
+    return allProjects?.[id]?.proj?.name || "";
+  }
+
+  const renameResult = typeof buildRuntimeRenameProjectInCollection === "function"
+    ? buildRuntimeRenameProjectInCollection(allProjects || {}, id, name)
+    : {
+        projects: {
+          ...(allProjects || {}),
+          [id]: {
+            ...(allProjects?.[id] || {}),
+            proj: {
+              ...(allProjects?.[id]?.proj || {}),
+              name: (name || "").trim() || allProjects?.[id]?.proj?.name || "",
+            },
+          },
+        },
+        nextName: (name || "").trim() || allProjects?.[id]?.proj?.name || "",
+        changed: true,
+      };
+
+  allProjects = renameResult.projects;
+  if (id === currentId && proj) proj.name = renameResult.nextName;
+  if (renameResult.changed) saveAll();
+  updateProjSel();
+  return renameResult.nextName;
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -1744,7 +1776,10 @@ async function loadDemoProject() {
   if (!isConfirmed) return;
 
   const id = "p_" + Date.now();
-  allProjects[id] = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
+  const snapshot = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
+  allProjects = typeof buildRuntimeAddProjectToCollection === "function"
+    ? buildRuntimeAddProjectToCollection(allProjects || {}, id, snapshot)
+    : { ...(allProjects || {}), [id]: snapshot };
   try {
     const payload = typeof buildRuntimeStorageBufferPayload === "function"
       ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
@@ -1782,11 +1817,14 @@ async function createProject() {
         sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
         nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
       };
-  allProjects[id] = _buildEmptyProjectSnapshot(name, {
+  const snapshot = _buildEmptyProjectSnapshot(name, {
     sm: defaults.sm,
     sy: defaults.sy,
     nm: defaults.nm,
   });
+  allProjects = typeof buildRuntimeAddProjectToCollection === "function"
+    ? buildRuntimeAddProjectToCollection(allProjects || {}, id, snapshot)
+    : { ...(allProjects || {}), [id]: snapshot };
   saveAll();
   switchProject(id);
   openProjManager();
@@ -1817,13 +1855,20 @@ async function deleteProject(id) {
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
     await apiDeleteProject(id);
   }
-  const deletionState = typeof buildRuntimeProjectDeletionState === "function"
-    ? buildRuntimeProjectDeletionState(Object.keys(allProjects), currentId, id)
+  const collectionDeletion = typeof buildRuntimeApplyProjectDeletionToCollection === "function"
+    ? buildRuntimeApplyProjectDeletionToCollection(allProjects || {}, currentId, id)
     : {
-        nextCurrentId: _resolveNextProjectAfterDeletion(Object.keys(allProjects), currentId, id),
-        shouldReloadCurrent: currentId === id,
+        projects: Object.fromEntries(Object.entries(allProjects || {}).filter(([projectId]) => projectId !== id)),
+        deletionState: typeof buildRuntimeProjectDeletionState === "function"
+          ? buildRuntimeProjectDeletionState(Object.keys(allProjects || {}), currentId, id)
+          : {
+              nextCurrentId: _resolveNextProjectAfterDeletion(Object.keys(allProjects || {}), currentId, id),
+              shouldReloadCurrent: currentId === id,
+              remainingProjectIds: Object.keys(allProjects || {}).filter((projectId) => projectId !== id),
+            },
       };
-  delete allProjects[id];
+  allProjects = collectionDeletion.projects;
+  const deletionState = collectionDeletion.deletionState;
   if (currentId === id) {
     currentId = deletionState.nextCurrentId;
     if (deletionState.shouldReloadCurrent && currentId) loadCurrent();

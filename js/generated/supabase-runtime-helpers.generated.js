@@ -2691,6 +2691,53 @@
       remainingProjectIds
     };
   }
+  function addProjectToCollection(projects, id, snapshot) {
+    return {
+      ...projects || {},
+      [id]: snapshot
+    };
+  }
+  function renameProjectInCollection(projects, id, name) {
+    const snapshot = projects?.[id];
+    if (!snapshot) {
+      return {
+        projects: { ...projects || {} },
+        nextName: "",
+        changed: false
+      };
+    }
+    const nextName = name.trim() || snapshot.proj.name;
+    if (nextName === snapshot.proj.name) {
+      return {
+        projects: { ...projects || {} },
+        nextName,
+        changed: false
+      };
+    }
+    return {
+      projects: {
+        ...projects || {},
+        [id]: {
+          ...snapshot,
+          proj: {
+            ...snapshot.proj,
+            name: nextName
+          }
+        }
+      },
+      nextName,
+      changed: true
+    };
+  }
+  function applyProjectDeletionToCollection(projects, currentId, deletedId) {
+    const deletionState = buildProjectDeletionState(Object.keys(projects || {}), currentId, deletedId);
+    const nextProjects = { ...projects || {} };
+    delete nextProjects[deletedId];
+    return {
+      projects: nextProjects,
+      deletionState
+    };
+  }
 
   // src/domain/project-import.ts
   function createCopiedTask(input) {
@@ -3855,6 +3902,9 @@
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     buildRuntimeStorageUiModel: buildStorageUiModel,
     buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+    buildRuntimeAddProjectToCollection: addProjectToCollection,
+    buildRuntimeRenameProjectInCollection: renameProjectInCollection,
+    buildRuntimeApplyProjectDeletionToCollection: applyProjectDeletionToCollection,
     buildRuntimeProjectDeletionState: buildProjectDeletionState,
     buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
     buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,

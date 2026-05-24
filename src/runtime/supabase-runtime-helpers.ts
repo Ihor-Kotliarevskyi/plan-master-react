@@ -231,11 +231,14 @@ import {
 } from "../domain/storage";
 import { buildStorageUiModel } from "../domain/storage-ui";
 import {
+  addProjectToCollection,
+  applyProjectDeletionToCollection,
   applyProjectSettingsUpdate,
   buildProjectDeletionState,
   canDeleteProjectCount,
   createDemoProjectSnapshot,
   createEmptyProjectSnapshot,
+  renameProjectInCollection,
   resolveProjectDefaults,
   resolveNextProjectAfterDeletion,
 } from "../domain/project-lifecycle";
@@ -485,6 +488,9 @@ const runtimeHelpers = {
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   buildRuntimeStorageUiModel: buildStorageUiModel,
   buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+  buildRuntimeAddProjectToCollection: addProjectToCollection,
+  buildRuntimeRenameProjectInCollection: renameProjectInCollection,
+  buildRuntimeApplyProjectDeletionToCollection: applyProjectDeletionToCollection,
   buildRuntimeProjectDeletionState: buildProjectDeletionState,
   buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
   buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,

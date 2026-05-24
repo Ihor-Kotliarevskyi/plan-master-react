@@ -4,9 +4,9 @@ type ProjectManagerRuntime = Window & {
   createProject?: () => Promise<void> | void;
   loadDemoProject?: () => Promise<void> | void;
   deleteProject?: (id: string) => Promise<void> | void;
+  renameProjectFromManager?: (id: string, name: string) => string;
   switchProject?: (id: string) => void;
   updateProjSel?: () => void;
-  allProjects?: Record<string, { proj?: { name?: string } }>;
 };
 
 const runtime = window as ProjectManagerRuntime;
@@ -74,9 +74,9 @@ function initProjectManagerIsland(): void {
     const target = event.target as HTMLInputElement | null;
     if (!target || !target.classList.contains("pj-name-inp")) return;
     const projectId = target.dataset.projectId || "";
-    if (!projectId || !runtime.allProjects?.[projectId]?.proj) return;
-    runtime.allProjects[projectId].proj!.name = target.value;
-    runtime.updateProjSel?.();
+    if (!projectId) return;
+    const nextName = runtime.renameProjectFromManager?.(projectId, target.value);
+    if (typeof nextName === "string") target.value = nextName;
   });
 }
 
