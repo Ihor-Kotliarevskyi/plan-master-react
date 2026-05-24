@@ -224,6 +224,11 @@ import {
   resolveUniqueProjectName,
 } from "../domain/project-import";
 import {
+  buildImportedProjectActivationState,
+  buildProjectWorkbookExport,
+  resolveImportSource,
+} from "../domain/app";
+import {
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
   mapProjectShareRow,
@@ -452,6 +457,9 @@ const runtimeHelpers = {
   buildRuntimeUniqueProjectName: resolveUniqueProjectName,
   buildRuntimeNormalizeImportedBaseline: normalizeImportedBaseline,
   buildRuntimeImportedProjectSnapshot: buildImportedProjectSnapshot,
+  buildRuntimeProjectWorkbookExport: buildProjectWorkbookExport,
+  buildRuntimeResolveImportSource: resolveImportSource,
+  buildRuntimeImportedProjectActivationState: buildImportedProjectActivationState,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,

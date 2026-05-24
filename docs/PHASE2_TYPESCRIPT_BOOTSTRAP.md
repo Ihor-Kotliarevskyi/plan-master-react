@@ -32,6 +32,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
   - `src/domain/render-ui.ts`
+  - `src/domain/app.ts`
   - `src/domain/app-ui.ts`
   - `src/domain/api-ui.ts`
   - `src/domain/charts-ui.ts`
@@ -289,6 +290,9 @@ and Supabase adapters happen against stable interfaces.
   - project-name collision checks and unique-name suggestion
   - imported baseline remapping
   - imported project snapshot normalization from legacy JSON
+  - workbook export sheet/row projection
+  - import source resolution from file/project data
+  - imported-project activation state application
 - `js/supabase-api.js`, `js/api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
   - role labels
   - shared-project presentation text

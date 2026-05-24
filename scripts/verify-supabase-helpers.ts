@@ -249,6 +249,11 @@ import {
   projectNameExists,
   resolveUniqueProjectName,
 } from "../src/domain/project-import";
+import {
+  buildImportedProjectActivationState,
+  buildProjectWorkbookExport,
+  resolveImportSource,
+} from "../src/domain/app";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -1810,5 +1815,68 @@ assert.equal(importedSnapshot.tasks[0]?.id, "task-import-1");
 assert.equal(importedSnapshot.tasks[0]?.costItems?.[0]?.name, "Service");
 assert.equal(importedSnapshot.proj.baseline?.[0]?.id, "task-import-1");
 assert.equal(importedSnapshot.nextN, 5);
+
+const importSourceState = resolveImportSource({
+  data: { proj: { name: "Legacy Import" } },
+  fileName: "legacy-import.json",
+  fallbackProjectName: "Imported project",
+  currentId: "active-project",
+});
+assert.equal(importSourceState.shouldSaveCurrent, true);
+assert.equal(importSourceState.importBaseName, "legacy-import");
+assert.equal(importSourceState.projectName, "Legacy Import");
+
+const importActivationState = buildImportedProjectActivationState({
+  projects: { current: emptyProject },
+  projectId: "imported",
+  snapshot: importedSnapshot,
+  role: "owner",
+});
+assert.equal(importActivationState.currentId, "imported");
+assert.equal(importActivationState.role, "owner");
+assert.equal(importActivationState.projects.imported?.proj.name, "Resolved Import");
+
+const workbookExport = buildProjectWorkbookExport({
+  projectName: "Workbook",
+  tasks: [{
+    id: "task-1",
+    n: 1,
+    name: "Task",
+    cat: 0,
+    ms: 0,
+    ws: 0,
+    me: 1,
+    we: 0,
+    prog: 50,
+    budget: 200,
+    spent: 75,
+    deps: [{ n: 2, type: "SS", threshold: 25 }],
+    costItems: [{
+      type: "work",
+      name: "Labor",
+      supplier: "Acme",
+      unit: "job",
+      qty: 2,
+      unitPrice: 50,
+      payments: [{ amount: 30, date: "2026-05-20", type: "cash", note: "Advance" }],
+    }],
+  }],
+  categories: [{ name: "General", color: "#111111" }],
+  monthLabels: [{ name: "Jan", y: 2026 }, { name: "Feb", y: 2026 }],
+  scheduleHeader: buildAppUiModel().scheduleHeader,
+  summaryHeader: buildAppUiModel().summaryHeader,
+  estimateHeader: buildAppUiModel().estimateHeader,
+  paymentsHeader: buildAppUiModel().paymentsHeader,
+  workbookSheets: buildAppUiModel().workbookSheets,
+  getCategoryName: (index) => ["General"][index] || "",
+  getTaskDuration: () => 5,
+  getTaskCostItems: (task) => task.costItems || [],
+  costTypeLabels: { work: "Work" },
+  paymentTypeLabels: { cash: "Cash" },
+});
+assert.equal(workbookExport.filename, "Workbook.xlsx");
+assert.equal(workbookExport.sheets.length, 4);
+assert.equal(workbookExport.sheets[0]?.name, buildAppUiModel().workbookSheets.schedule);
+assert.equal(workbookExport.sheets[2]?.rows[1]?.[3], "Labor");
 
 console.log("Supabase helper verification passed.");
