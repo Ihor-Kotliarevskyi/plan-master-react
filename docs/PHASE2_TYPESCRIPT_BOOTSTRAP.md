@@ -164,9 +164,14 @@ and Supabase adapters happen against stable interfaces.
   - task save apply/update orchestration
   - task remove-at mutation helper
   - note add/edit/delete state mutation
+  - task-notes session state projection
+  - notes-cell state projection
   - visible note-count calculation
+  - category editor state projection
   - category draft cloning/add/remove helpers
+  - category-name draft application
   - category-in-use detection
+  - category deletion state resolution
   - project manager grouped row projection
   - modal phase/date conversion helpers
   - weighted progress and active-phase resolution

@@ -35,11 +35,39 @@ export interface ProjectManagerGroupModel {
   shared: ProjectManagerRowModel[];
 }
 
+export interface TaskNotesSessionState {
+  title: string;
+  notes: TaskNoteEntry[];
+}
+
+export interface NotesCellState {
+  count: number;
+  className: string;
+  title: string;
+  hasNotes: boolean;
+}
+
+export interface CategoryEditorState {
+  categories: Category[];
+}
+
+export interface CategoryDeletionState {
+  isUsed: boolean;
+  categories: Category[];
+}
+
 export function cloneTaskNotes(notes: TaskNoteEntry[] | null | undefined): TaskNoteEntry[] {
   return (notes || []).map((note) => ({
     ...note,
     history: (note.history || []).map((entry) => ({ ...entry })),
   }));
+}
+
+export function buildTaskNotesSession(task: Task | null | undefined): TaskNotesSessionState {
+  return {
+    title: String(task?.name || ""),
+    notes: cloneTaskNotes((task as AnyRecord)?.notes || []),
+  };
 }
 
 export function addTaskNote(params: {
@@ -107,8 +135,35 @@ export function countVisibleTaskNotes(notes: TaskNoteEntry[] | null | undefined)
   return (notes || []).filter((note) => !note.deleted).length;
 }
 
+export function buildNotesCellState(params: {
+  notes: TaskNoteEntry[] | null | undefined;
+  countTitle: (count: number) => string;
+  defaultTitle: string;
+}): NotesCellState {
+  const count = countVisibleTaskNotes(params.notes);
+  return {
+    count,
+    className: count > 0 ? "td-notes has-notes" : "td-notes",
+    title: count > 0 ? params.countTitle(count) : params.defaultTitle,
+    hasNotes: count > 0,
+  };
+}
+
 export function cloneCategoryDrafts(categories: Category[]): Category[] {
   return (categories || []).map((category) => ({ ...category }));
+}
+
+export function buildCategoryEditorState(categories: Category[]): CategoryEditorState {
+  return {
+    categories: cloneCategoryDrafts(categories),
+  };
+}
+
+export function applyCategoryNamesFromValues(categories: Category[], values: string[]): Category[] {
+  return cloneCategoryDrafts(categories).map((category, index) => ({
+    ...category,
+    name: values[index] ?? category.name,
+  }));
 }
 
 export function removeCategoryDraftAt(categories: Category[], index: number): Category[] {
@@ -132,6 +187,17 @@ export function createNextCategoryDraft(params: {
 
 export function isCategoryUsedByTasks(tasks: Task[], index: number): boolean {
   return (tasks || []).some((task) => task.cat === index);
+}
+
+export function buildCategoryDeletionState(params: {
+  categories: Category[];
+  index: number;
+  tasks: Task[];
+}): CategoryDeletionState {
+  return {
+    isUsed: isCategoryUsedByTasks(params.tasks, params.index),
+    categories: removeCategoryDraftAt(params.categories, params.index),
+  };
 }
 
 export function buildProjectManagerGroupModel(params: {

@@ -2187,6 +2187,12 @@
       history: (note.history || []).map((entry) => ({ ...entry }))
     }));
   }
+  function buildTaskNotesSession(task) {
+    return {
+      title: String(task?.name || ""),
+      notes: cloneTaskNotes(task?.notes || [])
+    };
+  }
   function addTaskNote(params) {
     const nextNotes = cloneTaskNotes(params.notes);
     nextNotes.push({
@@ -2230,8 +2236,28 @@
   function countVisibleTaskNotes(notes) {
     return (notes || []).filter((note) => !note.deleted).length;
   }
+  function buildNotesCellState(params) {
+    const count = countVisibleTaskNotes(params.notes);
+    return {
+      count,
+      className: count > 0 ? "td-notes has-notes" : "td-notes",
+      title: count > 0 ? params.countTitle(count) : params.defaultTitle,
+      hasNotes: count > 0
+    };
+  }
   function cloneCategoryDrafts(categories) {
     return (categories || []).map((category) => ({ ...category }));
+  }
+  function buildCategoryEditorState(categories) {
+    return {
+      categories: cloneCategoryDrafts(categories)
+    };
+  }
+  function applyCategoryNamesFromValues(categories, values) {
+    return cloneCategoryDrafts(categories).map((category, index) => ({
+      ...category,
+      name: values[index] ?? category.name
+    }));
   }
   function removeCategoryDraftAt(categories, index) {
     return (categories || []).filter((_, categoryIndex) => categoryIndex !== index);
@@ -2246,6 +2272,12 @@
   }
   function isCategoryUsedByTasks(tasks, index) {
     return (tasks || []).some((task) => task.cat === index);
+  }
+  function buildCategoryDeletionState(params) {
+    return {
+      isUsed: isCategoryUsedByTasks(params.tasks, params.index),
+      categories: removeCategoryDraftAt(params.categories, params.index)
+    };
   }
   function buildProjectManagerGroupModel(params) {
     const grouped = groupProjectEntriesByAccess(Object.entries(params.projects || {}));
@@ -3746,14 +3778,19 @@
     buildRuntimeApplyTaskSave: applyTaskSave,
     buildRuntimeRemoveTaskAt: removeTaskAt,
     buildRuntimeCloneTaskNotes: cloneTaskNotes,
+    buildRuntimeTaskNotesSession: buildTaskNotesSession,
     buildRuntimeAddTaskNote: addTaskNote,
     buildRuntimeEditTaskNote: editTaskNote,
     buildRuntimeDeleteTaskNote: deleteTaskNote,
     buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
+    buildRuntimeNotesCellState: buildNotesCellState,
     buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
+    buildRuntimeCategoryEditorState: buildCategoryEditorState,
+    buildRuntimeApplyCategoryNamesFromValues: applyCategoryNamesFromValues,
     buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
     buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,
     buildRuntimeIsCategoryUsedByTasks: isCategoryUsedByTasks,
+    buildRuntimeCategoryDeletionState: buildCategoryDeletionState,
     buildRuntimeProjectManagerGroupModel: buildProjectManagerGroupModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,

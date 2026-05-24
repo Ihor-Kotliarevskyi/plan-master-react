@@ -1104,8 +1104,11 @@ async function delTask(ti) {
 function openNotesModal(ti) {
   _notesTi = ti;
   const t = tasks[ti];
-  document.getElementById("notes-modal-title").textContent = t.name;
-  const notes = typeof buildRuntimeCloneTaskNotes === "function" ? buildRuntimeCloneTaskNotes(t.notes || []) : (t.notes || []);
+  const session = typeof buildRuntimeTaskNotesSession === "function"
+    ? buildRuntimeTaskNotesSession(t)
+    : { title: t?.name || "", notes: typeof buildRuntimeCloneTaskNotes === "function" ? buildRuntimeCloneTaskNotes(t?.notes || []) : (t?.notes || []) };
+  document.getElementById("notes-modal-title").textContent = session.title;
+  const notes = session.notes;
   renderNotes(notes);
   document.getElementById("notes-modal").style.display = "flex";
   _applyNotesModalPermissions();
@@ -1178,15 +1181,29 @@ function _syncNotesCell(ti) {
   const notesModal = _getNotesModalModel();
   if (ti == null) return;
   const t = tasks[ti];
-  const count = typeof buildRuntimeCountVisibleTaskNotes === "function"
-    ? buildRuntimeCountVisibleTaskNotes(t.notes || [])
-    : (t.notes?.filter((n) => !n.deleted).length || 0);
+  const cellState = typeof buildRuntimeNotesCellState === "function"
+    ? buildRuntimeNotesCellState({
+        notes: t.notes || [],
+        countTitle: notesModal.countTitle,
+        defaultTitle: notesModal.defaultTitle,
+      })
+    : (() => {
+        const count = typeof buildRuntimeCountVisibleTaskNotes === "function"
+          ? buildRuntimeCountVisibleTaskNotes(t.notes || [])
+          : (t.notes?.filter((n) => !n.deleted).length || 0);
+        return {
+          count,
+          className: count > 0 ? "td-notes has-notes" : "td-notes",
+          title: count > 0 ? notesModal.countTitle(count) : notesModal.defaultTitle,
+          hasNotes: count > 0,
+        };
+      })();
   const cell = document.querySelector(`#tr${ti} .td-notes`);
   if (!cell) return;
-  cell.className = count > 0 ? "td-notes has-notes" : "td-notes";
-  cell.title = count > 0 ? notesModal.countTitle(count) : notesModal.defaultTitle;
-  cell.innerHTML = count > 0
-    ? `<i data-lucide="message-square-text"></i><span class="notes-count">${count}</span>`
+  cell.className = cellState.className;
+  cell.title = cellState.title;
+  cell.innerHTML = cellState.hasNotes
+    ? `<i data-lucide="message-square-text"></i><span class="notes-count">${cellState.count}</span>`
     : `<i data-lucide="message-square"></i>`;
   lucide.createIcons({ nodes: [cell] });
 }
@@ -1294,9 +1311,11 @@ function openCatEditor() {
     Swal.fire({ icon: "info", title: categoryEditor.accessDeniedTitle });
     return;
   }
-  tempCats = typeof buildRuntimeCloneCategoryDrafts === "function"
-    ? buildRuntimeCloneCategoryDrafts(cats)
-    : cats.map((c) => ({ ...c }));
+  tempCats = typeof buildRuntimeCategoryEditorState === "function"
+    ? buildRuntimeCategoryEditorState(cats).categories
+    : (typeof buildRuntimeCloneCategoryDrafts === "function"
+        ? buildRuntimeCloneCategoryDrafts(cats)
+        : cats.map((c) => ({ ...c })));
   renderCatList();
   document.getElementById("cat-modal").style.display = "flex";
 }
@@ -1338,10 +1357,21 @@ function renderCatList() {
     delBtn.innerHTML = '<i data-lucide="x"></i>';
     delBtn.title = categoryEditor.deleteTitle;
     delBtn.addEventListener("click", async () => {
-      const isUsed = typeof buildRuntimeIsCategoryUsedByTasks === "function"
-        ? buildRuntimeIsCategoryUsedByTasks(tasks, i)
-        : tasks.some((t) => t.cat === i);
-      if (isUsed) {
+      const deletionState = typeof buildRuntimeCategoryDeletionState === "function"
+        ? buildRuntimeCategoryDeletionState({
+            categories: tempCats,
+            index: i,
+            tasks,
+          })
+        : {
+            isUsed: typeof buildRuntimeIsCategoryUsedByTasks === "function"
+              ? buildRuntimeIsCategoryUsedByTasks(tasks, i)
+              : tasks.some((t) => t.cat === i),
+            categories: typeof buildRuntimeRemoveCategoryDraftAt === "function"
+              ? buildRuntimeRemoveCategoryDraftAt(tempCats, i)
+              : tempCats.filter((_, idx) => idx !== i),
+          };
+      if (deletionState.isUsed) {
         const res = await Swal.fire({
           icon: "warning",
           title: categoryEditor.deleteInUseTitle,
@@ -1354,9 +1384,7 @@ function renderCatList() {
         if (!res.isConfirmed) return;
       }
       flushCatNames();
-      tempCats = typeof buildRuntimeRemoveCategoryDraftAt === "function"
-        ? buildRuntimeRemoveCategoryDraftAt(tempCats, i)
-        : tempCats.filter((_, idx) => idx !== i);
+      tempCats = deletionState.categories;
       renderCatList();
     });
     row.appendChild(pickerWrap);
@@ -1400,10 +1428,11 @@ function _closeColorDropdowns(e) {
 }
 
 function flushCatNames() {
-  document.querySelectorAll("#cat-editor-list .cat-row").forEach((row, i) => {
-    const inp = row.querySelector(".cat-name-inp");
-    if (inp && tempCats[i]) tempCats[i].name = inp.value;
-  });
+  const values = [...document.querySelectorAll("#cat-editor-list .cat-row .cat-name-inp")]
+    .map((inp) => inp.value);
+  tempCats = typeof buildRuntimeApplyCategoryNamesFromValues === "function"
+    ? buildRuntimeApplyCategoryNamesFromValues(tempCats, values)
+    : tempCats.map((cat, i) => ({ ...cat, name: values[i] ?? cat.name }));
 }
 
 function addCat() {

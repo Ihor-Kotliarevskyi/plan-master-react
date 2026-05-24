@@ -204,6 +204,11 @@ import {
 } from "../src/domain/modal-orchestration";
 import {
   addTaskNote,
+  applyCategoryNamesFromValues,
+  buildCategoryDeletionState,
+  buildCategoryEditorState,
+  buildNotesCellState,
+  buildTaskNotesSession,
   buildProjectManagerGroupModel,
   cloneCategoryDrafts,
   cloneTaskNotes,
@@ -1626,8 +1631,30 @@ const deletedNotes = deleteTaskNote({
 });
 assert.equal(deletedNotes[0]?.deleted, true);
 assert.equal(countVisibleTaskNotes(deletedNotes), 0);
+const taskNotesSession = buildTaskNotesSession({
+  n: 1,
+  name: "Task with Notes",
+  cat: 0,
+  ms: 0,
+  ws: 0,
+  me: 0,
+  we: 0,
+  prog: 0,
+  notes: deletedNotes,
+});
+assert.equal(taskNotesSession.title, "Task with Notes");
+assert.equal(taskNotesSession.notes.length, 1);
+const notesCellState = buildNotesCellState({
+  notes: deletedNotes,
+  countTitle: (count) => `Count ${count}`,
+  defaultTitle: "No notes",
+});
+assert.equal(notesCellState.count, 0);
+assert.equal(notesCellState.title, "No notes");
 const clonedCats = cloneCategoryDrafts([{ name: "General", color: "#111111" }]);
 assert.equal(clonedCats.length, 1);
+const categoryEditorState = buildCategoryEditorState(clonedCats);
+assert.equal(categoryEditorState.categories.length, 1);
 const nextCats = createNextCategoryDraft({
   categories: clonedCats,
   palette: ["#111111", "#222222", "#333333"],
@@ -1635,8 +1662,17 @@ const nextCats = createNextCategoryDraft({
 });
 assert.equal(nextCats.length, 2);
 assert.equal(nextCats[1]?.name, "New category");
+const renamedCats = applyCategoryNamesFromValues(nextCats, ["General+", "New category+"]);
+assert.equal(renamedCats[0]?.name, "General+");
 assert.equal(removeCategoryDraftAt(nextCats, 0).length, 1);
 assert.equal(isCategoryUsedByTasks([{ n: 1, name: "Task", cat: 1, ms: 0, ws: 0, me: 0, we: 0, prog: 0 }], 1), true);
+const categoryDeletionState = buildCategoryDeletionState({
+  categories: nextCats,
+  index: 1,
+  tasks: [{ n: 1, name: "Task", cat: 0, ms: 0, ws: 0, me: 0, we: 0, prog: 0 }],
+});
+assert.equal(categoryDeletionState.isUsed, false);
+assert.equal(categoryDeletionState.categories.length, 1);
 const projectManagerGroups = buildProjectManagerGroupModel({
   projects: {
     own: { proj: { name: "Own" }, tasks: [{}, {}], _role: "owner", _access: { source: "own" } },
