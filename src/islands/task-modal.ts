@@ -15,6 +15,7 @@ type TaskModalRuntime = Window & {
   setDepType?: (id: string, type: string) => void;
   setDepThreshold?: (id: string, value: string | number) => void;
   adjDepThr?: (id: string, delta: number) => void;
+  pickCat?: (index: number) => void;
   updCalc?: () => void;
   addCostItem?: (type: string) => void;
 };
@@ -64,6 +65,9 @@ async function handleTaskModalAction(action: string, element: HTMLElement): Prom
         element.dataset.dependencyId || "",
         Number(element.dataset.delta || 0),
       );
+      return;
+    case "pick-category":
+      taskModalRuntime.pickCat?.(Number(element.dataset.categoryIndex || -1));
       return;
     default:
       return;

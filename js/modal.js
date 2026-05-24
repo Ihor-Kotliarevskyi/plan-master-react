@@ -356,7 +356,8 @@ function buildChips(sel) {
   document.getElementById("cat-chips").innerHTML = cats
     .map(
       (c, i) =>
-        `<button class="cat-chip${i === sel ? " active" : ""}" style="--chip-color:${c.color}" onclick="pickCat(${i})" type="button"><span class="chip-dot"></span>${c.name}</button>`,
+        `<button class="cat-chip${i === sel ? " active" : ""}" style="--chip-color:${c.color}"
+          data-task-modal-action="pick-category" data-category-index="${i}" type="button"><span class="chip-dot"></span>${c.name}</button>`,
     )
     .join("");
 }
