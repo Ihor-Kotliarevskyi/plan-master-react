@@ -883,6 +883,43 @@ function updCalc() {
     `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(calc.remainder)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${calc.weeks}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${calc.weeks > 0 ? fmtM(calc.weeklyRate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
 }
 
+function _applyTaskModalUiState(state) {
+  editIdx = state.editIdx;
+  _editingDepId = state.editingDepId;
+  _modalDeps = state.modalDeps;
+  _modalPhases = state.modalPhases;
+  _costTi = state.costTi;
+  _costItems = state.costItems;
+  _expandedIds = state.expandedIds;
+
+  document.getElementById("m-title").textContent = state.title;
+  document.getElementById("f-name").value = state.nameValue;
+  document.getElementById("f-budget").value = state.budgetValue;
+  document.getElementById("f-spent").value = state.spentValue;
+  document.getElementById("f-contracts-override-budget").checked = state.contractsOverrideBudget;
+  document.getElementById("calc-info").textContent = state.calcInfoText || "";
+
+  const warnBox = document.getElementById("dep-warn");
+  warnBox.innerHTML = state.dependencyWarningHtml || "";
+  warnBox.classList.toggle("show", !!state.showDependencyWarning);
+  document.getElementById("dep-type-editor").style.display = state.showDependencyEditor ? "" : "none";
+
+  _updateAutoBadges(state.hasItems, state.autoBudget);
+  buildChips(state.selectedCategory);
+  renderModalPhases();
+  renderDepTags();
+  renderDepTypeEditor();
+  renderCostTable();
+  document.getElementById("dep-dropdown").style.display = "none";
+  switchTaskTab(state.activeTab || "general");
+  document.getElementById("modal").style.display = "flex";
+  _applyTaskModalPermissions();
+
+  if (_canMutateTaskModal() && state.focusField === "name") {
+    setTimeout(() => document.getElementById("f-name").focus(), 50);
+  }
+}
+
 function openAdd() {
   const taskFormPanel = _getTaskFormPanelModel();
   const createState = typeof buildRuntimeTaskModalCreateState === "function"
@@ -908,33 +945,17 @@ function openAdd() {
         hasItems: false,
         focusField: "name",
       };
-  editIdx = createState.editIdx;
-  _editingDepId = createState.editingDepId;
-  _modalDeps = createState.modalDeps;
-  _modalPhases = createState.modalPhases;
-  _costTi = createState.costTi;
-  _costItems = createState.costItems;
-  _expandedIds = createState.expandedIds;
-
-  document.getElementById("m-title").textContent = createState.title;
-  document.getElementById("f-name").value = "";
-  document.getElementById("f-budget").value = createState.budgetValue;
-  document.getElementById("f-spent").value = createState.spentValue;
-  document.getElementById("f-contracts-override-budget").checked = createState.contractsOverrideBudget;
-  document.getElementById("calc-info").textContent = createState.calcInfoText;
-  document.getElementById("dep-warn").classList.toggle("show", createState.showDependencyWarning);
-  document.getElementById("dep-type-editor").style.display = createState.showDependencyEditor ? "" : "none";
-  _updateAutoBadges(createState.hasItems);
-
-  buildChips(0);
-  renderModalPhases();
-  renderDepTags();
-  renderCostTable();
-  document.getElementById("dep-dropdown").style.display = "none";
-  switchTaskTab("general");
-  document.getElementById("modal").style.display = "flex";
-  _applyTaskModalPermissions();
-  if (_canMutateTaskModal() && createState.focusField === "name") setTimeout(() => document.getElementById("f-name").focus(), 50);
+  const uiState = typeof buildRuntimeTaskModalCreateUiState === "function"
+    ? buildRuntimeTaskModalCreateUiState({ createState, selectedCategory: 0 })
+    : null;
+  _applyTaskModalUiState(uiState || {
+    ...createState,
+    nameValue: "",
+    dependencyWarningHtml: "",
+    autoBudget: false,
+    selectedCategory: 0,
+    activeTab: "general",
+  });
 }
 
 function openEdit(ti) {
@@ -968,41 +989,30 @@ function openEdit(ti) {
         spentValue: t.spent || "",
         contractsOverrideBudget: !!t.contractsOverrideBudget,
       };
-
-  _modalPhases = editState.modalPhases;
-  _modalDeps = editState.modalDeps;
-  _costTi = ti;
-  _expandedIds = new Set();
-  _costItems = editState.costItems;
-
-  const hasItems = editState.hasItems;
-
-  document.getElementById("m-title").textContent = editState.title;
-  document.getElementById("f-name").value = t.name;
-  document.getElementById("f-contracts-override-budget").checked = editState.contractsOverrideBudget;
-  document.getElementById("f-budget").value = editState.budgetValue;
-  document.getElementById("f-spent").value = editState.spentValue;
-  _updateAutoBadges(hasItems, hasItems && (!!editState.contractsOverrideBudget || (+t.budget || 0) <= 0));
-
-  buildChips(t.cat);
-  renderModalPhases();
-  renderDepTags();
-  renderDepTypeEditor();
-  renderCostTable();
-  updCalc();
-
   const warns = checkDeps(t);
-  const wb = document.getElementById("dep-warn");
-  if (warns.length) {
-    wb.innerHTML = "⚠ " + warns.join("<br>");
-    wb.classList.add("show");
-  } else {
-    wb.classList.remove("show");
-  }
-
-  switchTaskTab("general");
-  document.getElementById("modal").style.display = "flex";
-  _applyTaskModalPermissions();
+  const uiState = typeof buildRuntimeTaskModalEditUiState === "function"
+    ? buildRuntimeTaskModalEditUiState({
+        task: t,
+        editIdx: ti,
+        editState,
+        dependencyWarnings: warns,
+      })
+    : null;
+  _applyTaskModalUiState(uiState || {
+    ...editState,
+    editIdx: ti,
+    editingDepId: null,
+    costTi: ti,
+    expandedIds: new Set(),
+    nameValue: t.name,
+    dependencyWarningHtml: warns.length ? "⚠ " + warns.join("<br>") : "",
+    showDependencyWarning: warns.length > 0,
+    autoBudget: editState.hasItems && (!!editState.contractsOverrideBudget || (+t.budget || 0) <= 0),
+    selectedCategory: t.cat,
+    focusField: null,
+    activeTab: "general",
+  });
+  updCalc();
 }
 
 function closeModal() {

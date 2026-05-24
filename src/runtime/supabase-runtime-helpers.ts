@@ -183,7 +183,9 @@ import {
 } from "../domain/modal-state";
 import {
   applyTaskSave,
+  buildTaskModalCreateUiState,
   buildTaskModalCreateState,
+  buildTaskModalEditUiState,
   buildTaskModalEditState,
   buildTaskModalSaveModel,
   cloneModalCostItems,
@@ -634,7 +636,9 @@ const runtimeHelpers = {
   buildRuntimeCloneModalCostItems: cloneModalCostItems,
   buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
   buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
+  buildRuntimeTaskModalCreateUiState: buildTaskModalCreateUiState,
   buildRuntimeTaskModalEditState: buildTaskModalEditState,
+  buildRuntimeTaskModalEditUiState: buildTaskModalEditUiState,
   buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
   buildRuntimeApplyTaskSave: applyTaskSave,
   buildRuntimeRemoveTaskAt: removeTaskAt,

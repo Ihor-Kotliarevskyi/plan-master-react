@@ -2238,6 +2238,58 @@
       focusField: "name"
     };
   }
+  function buildTaskModalCreateUiState(params) {
+    return {
+      editIdx: params.createState.editIdx,
+      editingDepId: params.createState.editingDepId,
+      modalDeps: params.createState.modalDeps,
+      modalPhases: params.createState.modalPhases,
+      costTi: params.createState.costTi,
+      costItems: params.createState.costItems,
+      expandedIds: params.createState.expandedIds,
+      title: params.createState.title,
+      nameValue: "",
+      budgetValue: params.createState.budgetValue,
+      spentValue: params.createState.spentValue,
+      contractsOverrideBudget: params.createState.contractsOverrideBudget,
+      calcInfoText: params.createState.calcInfoText,
+      showDependencyWarning: params.createState.showDependencyWarning,
+      dependencyWarningHtml: "",
+      showDependencyEditor: params.createState.showDependencyEditor,
+      hasItems: params.createState.hasItems,
+      autoBudget: false,
+      selectedCategory: params.selectedCategory ?? 0,
+      focusField: params.createState.focusField,
+      activeTab: "general"
+    };
+  }
+  function buildTaskModalEditUiState(params) {
+    const taskBudget = +params.task?.budget || 0;
+    const autoBudget = params.editState.hasItems && (!!params.editState.contractsOverrideBudget || taskBudget <= 0);
+    return {
+      editIdx: params.editIdx,
+      editingDepId: null,
+      modalDeps: params.editState.modalDeps,
+      modalPhases: params.editState.modalPhases,
+      costTi: params.editIdx,
+      costItems: params.editState.costItems,
+      expandedIds: /* @__PURE__ */ new Set(),
+      title: params.editState.title,
+      nameValue: params.task?.name || "",
+      budgetValue: params.editState.budgetValue,
+      spentValue: params.editState.spentValue,
+      contractsOverrideBudget: params.editState.contractsOverrideBudget,
+      calcInfoText: "",
+      showDependencyWarning: params.dependencyWarnings.length > 0,
+      dependencyWarningHtml: params.dependencyWarnings.length ? "⚠ " + params.dependencyWarnings.join("<br>") : "",
+      showDependencyEditor: false,
+      hasItems: params.editState.hasItems,
+      autoBudget,
+      selectedCategory: params.task?.cat ?? 0,
+      focusField: null,
+      activeTab: "general"
+    };
+  }
   function buildTaskModalSaveModel(params) {
     const phases = (params.phases || []).map((phase) => ({ ...phase }));
     const first = phases[0] || { ms: 0, ws: 0 };
@@ -4077,7 +4129,9 @@
     buildRuntimeCloneModalCostItems: cloneModalCostItems,
     buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
     buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
+    buildRuntimeTaskModalCreateUiState: buildTaskModalCreateUiState,
     buildRuntimeTaskModalEditState: buildTaskModalEditState,
+    buildRuntimeTaskModalEditUiState: buildTaskModalEditUiState,
     buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
     buildRuntimeApplyTaskSave: applyTaskSave,
     buildRuntimeRemoveTaskAt: removeTaskAt,

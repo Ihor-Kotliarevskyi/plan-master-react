@@ -61,6 +61,30 @@ export interface TaskModalCreateState {
   focusField: "name";
 }
 
+export interface TaskModalUiState {
+  editIdx: number | null;
+  editingDepId: string | null;
+  modalDeps: AnyRecord[];
+  modalPhases: AnyRecord[];
+  costTi: number | null;
+  costItems: AnyRecord[];
+  expandedIds: Set<string>;
+  title: string;
+  nameValue: string;
+  budgetValue: number | string;
+  spentValue: number | string;
+  contractsOverrideBudget: boolean;
+  calcInfoText: string;
+  showDependencyWarning: boolean;
+  dependencyWarningHtml: string;
+  showDependencyEditor: boolean;
+  hasItems: boolean;
+  autoBudget: boolean;
+  selectedCategory: number;
+  focusField: "name" | null;
+  activeTab: "general" | "costs";
+}
+
 export function cloneModalCostItems(items: AnyRecord[] | null | undefined): AnyRecord[] {
   return (items || []).map((item) => ({
     ...item,
@@ -131,6 +155,72 @@ export function buildTaskModalCreateState(params: {
     showDependencyEditor: false,
     hasItems: false,
     focusField: "name",
+  };
+}
+
+export function buildTaskModalCreateUiState(params: {
+  createState: TaskModalCreateState;
+  selectedCategory?: number;
+}): TaskModalUiState {
+  return {
+    editIdx: params.createState.editIdx,
+    editingDepId: params.createState.editingDepId,
+    modalDeps: params.createState.modalDeps,
+    modalPhases: params.createState.modalPhases,
+    costTi: params.createState.costTi,
+    costItems: params.createState.costItems,
+    expandedIds: params.createState.expandedIds,
+    title: params.createState.title,
+    nameValue: "",
+    budgetValue: params.createState.budgetValue,
+    spentValue: params.createState.spentValue,
+    contractsOverrideBudget: params.createState.contractsOverrideBudget,
+    calcInfoText: params.createState.calcInfoText,
+    showDependencyWarning: params.createState.showDependencyWarning,
+    dependencyWarningHtml: "",
+    showDependencyEditor: params.createState.showDependencyEditor,
+    hasItems: params.createState.hasItems,
+    autoBudget: false,
+    selectedCategory: params.selectedCategory ?? 0,
+    focusField: params.createState.focusField,
+    activeTab: "general",
+  };
+}
+
+export function buildTaskModalEditUiState(params: {
+  task: AnyRecord;
+  editIdx: number;
+  editState: TaskModalEditState;
+  dependencyWarnings: string[];
+}): TaskModalUiState {
+  const taskBudget = +params.task?.budget || 0;
+  const autoBudget = params.editState.hasItems
+    && (!!params.editState.contractsOverrideBudget || taskBudget <= 0);
+
+  return {
+    editIdx: params.editIdx,
+    editingDepId: null,
+    modalDeps: params.editState.modalDeps,
+    modalPhases: params.editState.modalPhases,
+    costTi: params.editIdx,
+    costItems: params.editState.costItems,
+    expandedIds: new Set<string>(),
+    title: params.editState.title,
+    nameValue: params.task?.name || "",
+    budgetValue: params.editState.budgetValue,
+    spentValue: params.editState.spentValue,
+    contractsOverrideBudget: params.editState.contractsOverrideBudget,
+    calcInfoText: "",
+    showDependencyWarning: params.dependencyWarnings.length > 0,
+    dependencyWarningHtml: params.dependencyWarnings.length
+      ? "⚠ " + params.dependencyWarnings.join("<br>")
+      : "",
+    showDependencyEditor: false,
+    hasItems: params.editState.hasItems,
+    autoBudget,
+    selectedCategory: params.task?.cat ?? 0,
+    focusField: null,
+    activeTab: "general",
   };
 }
 
