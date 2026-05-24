@@ -465,7 +465,7 @@
   </div>
 
   <!-- MODAL: DEP LIST -->
-  <div class="overlay" id="dep-list-modal" style="display:none" onclick="if(event.target===this)closeDepList()">
+  <div class="overlay" id="dep-list-modal" style="display:none" data-dep-list-root>
     <div class="modal dl-modal">
       <div class="modal-header">
         <div class="dl-modal-title">
@@ -473,15 +473,15 @@
           <span class="dl-count-badge" id="dl-count"></span>
         </div>
         <div class="dl-filters">
-          <button class="dl-filter-btn on" data-f="all" onclick="setDepListFilter('all')">Всі</button>
-          <button class="dl-filter-btn" data-f="FS" onclick="setDepListFilter('FS')">FS</button>
-          <button class="dl-filter-btn" data-f="SS" onclick="setDepListFilter('SS')">SS</button>
-          <button class="dl-filter-btn" data-f="FF" onclick="setDepListFilter('FF')">FF</button>
+          <button class="dl-filter-btn on" data-f="all" data-dep-action="set-filter">Всі</button>
+          <button class="dl-filter-btn" data-f="FS" data-dep-action="set-filter">FS</button>
+          <button class="dl-filter-btn" data-f="SS" data-dep-action="set-filter">SS</button>
+          <button class="dl-filter-btn" data-f="FF" data-dep-action="set-filter">FF</button>
         </div>
       </div>
       <div class="dl-wrap" id="dl-body"></div>
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeDepList()">Закрити</button>
+        <button class="btn" data-dep-action="close-modal">Закрити</button>
       </div>
     </div>
   </div>
@@ -735,19 +735,19 @@
   </div>
 
   <!-- MODAL: NOTES -->
-  <div class="overlay" id="notes-modal" style="display: none" onclick="if (event.target === this) closeNotesModal();">
+  <div class="overlay" id="notes-modal" style="display: none" data-notes-modal-root>
     <div class="modal modal-w460">
       <div class="modal-header">
         <h3><i data-lucide="message-square"></i> <span id="notes-modal-title">Нотатки</span></h3>
-        <button class="btn btn-sm" onclick="closeNotesModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-notes-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="notes-list" id="notes-list"></div>
       <div class="notes-add-row">
         <textarea id="note-input" placeholder="Додати нотатку..."></textarea>
-        <button class="btn btn-acc" onclick="addNote()">+</button>
+        <button class="btn btn-acc" data-notes-action="add-note">+</button>
       </div>
       <div class="m-btns">
-        <button class="btn btn-acc" onclick="closeNotesModal()">Закрити</button>
+        <button class="btn btn-acc" data-notes-action="close-modal">Закрити</button>
       </div>
     </div>
   </div>
@@ -815,5 +815,7 @@
   <script>lucide.createIcons();</script>
 </body>
 
+  <script type="module" src="/src/islands/notes-modal.ts"></script>
+  <script type="module" src="/src/islands/dependency-list.ts"></script>
 </html>
 

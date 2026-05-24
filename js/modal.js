@@ -1152,7 +1152,7 @@ function renderNotes(notes) {
   el.innerHTML = notes
     .map((n, i) => {
       const histBtn = n.history?.length
-        ? `<button class="note-hist-btn" onclick="toggleNoteHistory(${i})"><i data-lucide="clock"></i> ${n.history.length}</button>`
+        ? `<button class="note-hist-btn" data-notes-action="toggle-history" data-note-index="${i}"><i data-lucide="clock"></i> ${n.history.length}</button>`
         : "";
       const histHtml = n.history?.length
         ? `<div class="note-history" id="note-hist-${i}" style="display:none">
@@ -1173,13 +1173,13 @@ function renderNotes(notes) {
       <div class="note-edit-row" id="note-edit-row-${i}" style="display:none">
         <textarea class="note-edit-ta" id="note-edit-ta-${i}">${_escHtml(n.text)}</textarea>
         <div class="note-edit-actions">
-          <button class="btn btn-acc btn-sm" onclick="saveNoteEdit(${i})">${notesModal.saveButtonLabel}</button>
-          <button class="btn btn-sm" onclick="cancelNoteEdit(${i})">${notesModal.cancelButtonLabel}</button>
+          <button class="btn btn-acc btn-sm" data-notes-action="save-edit" data-note-index="${i}">${notesModal.saveButtonLabel}</button>
+          <button class="btn btn-sm" data-notes-action="cancel-edit" data-note-index="${i}">${notesModal.cancelButtonLabel}</button>
         </div>
       </div>
       <div class="note-actions">
-        <button class="note-act-btn" onclick="startNoteEdit(${i})" title="${notesModal.editButtonLabel}"><i data-lucide="pencil"></i></button>
-        <button class="note-act-btn del" onclick="deleteNote(${i})" title="${notesModal.deleteButtonLabel}"><i data-lucide="trash-2"></i></button>
+        <button class="note-act-btn" data-notes-action="start-edit" data-note-index="${i}" title="${notesModal.editButtonLabel}"><i data-lucide="pencil"></i></button>
+        <button class="note-act-btn del" data-notes-action="delete-note" data-note-index="${i}" title="${notesModal.deleteButtonLabel}"><i data-lucide="trash-2"></i></button>
       </div>
       ${histHtml}
     </div>`;
@@ -1545,7 +1545,7 @@ function _renderDepList() {
   }
 
   const rows = depState.rows.map((d) => {
-    return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="${dependencyListModal.rowTitle}">
+    return `<tr class="dl-row" data-dep-action="go-to-task" data-task-index="${d.fromTi}" title="${dependencyListModal.rowTitle}">
       <td class="dl-i">${d.index}</td>
       <td class="dl-task">
         <span class="dl-dot" style="background:${d.fromColor}"></span>
