@@ -57,12 +57,6 @@ function initPrintDialogIsland(): void {
     await handlePrintAction(actionElement.dataset.printAction || "", actionElement);
   });
 
-  modal?.addEventListener("change", (event) => {
-    const target = event.target as HTMLInputElement | null;
-    if (!target || target.dataset.printAction !== "toggle-chart-picker") return;
-    const picker = document.getElementById("print-chart-picker");
-    if (picker) picker.style.display = target.checked ? "block" : "none";
-  });
 }
 
 if (document.readyState === "loading") {
