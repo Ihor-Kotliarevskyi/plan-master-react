@@ -172,23 +172,23 @@
           <i data-lucide="plus"></i> Контрагент
         </button>
         <div class="tools-menu contractor-tools-menu" id="contractor-tools-menu">
-          <button class="btn btn-icon tools-trigger" onclick="toggleContractorToolsMenu()" title="Імпорт та реєстри">
+          <button class="btn btn-icon tools-trigger" data-contractor-tools-action="toggle-menu" title="Імпорт та реєстри">
             <i data-lucide="more-horizontal"></i>
           </button>
           <div class="tools-dropdown" id="contractor-tools-dropdown">
-            <button class="tools-item" onclick="exportContractorImportTemplate();closeContractorToolsMenu()">
+            <button class="tools-item" data-contractor-tools-action="export-template">
               <i data-lucide="upload"></i> Шаблон
             </button>
             <label class="tools-item contractor-import-btn">
               <i data-lucide="download"></i> Імпорт оплат
               <input type="file" accept=".xlsx,.xls,.csv" style="display:none"
-                onchange="importContractorTable(event);closeContractorToolsMenu()" />
+                data-contractor-tools-input="import-file" />
             </label>
             <div class="tools-sep"></div>
-            <button class="tools-item" onclick="deleteSelectedContractors();closeContractorToolsMenu()">
+            <button class="tools-item" data-contractor-tools-action="delete-selected">
               <i data-lucide="trash-2"></i> Видалити вибраних
             </button>
-            <button class="tools-item" onclick="deleteVisibleContractors();closeContractorToolsMenu()">
+            <button class="tools-item" data-contractor-tools-action="delete-visible">
               <i data-lucide="trash"></i> Видалити всіх за фільтром
             </button>
             <div class="tools-sep"></div>
@@ -817,6 +817,7 @@
   <script type="module" src="/src/islands/dependency-list.ts"></script>
   <script type="module" src="/src/islands/contractor-entry.ts"></script>
   <script type="module" src="/src/islands/payment-register.ts"></script>
+  <script type="module" src="/src/islands/contractor-tools.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
 </html>
