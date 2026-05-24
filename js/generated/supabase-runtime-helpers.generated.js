@@ -2336,7 +2336,8 @@
         tasks: nextTasks,
         nextN: params.nextN,
         savedTask: nextTasks[params.editIdx],
-        isEdit: true
+        isEdit: true,
+        changed: true
       };
     }
     const savedTask = {
@@ -2349,14 +2350,18 @@
       tasks: [...params.tasks, savedTask],
       nextN: params.nextN + 1,
       savedTask,
-      isEdit: false
+      isEdit: false,
+      changed: true
     };
   }
   function removeTaskAt(tasks, index) {
-    if (index < 0 || index >= tasks.length) return { tasks: [...tasks], removedTask: null };
+    if (index < 0 || index >= tasks.length) {
+      return { tasks: [...tasks], removedTask: null, changed: false };
+    }
     return {
       tasks: tasks.filter((_, taskIndex) => taskIndex !== index),
-      removedTask: tasks[index] || null
+      removedTask: tasks[index] || null,
+      changed: true
     };
   }
 

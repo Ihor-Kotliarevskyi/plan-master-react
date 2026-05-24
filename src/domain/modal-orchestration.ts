@@ -31,6 +31,14 @@ export interface TaskModalSaveModel {
   taskPatch: TaskModalDraft;
 }
 
+export interface TaskModalPersistResult {
+  tasks: AnyRecord[];
+  nextN: number;
+  savedTask: AnyRecord | null;
+  isEdit: boolean;
+  changed: boolean;
+}
+
 export interface TaskModalEditState {
   modalPhases: AnyRecord[];
   modalDeps: AnyRecord[];
@@ -83,6 +91,12 @@ export interface TaskModalUiState {
   selectedCategory: number;
   focusField: "name" | null;
   activeTab: "general" | "costs";
+}
+
+export interface TaskModalDeleteResult {
+  tasks: AnyRecord[];
+  removedTask: AnyRecord | null;
+  changed: boolean;
 }
 
 export function cloneModalCostItems(items: AnyRecord[] | null | undefined): AnyRecord[] {
@@ -281,7 +295,7 @@ export function applyTaskSave(params: {
   nextN: number;
   taskPatch: TaskModalDraft;
   newTaskId: string;
-}): { tasks: AnyRecord[]; nextN: number; savedTask: AnyRecord; isEdit: boolean } {
+}): TaskModalPersistResult {
   const isEdit = params.editIdx !== null;
   if (isEdit) {
     const nextTasks = params.tasks.map((task, index) =>
@@ -294,6 +308,7 @@ export function applyTaskSave(params: {
       nextN: params.nextN,
       savedTask: nextTasks[params.editIdx as number],
       isEdit: true,
+      changed: true,
     };
   }
 
@@ -308,13 +323,17 @@ export function applyTaskSave(params: {
     nextN: params.nextN + 1,
     savedTask,
     isEdit: false,
+    changed: true,
   };
 }
 
-export function removeTaskAt(tasks: AnyRecord[], index: number): { tasks: AnyRecord[]; removedTask: AnyRecord | null } {
-  if (index < 0 || index >= tasks.length) return { tasks: [...tasks], removedTask: null };
+export function removeTaskAt(tasks: AnyRecord[], index: number): TaskModalDeleteResult {
+  if (index < 0 || index >= tasks.length) {
+    return { tasks: [...tasks], removedTask: null, changed: false };
+  }
   return {
     tasks: tasks.filter((_, taskIndex) => taskIndex !== index),
     removedTask: tasks[index] || null,
+    changed: true,
   };
 }

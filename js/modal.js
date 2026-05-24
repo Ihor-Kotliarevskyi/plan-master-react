@@ -1109,7 +1109,7 @@ async function saveTask() {
       })
     : null;
   const isEdit = applied ? applied.isEdit : editIdx !== null;
-  if (applied) {
+  if (applied?.changed) {
     tasks = applied.tasks;
     nextN = applied.nextN;
   } else if (isEdit) {
@@ -1155,7 +1155,7 @@ async function delTask(ti) {
   const removed = typeof buildRuntimeRemoveTaskAt === "function"
     ? buildRuntimeRemoveTaskAt(tasks, ti)
     : null;
-  tasks = removed ? removed.tasks : tasks.filter((_, index) => index !== ti);
+  tasks = removed?.changed ? removed.tasks : tasks.filter((_, index) => index !== ti);
   saveAll();
   render();
   await logTaskActivity(AUDIT_EVENT_TYPES.TASK_DELETED, removed?.removedTask || task);
