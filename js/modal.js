@@ -452,10 +452,13 @@ function onModalPhaseChange() {
 }
 
 function onModalProgChange(pi, val) {
-  _modalPhases[pi].prog = +val;
-  if (+val < 100) {
-    _modalPhases.forEach((_, i) => { if (i > pi) _modalPhases[i].prog = 0; });
-  }
+  const nextState = typeof buildRuntimeUpdateModalPhaseProgress === "function"
+    ? buildRuntimeUpdateModalPhaseProgress(_modalPhases, pi, +val, _weightedProg)
+    : {
+        phases: _modalPhases.map((phase) => ({ ...phase })),
+        totalProgress: 0,
+      };
+  _modalPhases = nextState.phases;
   // Оновлюємо DOM напряму, щоб не переривати drag слайдера
   const lbl = document.getElementById(`mph-prog-lbl-${pi}`);
   if (lbl) lbl.textContent = `${+val}%`;
@@ -468,9 +471,8 @@ function onModalProgChange(pi, val) {
     if (l) l.textContent = `${p.prog || 0}%`;
   });
   if (_modalPhases.length > 1) {
-    const total = _weightedProg(_modalPhases);
     const sumEl = document.querySelector(".mph-summary b");
-    if (sumEl) sumEl.textContent = `${total}%`;
+    if (sumEl) sumEl.textContent = `${nextState.totalProgress || _weightedProg(_modalPhases)}%`;
   }
 }
 
@@ -481,17 +483,18 @@ function _syncModalPhasesToHidden() {
 function modalAddPhase() {
   if (!_canMutateTaskModal()) return;
   _flushModalPhases();
-  const last = _modalPhases[_modalPhases.length - 1];
-  const newMs = Math.min(proj.nm - 1, last.me + 1);
-  _modalPhases.push({ ms: newMs, ws: 0, me: Math.min(proj.nm - 1, newMs + 1), we: 3, prog: 0 });
+  _modalPhases = typeof buildRuntimeAddModalPhase === "function"
+    ? buildRuntimeAddModalPhase(_modalPhases, proj.nm)
+    : _modalPhases;
   renderModalPhases();
 }
 
 function modalRemovePhase(pi) {
   if (!_canMutateTaskModal()) return;
   _flushModalPhases();
-  if (_modalPhases.length <= 1) return;
-  _modalPhases.splice(pi, 1);
+  _modalPhases = typeof buildRuntimeRemoveModalPhase === "function"
+    ? buildRuntimeRemoveModalPhase(_modalPhases, pi)
+    : _modalPhases;
   renderModalPhases();
 }
 
@@ -654,21 +657,25 @@ function filterDepSearch(q) {
   if (!_canMutateTaskModal()) return;
   const dd = document.getElementById("dep-dropdown");
   if (!dd) return;
-  const added = new Set(_modalDeps.map((d) => d.id));
-  const candidates = tasks
-    .filter((t) => t !== tasks[editIdx] && !added.has(t.id))
-    .filter((t) => !q || `${t.n} ${t.name}`.toLowerCase().includes(q.toLowerCase()));
+  const dropdownState = typeof buildRuntimeDependencyDropdownState === "function"
+    ? buildRuntimeDependencyDropdownState({
+        tasks,
+        editIdx,
+        modalDeps: _modalDeps,
+        query: q,
+      })
+    : { items: [], visible: false };
 
-  if (!candidates.length) {
+  if (!dropdownState.visible) {
     dd.style.display = "none";
     return;
   }
   dd.style.display = "block";
-  dd.innerHTML = candidates
+  dd.innerHTML = dropdownState.items
     .map(
-      (t) =>
-        `<div class="dep-dd-item" onclick="addDepTag('${t.id}')">
-           <span class="dep-dd-num">#${t.n}</span> ${t.name}
+      (item) =>
+        `<div class="dep-dd-item" onclick="addDepTag('${item.id}')">
+           <span class="dep-dd-num">#${item.taskNumber}</span> ${item.name}
          </div>`,
     )
     .join("");
@@ -676,28 +683,35 @@ function filterDepSearch(q) {
 
 function addDepTag(id) {
   if (!_canMutateTaskModal()) return;
-  if (_modalDeps.find((d) => d.id === id)) return;
-  _modalDeps.push({ id, type: "FS", threshold: 0 });
+  const nextState = typeof buildRuntimeAddModalDependency === "function"
+    ? buildRuntimeAddModalDependency(_modalDeps, id)
+    : { deps: _modalDeps, editingDepId: id, didAdd: false };
+  if (!nextState.didAdd) return;
+  _modalDeps = nextState.deps;
+  _editingDepId = nextState.editingDepId;
   renderDepTags();
   const inp = document.getElementById("dep-search");
   if (inp) inp.value = "";
   document.getElementById("dep-dropdown").style.display = "none";
-  editDepTag(id);
+  renderDepTypeEditor();
 }
 
 function removeDepTag(id) {
   if (!_canMutateTaskModal()) return;
-  _modalDeps = _modalDeps.filter((d) => d.id !== id);
-  if (_editingDepId === id) {
-    _editingDepId = null;
-    renderDepTypeEditor();
-  }
+  const nextState = typeof buildRuntimeRemoveModalDependency === "function"
+    ? buildRuntimeRemoveModalDependency(_modalDeps, id, _editingDepId)
+    : { deps: _modalDeps.filter((d) => d.id !== id), editingDepId: _editingDepId === id ? null : _editingDepId };
+  _modalDeps = nextState.deps;
+  _editingDepId = nextState.editingDepId;
+  renderDepTypeEditor();
   renderDepTags();
 }
 
 function editDepTag(id) {
   if (!_canMutateTaskModal()) return;
-  _editingDepId = _editingDepId === id ? null : id;
+  _editingDepId = typeof buildRuntimeToggleModalDependencyEditor === "function"
+    ? buildRuntimeToggleModalDependencyEditor(_editingDepId, id)
+    : (_editingDepId === id ? null : id);
   renderDepTags();
   renderDepTypeEditor();
 }
@@ -706,18 +720,20 @@ function renderDepTypeEditor() {
   const dependencyEditor = _getDependencyEditorModel();
   const el = document.getElementById("dep-type-editor");
   if (!el) return;
-  if (!_editingDepId) {
+  const editorState = typeof buildRuntimeModalDependencyEditorState === "function"
+    ? buildRuntimeModalDependencyEditorState({
+        deps: _modalDeps,
+        editingDepId: _editingDepId,
+        tasks,
+      })
+    : { visible: false, dependency: null, taskNumber: "?", taskName: "" };
+  if (!editorState.visible || !editorState.dependency) {
     el.style.display = "none";
     return;
   }
-  const dep = _modalDeps.find((d) => d.id === _editingDepId);
-  if (!dep) {
-    el.style.display = "none";
-    return;
-  }
-  const t = tasks.find((x) => x.id === dep.id);
-  const name = t ? (t.name.length > 22 ? t.name.slice(0, 22) + "…" : t.name) : "";
-  const dispN = t?.n ?? "?";
+  const dep = editorState.dependency;
+  const name = editorState.taskName.length > 22 ? editorState.taskName.slice(0, 22) + "…" : editorState.taskName;
+  const dispN = editorState.taskNumber;
   el.style.display = "block";
   el.innerHTML = `
     <div class="dep-type-edit-row">
@@ -753,26 +769,32 @@ function renderDepTypeEditor() {
 }
 
 function setDepType(id, type) {
-  const dep = _modalDeps.find((d) => d.id === id);
-  if (dep) {
-    dep.type = type;
-    if (type !== "SS") dep.threshold = 0;
-  }
+  _modalDeps = typeof buildRuntimeUpdateModalDependencyType === "function"
+    ? buildRuntimeUpdateModalDependencyType(_modalDeps, id, type)
+    : _modalDeps;
   renderDepTags();
   renderDepTypeEditor();
 }
 
 function setDepThreshold(id, val) {
-  const dep = _modalDeps.find((d) => d.id === id);
-  if (dep) dep.threshold = Math.min(99, Math.max(1, +val));
+  _modalDeps = typeof buildRuntimeUpdateModalDependencyThreshold === "function"
+    ? buildRuntimeUpdateModalDependencyThreshold(_modalDeps, id, +val)
+    : _modalDeps;
+  renderDepTags();
+  renderDepTypeEditor();
 }
 
 function adjDepThr(id, delta) {
   const dep = _modalDeps.find((d) => d.id === id);
   if (!dep) return;
-  dep.threshold = Math.min(99, Math.max(1, (dep.threshold || 25) + delta));
+  _modalDeps = typeof buildRuntimeUpdateModalDependencyThreshold === "function"
+    ? buildRuntimeUpdateModalDependencyThreshold(_modalDeps, id, (dep.threshold || 25) + delta)
+    : _modalDeps;
+  const nextDep = _modalDeps.find((item) => item.id === id);
   const inp = document.querySelector(".dep-threshold-inp");
-  if (inp) inp.value = dep.threshold;
+  if (inp) inp.value = nextDep?.threshold || 25;
+  renderDepTags();
+  renderDepTypeEditor();
 }
 
 document.addEventListener("click", (e) => {

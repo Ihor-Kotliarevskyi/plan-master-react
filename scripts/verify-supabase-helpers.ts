@@ -194,6 +194,18 @@ import {
   snapToHalfWeek,
 } from "../src/domain/modal";
 import {
+  addModalDependency,
+  addModalPhase,
+  buildDependencyDropdownState,
+  buildModalDependencyEditorState,
+  removeModalDependency,
+  removeModalPhase,
+  toggleModalDependencyEditor,
+  updateModalDependencyThreshold,
+  updateModalDependencyType,
+  updateModalPhaseProgress,
+} from "../src/domain/modal-state";
+import {
   applyTaskSave,
   buildTaskModalCreateState,
   buildTaskModalEditState,
@@ -1538,6 +1550,50 @@ assert.equal(depListState.counts.SS, 1);
 assert.equal(depListState.rows[0]?.typeLabel, "FS");
 assert.equal(depListState.rows[1]?.typeLabel, "SS+25%");
 assert.equal(depListState.rows[0]?.isCritical, true);
+const addedModalPhases = addModalPhase([{ ms: 0, ws: 0, me: 1, we: 3, prog: 100 }], 12);
+assert.equal(addedModalPhases.length, 2);
+assert.equal(addedModalPhases[1]?.ms, 2);
+const removedModalPhases = removeModalPhase(addedModalPhases, 0);
+assert.equal(removedModalPhases.length, 1);
+const modalPhaseProgress = updateModalPhaseProgress(
+  [{ prog: 100 }, { prog: 60 }, { prog: 10 }],
+  1,
+  40,
+  (phases) => phases.reduce((sum, phase) => sum + (+phase.prog || 0), 0),
+);
+assert.equal(modalPhaseProgress.phases[2]?.prog, 0);
+assert.equal(modalPhaseProgress.totalProgress, 140);
+const dependencyDropdownState = buildDependencyDropdownState({
+  tasks: [
+    { id: "task-1", n: 1, name: "Prep" },
+    { id: "task-2", n: 2, name: "Build" },
+  ],
+  editIdx: 0,
+  modalDeps: [],
+  query: "bui",
+});
+assert.equal(dependencyDropdownState.visible, true);
+assert.equal(dependencyDropdownState.items[0]?.id, "task-2");
+const addedDependency = addModalDependency([], "task-2");
+assert.equal(addedDependency.didAdd, true);
+assert.equal(addedDependency.editingDepId, "task-2");
+const toggledDependencyEditor = toggleModalDependencyEditor("task-2", "task-2");
+assert.equal(toggledDependencyEditor, null);
+const modalDependencyEditorState = buildModalDependencyEditorState({
+  deps: addedDependency.deps,
+  editingDepId: "task-2",
+  tasks: [{ id: "task-2", n: 2, name: "Build" }],
+});
+assert.equal(modalDependencyEditorState.visible, true);
+assert.equal(modalDependencyEditorState.taskName, "Build");
+const typedDependencies = updateModalDependencyType(addedDependency.deps, "task-2", "SS");
+assert.equal(typedDependencies[0]?.type, "SS");
+assert.equal(typedDependencies[0]?.threshold, 25);
+const thresholdDependencies = updateModalDependencyThreshold(typedDependencies, "task-2", 120);
+assert.equal(thresholdDependencies[0]?.threshold, 99);
+const removedDependency = removeModalDependency(thresholdDependencies, "task-2", "task-2");
+assert.equal(removedDependency.deps.length, 0);
+assert.equal(removedDependency.editingDepId, null);
 const clonedCostItems = cloneModalCostItems([{
   id: "ci-1",
   payments: [{ id: "pay-1", amount: 100 }],
