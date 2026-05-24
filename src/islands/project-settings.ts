@@ -6,6 +6,10 @@ type ProjectSettingsRuntime = Window & {
   closeCatModal?: () => void;
   addCat?: () => void;
   saveCats?: () => void;
+  setCatDraftName?: (index: number, value: string) => void;
+  pickCatColor?: (index: number, color: string, dotEl?: HTMLElement | null) => void;
+  toggleCatColorDropdown?: (index: number) => void;
+  deleteCat?: (index: number) => Promise<void> | void;
   numStep?: (id: string, delta: number) => void;
 };
 
@@ -34,6 +38,19 @@ async function handleProjectAction(action: string, element: HTMLElement): Promis
       return;
     case "add-category":
       projectRuntime.addCat?.();
+      return;
+    case "toggle-category-color":
+      projectRuntime.toggleCatColorDropdown?.(Number(element.dataset.catIndex || -1));
+      return;
+    case "pick-category-color":
+      projectRuntime.pickCatColor?.(
+        Number(element.dataset.catIndex || -1),
+        element.dataset.color || "",
+        element,
+      );
+      return;
+    case "delete-category":
+      await Promise.resolve(projectRuntime.deleteCat?.(Number(element.dataset.catIndex || -1)));
       return;
     case "num-step": {
       const targetId = element.dataset.targetId || "";
@@ -80,7 +97,31 @@ function initProjectSettingsIsland(): void {
 
     const actionElement = target.closest<HTMLElement>("[data-project-action]");
     if (!actionElement) return;
+    event.stopPropagation();
     await handleProjectAction(actionElement.dataset.projectAction || "", actionElement);
+  });
+
+  categoryModal?.addEventListener("input", (event) => {
+    const target = event.target as HTMLInputElement | null;
+    const inputType = target?.dataset.projectInput || "";
+    const catIndex = Number(target?.dataset.catIndex || -1);
+
+    if (inputType === "category-name" && catIndex >= 0) {
+      projectRuntime.setCatDraftName?.(catIndex, target?.value || "");
+      return;
+    }
+
+    if (inputType === "category-color" && catIndex >= 0) {
+      projectRuntime.pickCatColor?.(catIndex, target?.value || "", null);
+    }
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target as HTMLElement | null;
+    if (target?.closest(".color-picker-wrap")) return;
+    document.querySelectorAll(".color-dropdown.open").forEach((node) => {
+      node.classList.remove("open");
+    });
   });
 }
 

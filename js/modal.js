@@ -1353,65 +1353,31 @@ function renderCatList() {
     swatch.style.background = c.color;
     swatch.title = categoryEditor.swatchTitle;
     swatch.type = "button";
+    swatch.dataset.projectAction = "toggle-category-color";
+    swatch.dataset.catIndex = String(i);
     const dropdown = document.createElement("div");
     dropdown.className = "color-dropdown";
     dropdown.innerHTML = _buildColorDropdownHTML(i);
-    swatch.addEventListener("click", (e) => {
-      e.stopPropagation();
-      document
-        .querySelectorAll(".color-dropdown.open")
-        .forEach((d) => { if (d !== dropdown) d.classList.remove("open"); });
-      dropdown.classList.toggle("open");
-    });
     pickerWrap.appendChild(swatch);
     pickerWrap.appendChild(dropdown);
     const nameInp = document.createElement("input");
     nameInp.className = "cat-name-inp";
     nameInp.value = c.name;
     nameInp.placeholder = categoryEditor.namePlaceholder;
-    nameInp.addEventListener("input", () => { tempCats[i].name = nameInp.value; });
+    nameInp.dataset.projectInput = "category-name";
+    nameInp.dataset.catIndex = String(i);
     const delBtn = document.createElement("span");
     delBtn.className = "cat-del";
     delBtn.innerHTML = '<i data-lucide="x"></i>';
     delBtn.title = categoryEditor.deleteTitle;
-    delBtn.addEventListener("click", async () => {
-      const deletionState = typeof buildRuntimeCategoryDeletionState === "function"
-        ? buildRuntimeCategoryDeletionState({
-            categories: tempCats,
-            index: i,
-            tasks,
-          })
-        : {
-            isUsed: typeof buildRuntimeIsCategoryUsedByTasks === "function"
-              ? buildRuntimeIsCategoryUsedByTasks(tasks, i)
-              : tasks.some((t) => t.cat === i),
-            categories: typeof buildRuntimeRemoveCategoryDraftAt === "function"
-              ? buildRuntimeRemoveCategoryDraftAt(tempCats, i)
-              : tempCats.filter((_, idx) => idx !== i),
-          };
-      if (deletionState.isUsed) {
-        const res = await Swal.fire({
-          icon: "warning",
-          title: categoryEditor.deleteInUseTitle,
-          text: categoryEditor.deleteInUseText,
-          showCancelButton: true,
-          confirmButtonText: categoryEditor.deleteConfirmButtonText,
-          confirmButtonColor: categoryEditor.deleteConfirmButtonColor,
-          cancelButtonText: categoryEditor.deleteCancelButtonText,
-        });
-        if (!res.isConfirmed) return;
-      }
-      flushCatNames();
-      tempCats = deletionState.categories;
-      renderCatList();
-    });
+    delBtn.dataset.projectAction = "delete-category";
+    delBtn.dataset.catIndex = String(i);
     row.appendChild(pickerWrap);
     row.appendChild(nameInp);
     row.appendChild(delBtn);
     el.appendChild(row);
   });
   lucide.createIcons({ nodes: [document.getElementById("cat-editor-list")] });
-  document.addEventListener("click", _closeColorDropdowns, { once: false });
 }
 
 function _buildColorDropdownHTML(catIdx) {
@@ -1420,14 +1386,19 @@ function _buildColorDropdownHTML(catIdx) {
   const dots = CAT_PALETTE.map(
     (hex) =>
       `<div class="pal-dot${hex === cur ? " active" : ""}" style="background:${hex}" title="${hex}"
-            onclick="pickCatColor(${catIdx},'${hex}',this)"></div>`,
+            data-project-action="pick-category-color" data-cat-index="${catIdx}" data-color="${hex}"></div>`,
   ).join("");
   return `<div class="color-dropdown-inner">
     <div class="pal-grid">${dots}</div>
     <div class="color-custom-row">
       <span class="color-custom-lbl">${categoryEditor.colorCustomLabel}</span>
-      <input type="color" value="${cur}" oninput="pickCatColor(${catIdx},this.value,null)" />
+      <input type="color" value="${cur}" data-project-input="category-color" data-cat-index="${catIdx}" />
     </div></div>`;
+}
+
+function setCatDraftName(catIdx, value) {
+  if (!tempCats[catIdx]) return;
+  tempCats[catIdx].name = value;
 }
 
 function pickCatColor(catIdx, hex, dotEl) {
@@ -1438,6 +1409,49 @@ function pickCatColor(catIdx, hex, dotEl) {
     ?.querySelectorAll(".pal-dot")
     .forEach((d) => d.classList.toggle("active", d.title === hex));
   if (dotEl) rows[catIdx]?.querySelector(".color-dropdown")?.classList.remove("open");
+}
+
+function toggleCatColorDropdown(catIdx) {
+  const rows = document.querySelectorAll("#cat-editor-list .cat-row");
+  const dropdown = rows[catIdx]?.querySelector(".color-dropdown");
+  if (!dropdown) return;
+  document
+    .querySelectorAll(".color-dropdown.open")
+    .forEach((node) => { if (node !== dropdown) node.classList.remove("open"); });
+  dropdown.classList.toggle("open");
+}
+
+async function deleteCat(catIdx) {
+  const categoryEditor = _getCategoryEditorModel();
+  const deletionState = typeof buildRuntimeCategoryDeletionState === "function"
+    ? buildRuntimeCategoryDeletionState({
+        categories: tempCats,
+        index: catIdx,
+        tasks,
+      })
+    : {
+        isUsed: typeof buildRuntimeIsCategoryUsedByTasks === "function"
+          ? buildRuntimeIsCategoryUsedByTasks(tasks, catIdx)
+          : tasks.some((t) => t.cat === catIdx),
+        categories: typeof buildRuntimeRemoveCategoryDraftAt === "function"
+          ? buildRuntimeRemoveCategoryDraftAt(tempCats, catIdx)
+          : tempCats.filter((_, idx) => idx !== catIdx),
+      };
+  if (deletionState.isUsed) {
+    const res = await Swal.fire({
+      icon: "warning",
+      title: categoryEditor.deleteInUseTitle,
+      text: categoryEditor.deleteInUseText,
+      showCancelButton: true,
+      confirmButtonText: categoryEditor.deleteConfirmButtonText,
+      confirmButtonColor: categoryEditor.deleteConfirmButtonColor,
+      cancelButtonText: categoryEditor.deleteCancelButtonText,
+    });
+    if (!res.isConfirmed) return;
+  }
+  flushCatNames();
+  tempCats = deletionState.categories;
+  renderCatList();
 }
 
 function _closeColorDropdowns(e) {
