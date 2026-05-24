@@ -2383,6 +2383,20 @@
       changed: true
     };
   }
+  function clearTaskPhasesAt(tasks, index) {
+    if (index < 0 || index >= tasks.length || !tasks[index]) {
+      return {
+        tasks: [...tasks],
+        changed: false
+      };
+    }
+    return {
+      tasks: tasks.map(
+        (task, taskIndex) => taskIndex === index ? { ...task, phases: null } : task
+      ),
+      changed: true
+    };
+  }
 
   // src/domain/modal-panels.ts
   function cloneTaskNotes(notes) {
@@ -4162,6 +4176,7 @@
     buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
     buildRuntimeApplyTaskSave: applyTaskSave,
     buildRuntimeRemoveTaskAt: removeTaskAt,
+    buildRuntimeClearTaskPhasesAt: clearTaskPhasesAt,
     buildRuntimeCloneTaskNotes: cloneTaskNotes,
     buildRuntimeTaskNotesSession: buildTaskNotesSession,
     buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,

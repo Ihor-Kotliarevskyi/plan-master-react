@@ -1925,5 +1925,16 @@ function openPhaseEditor(ti) { openEdit(ti); }
 function closePhaseModal() {}
 function savePhases() {}
 function clearPhases(ti) {
-  if (tasks[ti]) { tasks[ti].phases = null; saveAll(); render(); }
+  const nextState = typeof buildRuntimeClearTaskPhasesAt === "function"
+    ? buildRuntimeClearTaskPhasesAt(tasks, ti)
+    : {
+        tasks: tasks[ti]
+          ? tasks.map((task, index) => index === ti ? { ...task, phases: null } : task)
+          : tasks,
+        changed: !!tasks[ti],
+      };
+  if (!nextState.changed) return;
+  tasks = nextState.tasks;
+  saveAll();
+  render();
 }

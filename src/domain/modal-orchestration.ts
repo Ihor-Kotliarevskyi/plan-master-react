@@ -99,6 +99,11 @@ export interface TaskModalDeleteResult {
   changed: boolean;
 }
 
+export interface TaskPhaseClearResult {
+  tasks: AnyRecord[];
+  changed: boolean;
+}
+
 export function cloneModalCostItems(items: AnyRecord[] | null | undefined): AnyRecord[] {
   return (items || []).map((item) => ({
     ...item,
@@ -334,6 +339,24 @@ export function removeTaskAt(tasks: AnyRecord[], index: number): TaskModalDelete
   return {
     tasks: tasks.filter((_, taskIndex) => taskIndex !== index),
     removedTask: tasks[index] || null,
+    changed: true,
+  };
+}
+
+export function clearTaskPhasesAt(tasks: AnyRecord[], index: number): TaskPhaseClearResult {
+  if (index < 0 || index >= tasks.length || !tasks[index]) {
+    return {
+      tasks: [...tasks],
+      changed: false,
+    };
+  }
+
+  return {
+    tasks: tasks.map((task, taskIndex) =>
+      taskIndex === index
+        ? { ...task, phases: null }
+        : task,
+    ),
     changed: true,
   };
 }
