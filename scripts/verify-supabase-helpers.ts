@@ -55,6 +55,12 @@ import {
   buildTaskWindowModel,
   buildVisibleYearGroups,
 } from "../src/domain/render";
+import {
+  buildProjectSelectState,
+  buildRenderGroupStats,
+  hasActiveGanttFilters,
+  taskMatchesGanttFilters,
+} from "../src/domain/render-filters";
 import { buildAppUiModel } from "../src/domain/app-ui";
 import { buildApiUiModel } from "../src/domain/api-ui";
 import { buildChartsUiModel } from "../src/domain/charts-ui";
@@ -194,7 +200,20 @@ import {
   snapToHalfWeek,
 } from "../src/domain/modal";
 import {
+  addModalDependency,
+  addModalPhase,
+  buildDependencyDropdownState,
+  buildModalDependencyEditorState,
+  removeModalDependency,
+  removeModalPhase,
+  toggleModalDependencyEditor,
+  updateModalDependencyThreshold,
+  updateModalDependencyType,
+  updateModalPhaseProgress,
+} from "../src/domain/modal-state";
+import {
   applyTaskSave,
+  buildTaskModalCreateState,
   buildTaskModalEditState,
   buildTaskModalSaveModel,
   cloneModalCostItems,
@@ -203,6 +222,11 @@ import {
 } from "../src/domain/modal-orchestration";
 import {
   addTaskNote,
+  applyCategoryNamesFromValues,
+  buildCategoryDeletionState,
+  buildCategoryEditorState,
+  buildNotesCellState,
+  buildTaskNotesSession,
   buildProjectManagerGroupModel,
   cloneCategoryDrafts,
   cloneTaskNotes,
@@ -234,9 +258,11 @@ import {
 } from "../src/domain/storage";
 import {
   applyProjectSettingsUpdate,
+  buildProjectDeletionState,
   canDeleteProjectCount,
   createDemoProjectSnapshot,
   createEmptyProjectSnapshot,
+  resolveProjectDefaults,
   resolveNextProjectAfterDeletion,
 } from "../src/domain/project-lifecycle";
 import {
@@ -246,6 +272,11 @@ import {
   projectNameExists,
   resolveUniqueProjectName,
 } from "../src/domain/project-import";
+import {
+  buildImportedProjectActivationState,
+  buildProjectWorkbookExport,
+  resolveImportSource,
+} from "../src/domain/app";
 import type {
   AccessibleProjectRow,
   ActivityLogRow,
@@ -288,6 +319,11 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../src/services/supabase/auth-runtime";
 import {
+  buildSupabaseSessionHydrationResult,
+  buildSupabaseSignedOutUiPlan,
+  resolveSupabaseInitialSessionPlan,
+} from "../src/services/supabase/session-runtime";
+import {
   bindProjectCreateTasksRpcRequest,
   buildProjectCreateMutationRequest,
   buildProjectDeleteRequest,
@@ -297,10 +333,14 @@ import {
 } from "../src/services/supabase/project-runtime";
 import {
   buildSupabaseReadOnlyUiState,
+  buildSupabaseShareDialogListItems,
   buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleGuideHtml,
   buildSupabaseShareRoleOptions,
   buildSupabaseShareDialogModel,
+  buildSupabaseShareDialogRenderModel,
   buildSupabaseShareErrorMessages,
+  buildSupabaseShareListHtml,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
   buildSupabaseShareModalState,
@@ -420,12 +460,22 @@ assert.equal(buildFallbackHttpRequestOptions("token-1").headers.Authorization, "
 assert.equal(resolveFallbackHttpOutcome(401, { expired: true }).kind, "session_expired");
 assert.equal(resolveFallbackHttpOutcome(500, { error: "Boom" }).message, "Boom");
 assert.equal(buildSupabaseAccountErrorMessages().emailConfirmationRequired, "Check your email to confirm registration.");
+assert.equal(buildSupabaseSessionHydrationResult("user-1", { name: "Ihor" }, true).shouldLoadProjects, true);
+assert.equal(buildSupabaseSignedOutUiPlan().refreshStatus, "offline");
+assert.equal(resolveSupabaseInitialSessionPlan(true).kind, "hydrate");
 const fallbackAuthModalRenderModel = buildFallbackAuthModalRenderModel("register", buildApiUiModel().auth);
 assert.equal(fallbackAuthModalRenderModel.showNameField, true);
 assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.registerSubmitLabel);
 const fallbackAuthButtonModel = buildFallbackAuthButtonModel(true, "Ihor", buildApiUiModel().auth);
 assert.equal(fallbackAuthButtonModel.mode, "logout");
 assert.equal(fallbackAuthButtonModel.title.length > 0, true);
+const taskModalCreateState = buildTaskModalCreateState({
+  title: "New Task",
+  fillCostHint: "Fill cost",
+});
+assert.equal(taskModalCreateState.title, "New Task");
+assert.equal(taskModalCreateState.modalPhases.length, 1);
+assert.equal(taskModalCreateState.hasItems, false);
 
 const fallbackProjectShell = buildFallbackProjectShell({
   id: "fallback-1",
@@ -462,6 +512,10 @@ assert.equal(fallbackProjectSyncRequest.tasksPayload.tasks.length, 1);
 const fallbackProjectCreateRequest = buildFallbackProjectCreateRequest(fallbackLoadedProjectSnapshot);
 assert.equal(fallbackProjectCreateRequest.payload.nextN, 8);
 assert.equal(buildFallbackProjectDeleteRequest("fallback-1").projectId, "fallback-1");
+assert.equal(resolveProjectDefaults({ sm: 4, sy: 2027 }, { sm: 1, sy: 2026, nm: 12 }).sy, 2027);
+const projectDeletionState = buildProjectDeletionState(["a", "b", "c"], "b", "b");
+assert.equal(projectDeletionState.nextCurrentId, "a");
+assert.equal(projectDeletionState.shouldReloadCurrent, true);
 assert.equal(buildFallbackShareGrantRequest(" USER@example.com ", "manager", (role) => ["viewer", "editor", "manager"].includes(role)).email, "user@example.com");
 assert.equal(buildFallbackShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
 assert.equal(buildFallbackShareRemoveRequest("user-2").userId, "user-2");
@@ -485,6 +539,31 @@ const shell = mapAccessibleProjectToSnapshotShell(accessibleRow, {
 assert.equal(shell._serverId, "project-1");
 assert.equal(shell._role, "editor");
 assert.equal(shell._access?.ownerEmail, "owner@example.com");
+const projectSelectState = buildProjectSelectState({
+  ownEntries: [["own-1", { proj: { name: "Own Project" }, _role: "owner" }]],
+  sharedEntries: [["shared-1", { proj: { name: "Shared Project" }, _role: "viewer" }]],
+  currentId: "shared-1",
+  getRoleLabel: (role) => role.toUpperCase(),
+  sharedRoleSeparator: " · ",
+  normalizeRole: (role) => role,
+});
+assert.equal(projectSelectState.own[0]?.selected, false);
+assert.equal(projectSelectState.shared[0]?.selected, true);
+assert.equal(projectSelectState.shared[0]?.roleLabelSuffix, " · VIEWER");
+assert.equal(hasActiveGanttFilters({ contractor: ["Acme"], pay: [] }, (value) => Array.isArray(value) ? value : []), true);
+assert.equal(hasActiveGanttFilters({ contractor: [], pay: [] }, (value) => Array.isArray(value) ? value : []), false);
+assert.equal(taskMatchesGanttFilters({
+  task: { cat: 0 },
+  hiddenCats: new Set([1]),
+  ganttFilters: { contractor: [], pay: ["debt"] },
+  multiFilterAny: () => true,
+  multiFilterValues: (value) => Array.isArray(value) ? value : [],
+  taskContractors: () => [],
+  taskCostSummary: () => ({ budget: 100, paid: 20, rest: 80, payments: 1 }),
+}), true);
+assert.deepEqual(buildRenderGroupStats({
+  tasks: [{ prog: 100, budget: 100 }, { prog: 50, budget: 40 }],
+}), { totalTasks: 2, doneTasks: 1, totalBudget: 140 });
 
 const mappedTask = mapTaskRowToTask(taskRow);
 assert.equal(mappedTask.budget, 1250.5);
@@ -543,6 +622,28 @@ assert.equal(shareRoleUpdate.role, "viewer");
 const shareView = mapProjectShareRow(shareRow);
 assert.equal(shareView.role, "manager");
 assert.equal(shareView.user.email, "user2@example.com");
+const shareRoleGuideHtml = buildSupabaseShareRoleGuideHtml(buildSupabaseShareRoleGuide());
+assert.equal(shareRoleGuideHtml.includes("Manager"), true);
+const shareDialogListItems = buildSupabaseShareDialogListItems({
+  items: [buildSupabaseShareModalState({ shares: [shareView], projectName: "Shared Project", getRoleLabel: (role) => role.toUpperCase() }).items[0]],
+  roles: ["viewer", "editor", "manager"],
+  getRoleLabel: (role) => role.toUpperCase(),
+});
+assert.equal(shareDialogListItems[0]?.displayLabel, "user2@example.com");
+const shareListHtml = buildSupabaseShareListHtml({
+  items: shareDialogListItems,
+  emptyText: "Empty",
+});
+assert.equal(shareListHtml.includes("share-row"), true);
+const shareDialogRenderModel = buildSupabaseShareDialogRenderModel({
+  dialog: buildSupabaseShareDialogModel(),
+  projectName: "Shared Project",
+  listHtml: shareListHtml,
+  roleOptionsHtml: buildSupabaseShareRoleOptions(["viewer"], (role) => role.toUpperCase(), "viewer"),
+  roleGuideHtml: shareRoleGuideHtml,
+});
+assert.equal(shareDialogRenderModel.title, "Shared Access");
+assert.equal(shareDialogRenderModel.html.includes("Shared Project"), true);
 
 const auditEntry = mapActivityLogRow(activityRow);
 assert.equal(auditEntry.eventType, "task.updated");
@@ -1514,6 +1615,50 @@ assert.equal(depListState.counts.SS, 1);
 assert.equal(depListState.rows[0]?.typeLabel, "FS");
 assert.equal(depListState.rows[1]?.typeLabel, "SS+25%");
 assert.equal(depListState.rows[0]?.isCritical, true);
+const addedModalPhases = addModalPhase([{ ms: 0, ws: 0, me: 1, we: 3, prog: 100 }], 12);
+assert.equal(addedModalPhases.length, 2);
+assert.equal(addedModalPhases[1]?.ms, 2);
+const removedModalPhases = removeModalPhase(addedModalPhases, 0);
+assert.equal(removedModalPhases.length, 1);
+const modalPhaseProgress = updateModalPhaseProgress(
+  [{ prog: 100 }, { prog: 60 }, { prog: 10 }],
+  1,
+  40,
+  (phases) => phases.reduce((sum, phase) => sum + (+phase.prog || 0), 0),
+);
+assert.equal(modalPhaseProgress.phases[2]?.prog, 0);
+assert.equal(modalPhaseProgress.totalProgress, 140);
+const dependencyDropdownState = buildDependencyDropdownState({
+  tasks: [
+    { id: "task-1", n: 1, name: "Prep" },
+    { id: "task-2", n: 2, name: "Build" },
+  ],
+  editIdx: 0,
+  modalDeps: [],
+  query: "bui",
+});
+assert.equal(dependencyDropdownState.visible, true);
+assert.equal(dependencyDropdownState.items[0]?.id, "task-2");
+const addedDependency = addModalDependency([], "task-2");
+assert.equal(addedDependency.didAdd, true);
+assert.equal(addedDependency.editingDepId, "task-2");
+const toggledDependencyEditor = toggleModalDependencyEditor("task-2", "task-2");
+assert.equal(toggledDependencyEditor, null);
+const modalDependencyEditorState = buildModalDependencyEditorState({
+  deps: addedDependency.deps,
+  editingDepId: "task-2",
+  tasks: [{ id: "task-2", n: 2, name: "Build" }],
+});
+assert.equal(modalDependencyEditorState.visible, true);
+assert.equal(modalDependencyEditorState.taskName, "Build");
+const typedDependencies = updateModalDependencyType(addedDependency.deps, "task-2", "SS");
+assert.equal(typedDependencies[0]?.type, "SS");
+assert.equal(typedDependencies[0]?.threshold, 25);
+const thresholdDependencies = updateModalDependencyThreshold(typedDependencies, "task-2", 120);
+assert.equal(thresholdDependencies[0]?.threshold, 99);
+const removedDependency = removeModalDependency(thresholdDependencies, "task-2", "task-2");
+assert.equal(removedDependency.deps.length, 0);
+assert.equal(removedDependency.editingDepId, null);
 const clonedCostItems = cloneModalCostItems([{
   id: "ci-1",
   payments: [{ id: "pay-1", amount: 100 }],
@@ -1607,8 +1752,30 @@ const deletedNotes = deleteTaskNote({
 });
 assert.equal(deletedNotes[0]?.deleted, true);
 assert.equal(countVisibleTaskNotes(deletedNotes), 0);
+const taskNotesSession = buildTaskNotesSession({
+  n: 1,
+  name: "Task with Notes",
+  cat: 0,
+  ms: 0,
+  ws: 0,
+  me: 0,
+  we: 0,
+  prog: 0,
+  notes: deletedNotes,
+});
+assert.equal(taskNotesSession.title, "Task with Notes");
+assert.equal(taskNotesSession.notes.length, 1);
+const notesCellState = buildNotesCellState({
+  notes: deletedNotes,
+  countTitle: (count) => `Count ${count}`,
+  defaultTitle: "No notes",
+});
+assert.equal(notesCellState.count, 0);
+assert.equal(notesCellState.title, "No notes");
 const clonedCats = cloneCategoryDrafts([{ name: "General", color: "#111111" }]);
 assert.equal(clonedCats.length, 1);
+const categoryEditorState = buildCategoryEditorState(clonedCats);
+assert.equal(categoryEditorState.categories.length, 1);
 const nextCats = createNextCategoryDraft({
   categories: clonedCats,
   palette: ["#111111", "#222222", "#333333"],
@@ -1616,8 +1783,17 @@ const nextCats = createNextCategoryDraft({
 });
 assert.equal(nextCats.length, 2);
 assert.equal(nextCats[1]?.name, "New category");
+const renamedCats = applyCategoryNamesFromValues(nextCats, ["General+", "New category+"]);
+assert.equal(renamedCats[0]?.name, "General+");
 assert.equal(removeCategoryDraftAt(nextCats, 0).length, 1);
 assert.equal(isCategoryUsedByTasks([{ n: 1, name: "Task", cat: 1, ms: 0, ws: 0, me: 0, we: 0, prog: 0 }], 1), true);
+const categoryDeletionState = buildCategoryDeletionState({
+  categories: nextCats,
+  index: 1,
+  tasks: [{ n: 1, name: "Task", cat: 0, ms: 0, ws: 0, me: 0, we: 0, prog: 0 }],
+});
+assert.equal(categoryDeletionState.isUsed, false);
+assert.equal(categoryDeletionState.categories.length, 1);
 const projectManagerGroups = buildProjectManagerGroupModel({
   projects: {
     own: { proj: { name: "Own" }, tasks: [{}, {}], _role: "owner", _access: { source: "own" } },
@@ -1796,5 +1972,68 @@ assert.equal(importedSnapshot.tasks[0]?.id, "task-import-1");
 assert.equal(importedSnapshot.tasks[0]?.costItems?.[0]?.name, "Service");
 assert.equal(importedSnapshot.proj.baseline?.[0]?.id, "task-import-1");
 assert.equal(importedSnapshot.nextN, 5);
+
+const importSourceState = resolveImportSource({
+  data: { proj: { name: "Legacy Import" } },
+  fileName: "legacy-import.json",
+  fallbackProjectName: "Imported project",
+  currentId: "active-project",
+});
+assert.equal(importSourceState.shouldSaveCurrent, true);
+assert.equal(importSourceState.importBaseName, "legacy-import");
+assert.equal(importSourceState.projectName, "Legacy Import");
+
+const importActivationState = buildImportedProjectActivationState({
+  projects: { current: emptyProject },
+  projectId: "imported",
+  snapshot: importedSnapshot,
+  role: "owner",
+});
+assert.equal(importActivationState.currentId, "imported");
+assert.equal(importActivationState.role, "owner");
+assert.equal(importActivationState.projects.imported?.proj.name, "Resolved Import");
+
+const workbookExport = buildProjectWorkbookExport({
+  projectName: "Workbook",
+  tasks: [{
+    id: "task-1",
+    n: 1,
+    name: "Task",
+    cat: 0,
+    ms: 0,
+    ws: 0,
+    me: 1,
+    we: 0,
+    prog: 50,
+    budget: 200,
+    spent: 75,
+    deps: [{ n: 2, type: "SS", threshold: 25 }],
+    costItems: [{
+      type: "work",
+      name: "Labor",
+      supplier: "Acme",
+      unit: "job",
+      qty: 2,
+      unitPrice: 50,
+      payments: [{ amount: 30, date: "2026-05-20", type: "cash", note: "Advance" }],
+    }],
+  }],
+  categories: [{ name: "General", color: "#111111" }],
+  monthLabels: [{ name: "Jan", y: 2026 }, { name: "Feb", y: 2026 }],
+  scheduleHeader: buildAppUiModel().scheduleHeader,
+  summaryHeader: buildAppUiModel().summaryHeader,
+  estimateHeader: buildAppUiModel().estimateHeader,
+  paymentsHeader: buildAppUiModel().paymentsHeader,
+  workbookSheets: buildAppUiModel().workbookSheets,
+  getCategoryName: (index) => ["General"][index] || "",
+  getTaskDuration: () => 5,
+  getTaskCostItems: (task) => task.costItems || [],
+  costTypeLabels: { work: "Work" },
+  paymentTypeLabels: { cash: "Cash" },
+});
+assert.equal(workbookExport.filename, "Workbook.xlsx");
+assert.equal(workbookExport.sheets.length, 4);
+assert.equal(workbookExport.sheets[0]?.name, buildAppUiModel().workbookSheets.schedule);
+assert.equal(workbookExport.sheets[2]?.rows[1]?.[3], "Labor");
 
 console.log("Supabase helper verification passed.");

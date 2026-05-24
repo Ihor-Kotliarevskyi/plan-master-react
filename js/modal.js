@@ -286,6 +286,38 @@ function _resolveNextProjectAfterDeletion(projectIds, currentProjectId, deletedP
   return projectIds.find((projectId) => projectId !== deletedProjectId) || null;
 }
 
+function renameProjectFromManager(id, name) {
+  const role = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(id, "owner")
+    : allProjects?.[id]?._role || (id === currentId ? _projectRole : "owner");
+  if (typeof canManageProject === "function" && !canManageProject(role)) {
+    return allProjects?.[id]?.proj?.name || "";
+  }
+
+  const renameResult = typeof buildRuntimeRenameProjectInCollection === "function"
+    ? buildRuntimeRenameProjectInCollection(allProjects || {}, id, name)
+    : {
+        projects: {
+          ...(allProjects || {}),
+          [id]: {
+            ...(allProjects?.[id] || {}),
+            proj: {
+              ...(allProjects?.[id]?.proj || {}),
+              name: (name || "").trim() || allProjects?.[id]?.proj?.name || "",
+            },
+          },
+        },
+        nextName: (name || "").trim() || allProjects?.[id]?.proj?.name || "",
+        changed: true,
+      };
+
+  allProjects = renameResult.projects;
+  if (id === currentId && proj) proj.name = renameResult.nextName;
+  if (renameResult.changed) saveAll();
+  updateProjSel();
+  return renameResult.nextName;
+}
+
 /* ── Хелпери конвертації місяць/тиждень ↔ дата ── */
 
 /** Прив'язує дату до найближчої межі пів-тижня (1, 4, 8, 11, 15, 18, 22, 25). */
@@ -388,19 +420,19 @@ function renderModalPhases() {
         <input type="date" id="mph-ds-${pi}" class="mph-date-inp"
                value="${ph.dsExact || _phaseToDateStr(ph.ms, ph.ws)}"
                min="${minD}" max="${maxD}"
-               onchange="onModalPhaseChange()">
-        <span class="mph-arrow">→</span>
+               data-task-modal-input="phase-date" data-phase-index="${pi}">
+        <span class="mph-arrow">&rarr;</span>
         <input type="date" id="mph-de-${pi}" class="mph-date-inp"
                value="${ph.deExact || _phaseToDateStr(ph.me, ph.we)}"
                min="${minD}" max="${maxD}"
-               onchange="onModalPhaseChange()">
-        ${isMulti && pi > 0 ? `<span class="phase-del" onclick="modalRemovePhase(${pi})"><i data-lucide="x"></i></span>` : ""}
+               data-task-modal-input="phase-date" data-phase-index="${pi}">
+        ${isMulti && pi > 0 ? `<span class="phase-del" data-task-modal-action="remove-phase" data-phase-index="${pi}"><i data-lucide="x"></i></span>` : ""}
       </div>
       <div class="mph-prog-row">
         <span class="mph-hint">${taskFormPanel.progressLabel}</span>
         <input type="range" id="mph-prog-${pi}" class="mph-range-inp"
                min="0" max="100" step="5" value="${ph.prog || 0}"
-               ${locked ? "disabled" : ""} oninput="onModalProgChange(${pi},this.value)">
+               ${locked ? "disabled" : ""} data-task-modal-input="phase-progress" data-phase-index="${pi}">
         <span id="mph-prog-lbl-${pi}" class="mph-pct${activePct ? " mph-pct-active" : ""}">${ph.prog || 0}%</span>
       </div>
     </div>`;
@@ -452,10 +484,13 @@ function onModalPhaseChange() {
 }
 
 function onModalProgChange(pi, val) {
-  _modalPhases[pi].prog = +val;
-  if (+val < 100) {
-    _modalPhases.forEach((_, i) => { if (i > pi) _modalPhases[i].prog = 0; });
-  }
+  const nextState = typeof buildRuntimeUpdateModalPhaseProgress === "function"
+    ? buildRuntimeUpdateModalPhaseProgress(_modalPhases, pi, +val, _weightedProg)
+    : {
+        phases: _modalPhases.map((phase) => ({ ...phase })),
+        totalProgress: 0,
+      };
+  _modalPhases = nextState.phases;
   // Оновлюємо DOM напряму, щоб не переривати drag слайдера
   const lbl = document.getElementById(`mph-prog-lbl-${pi}`);
   if (lbl) lbl.textContent = `${+val}%`;
@@ -468,9 +503,8 @@ function onModalProgChange(pi, val) {
     if (l) l.textContent = `${p.prog || 0}%`;
   });
   if (_modalPhases.length > 1) {
-    const total = _weightedProg(_modalPhases);
     const sumEl = document.querySelector(".mph-summary b");
-    if (sumEl) sumEl.textContent = `${total}%`;
+    if (sumEl) sumEl.textContent = `${nextState.totalProgress || _weightedProg(_modalPhases)}%`;
   }
 }
 
@@ -481,17 +515,18 @@ function _syncModalPhasesToHidden() {
 function modalAddPhase() {
   if (!_canMutateTaskModal()) return;
   _flushModalPhases();
-  const last = _modalPhases[_modalPhases.length - 1];
-  const newMs = Math.min(proj.nm - 1, last.me + 1);
-  _modalPhases.push({ ms: newMs, ws: 0, me: Math.min(proj.nm - 1, newMs + 1), we: 3, prog: 0 });
+  _modalPhases = typeof buildRuntimeAddModalPhase === "function"
+    ? buildRuntimeAddModalPhase(_modalPhases, proj.nm)
+    : _modalPhases;
   renderModalPhases();
 }
 
 function modalRemovePhase(pi) {
   if (!_canMutateTaskModal()) return;
   _flushModalPhases();
-  if (_modalPhases.length <= 1) return;
-  _modalPhases.splice(pi, 1);
+  _modalPhases = typeof buildRuntimeRemoveModalPhase === "function"
+    ? buildRuntimeRemoveModalPhase(_modalPhases, pi)
+    : _modalPhases;
   renderModalPhases();
 }
 
@@ -632,10 +667,11 @@ function renderDepTags() {
           ? `${TYPE_LABELS[dep.type]} ${dep.threshold}%`
           : TYPE_LABELS[dep.type] || "FS";
       return `<div class="dep-tag ${_editingDepId === dep.id ? "editing" : ""}"
-                   onclick="editDepTag('${dep.id}')">
+                   data-task-modal-action="edit-dependency" data-dependency-id="${dep.id}">
         <span class="dep-tag-label">${label}</span>
         <span class="dep-tag-badge" style="background:${TYPE_COLORS[dep.type] || "var(--acc)"}">${badge}</span>
-        <span class="dep-tag-del" title="${dependencyEditor.deleteBadgeLabel}" onclick="event.stopPropagation();removeDepTag('${dep.id}')">×</span>
+        <span class="dep-tag-del" title="${dependencyEditor.deleteBadgeLabel}"
+          data-task-modal-action="remove-dependency" data-dependency-id="${dep.id}">×</span>
       </div>`;
     })
     .join("");
@@ -654,21 +690,25 @@ function filterDepSearch(q) {
   if (!_canMutateTaskModal()) return;
   const dd = document.getElementById("dep-dropdown");
   if (!dd) return;
-  const added = new Set(_modalDeps.map((d) => d.id));
-  const candidates = tasks
-    .filter((t) => t !== tasks[editIdx] && !added.has(t.id))
-    .filter((t) => !q || `${t.n} ${t.name}`.toLowerCase().includes(q.toLowerCase()));
+  const dropdownState = typeof buildRuntimeDependencyDropdownState === "function"
+    ? buildRuntimeDependencyDropdownState({
+        tasks,
+        editIdx,
+        modalDeps: _modalDeps,
+        query: q,
+      })
+    : { items: [], visible: false };
 
-  if (!candidates.length) {
+  if (!dropdownState.visible) {
     dd.style.display = "none";
     return;
   }
   dd.style.display = "block";
-  dd.innerHTML = candidates
+  dd.innerHTML = dropdownState.items
     .map(
-      (t) =>
-        `<div class="dep-dd-item" onclick="addDepTag('${t.id}')">
-           <span class="dep-dd-num">#${t.n}</span> ${t.name}
+      (item) =>
+        `<div class="dep-dd-item" data-task-modal-action="add-dependency" data-dependency-id="${item.id}">
+           <span class="dep-dd-num">#${item.taskNumber}</span> ${item.name}
          </div>`,
     )
     .join("");
@@ -676,28 +716,35 @@ function filterDepSearch(q) {
 
 function addDepTag(id) {
   if (!_canMutateTaskModal()) return;
-  if (_modalDeps.find((d) => d.id === id)) return;
-  _modalDeps.push({ id, type: "FS", threshold: 0 });
+  const nextState = typeof buildRuntimeAddModalDependency === "function"
+    ? buildRuntimeAddModalDependency(_modalDeps, id)
+    : { deps: _modalDeps, editingDepId: id, didAdd: false };
+  if (!nextState.didAdd) return;
+  _modalDeps = nextState.deps;
+  _editingDepId = nextState.editingDepId;
   renderDepTags();
   const inp = document.getElementById("dep-search");
   if (inp) inp.value = "";
   document.getElementById("dep-dropdown").style.display = "none";
-  editDepTag(id);
+  renderDepTypeEditor();
 }
 
 function removeDepTag(id) {
   if (!_canMutateTaskModal()) return;
-  _modalDeps = _modalDeps.filter((d) => d.id !== id);
-  if (_editingDepId === id) {
-    _editingDepId = null;
-    renderDepTypeEditor();
-  }
+  const nextState = typeof buildRuntimeRemoveModalDependency === "function"
+    ? buildRuntimeRemoveModalDependency(_modalDeps, id, _editingDepId)
+    : { deps: _modalDeps.filter((d) => d.id !== id), editingDepId: _editingDepId === id ? null : _editingDepId };
+  _modalDeps = nextState.deps;
+  _editingDepId = nextState.editingDepId;
+  renderDepTypeEditor();
   renderDepTags();
 }
 
 function editDepTag(id) {
   if (!_canMutateTaskModal()) return;
-  _editingDepId = _editingDepId === id ? null : id;
+  _editingDepId = typeof buildRuntimeToggleModalDependencyEditor === "function"
+    ? buildRuntimeToggleModalDependencyEditor(_editingDepId, id)
+    : (_editingDepId === id ? null : id);
   renderDepTags();
   renderDepTypeEditor();
 }
@@ -706,18 +753,20 @@ function renderDepTypeEditor() {
   const dependencyEditor = _getDependencyEditorModel();
   const el = document.getElementById("dep-type-editor");
   if (!el) return;
-  if (!_editingDepId) {
+  const editorState = typeof buildRuntimeModalDependencyEditorState === "function"
+    ? buildRuntimeModalDependencyEditorState({
+        deps: _modalDeps,
+        editingDepId: _editingDepId,
+        tasks,
+      })
+    : { visible: false, dependency: null, taskNumber: "?", taskName: "" };
+  if (!editorState.visible || !editorState.dependency) {
     el.style.display = "none";
     return;
   }
-  const dep = _modalDeps.find((d) => d.id === _editingDepId);
-  if (!dep) {
-    el.style.display = "none";
-    return;
-  }
-  const t = tasks.find((x) => x.id === dep.id);
-  const name = t ? (t.name.length > 22 ? t.name.slice(0, 22) + "…" : t.name) : "";
-  const dispN = t?.n ?? "?";
+  const dep = editorState.dependency;
+  const name = editorState.taskName.length > 22 ? editorState.taskName.slice(0, 22) + "…" : editorState.taskName;
+  const dispN = editorState.taskNumber;
   el.style.display = "block";
   el.innerHTML = `
     <div class="dep-type-edit-row">
@@ -729,20 +778,22 @@ function renderDepTypeEditor() {
           { v: "FF", l: dependencyEditor.independentLabel, tip: dependencyEditor.independentTip },
         ]
           .map(
-            (opt) => `<button class="dep-type-btn${dep.type === opt.v ? " active" : ""}"
+            (opt) => `<button class="dep-type-btn${dep.type === opt.v ? " active" : ""}" type="button"
               title="${opt.tip}"
-              onclick="setDepType('${dep.id}','${opt.v}')">${opt.l}</button>`,
+              data-task-modal-action="set-dependency-type" data-dependency-id="${dep.id}" data-dependency-type="${opt.v}">${opt.l}</button>`,
           )
           .join("")}
         ${
           dep.type === "SS"
             ? `<span class="dep-threshold-lbl">${dependencyEditor.minThresholdLabel}</span>
                <div class="dep-thr-wrap">
-                  <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',-5)">−</button>
+                  <button class="dep-thr-btn" type="button" data-task-modal-action="adjust-dependency-threshold"
+                    data-dependency-id="${dep.id}" data-delta="-5">−</button>
                  <input type="number" value="${dep.threshold || 25}" min="1" max="99"
-                        onchange="setDepThreshold('${dep.id}',this.value)"
+                        data-task-modal-input="dependency-threshold" data-dependency-id="${dep.id}"
                         class="dep-threshold-inp">
-                 <button class="dep-thr-btn" type="button" onclick="adjDepThr('${dep.id}',5)">+</button>
+                 <button class="dep-thr-btn" type="button" data-task-modal-action="adjust-dependency-threshold"
+                    data-dependency-id="${dep.id}" data-delta="5">+</button>
                </div>
                <span class="dep-threshold-unit">%</span>`
             : ""
@@ -753,34 +804,33 @@ function renderDepTypeEditor() {
 }
 
 function setDepType(id, type) {
-  const dep = _modalDeps.find((d) => d.id === id);
-  if (dep) {
-    dep.type = type;
-    if (type !== "SS") dep.threshold = 0;
-  }
+  _modalDeps = typeof buildRuntimeUpdateModalDependencyType === "function"
+    ? buildRuntimeUpdateModalDependencyType(_modalDeps, id, type)
+    : _modalDeps;
   renderDepTags();
   renderDepTypeEditor();
 }
 
 function setDepThreshold(id, val) {
-  const dep = _modalDeps.find((d) => d.id === id);
-  if (dep) dep.threshold = Math.min(99, Math.max(1, +val));
+  _modalDeps = typeof buildRuntimeUpdateModalDependencyThreshold === "function"
+    ? buildRuntimeUpdateModalDependencyThreshold(_modalDeps, id, +val)
+    : _modalDeps;
+  renderDepTags();
+  renderDepTypeEditor();
 }
 
 function adjDepThr(id, delta) {
   const dep = _modalDeps.find((d) => d.id === id);
   if (!dep) return;
-  dep.threshold = Math.min(99, Math.max(1, (dep.threshold || 25) + delta));
+  _modalDeps = typeof buildRuntimeUpdateModalDependencyThreshold === "function"
+    ? buildRuntimeUpdateModalDependencyThreshold(_modalDeps, id, (dep.threshold || 25) + delta)
+    : _modalDeps;
+  const nextDep = _modalDeps.find((item) => item.id === id);
   const inp = document.querySelector(".dep-threshold-inp");
-  if (inp) inp.value = dep.threshold;
+  if (inp) inp.value = nextDep?.threshold || 25;
+  renderDepTags();
+  renderDepTypeEditor();
 }
-
-document.addEventListener("click", (e) => {
-  if (!e.target.closest(".dep-tag-panel")) {
-    const dd = document.getElementById("dep-dropdown");
-    if (dd) dd.style.display = "none";
-  }
-});
 
 function switchTaskTab(tab) {
   ["general", "costs"].forEach((t) => {
@@ -835,23 +885,46 @@ function updCalc() {
 
 function openAdd() {
   const taskFormPanel = _getTaskFormPanelModel();
-  editIdx = null;
-  _editingDepId = null;
-  _modalDeps = [];
-  _modalPhases = [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }];
-  _costTi = null;
-  _costItems = [];
-  _expandedIds = new Set();
+  const createState = typeof buildRuntimeTaskModalCreateState === "function"
+    ? buildRuntimeTaskModalCreateState({
+        title: taskFormPanel.newTaskTitle,
+        fillCostHint: taskFormPanel.fillCostHint,
+      })
+    : {
+        editIdx: null,
+        editingDepId: null,
+        modalDeps: [],
+        modalPhases: [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }],
+        costTi: null,
+        costItems: [],
+        expandedIds: new Set(),
+        title: taskFormPanel.newTaskTitle,
+        budgetValue: "",
+        spentValue: "",
+        contractsOverrideBudget: false,
+        calcInfoText: taskFormPanel.fillCostHint,
+        showDependencyWarning: false,
+        showDependencyEditor: false,
+        hasItems: false,
+        focusField: "name",
+      };
+  editIdx = createState.editIdx;
+  _editingDepId = createState.editingDepId;
+  _modalDeps = createState.modalDeps;
+  _modalPhases = createState.modalPhases;
+  _costTi = createState.costTi;
+  _costItems = createState.costItems;
+  _expandedIds = createState.expandedIds;
 
-  document.getElementById("m-title").textContent = taskFormPanel.newTaskTitle;
+  document.getElementById("m-title").textContent = createState.title;
   document.getElementById("f-name").value = "";
-  document.getElementById("f-budget").value = "";
-  document.getElementById("f-spent").value = "";
-  document.getElementById("f-contracts-override-budget").checked = false;
-  document.getElementById("calc-info").textContent = taskFormPanel.fillCostHint;
-  document.getElementById("dep-warn").classList.remove("show");
-  document.getElementById("dep-type-editor").style.display = "none";
-  _updateAutoBadges(false);
+  document.getElementById("f-budget").value = createState.budgetValue;
+  document.getElementById("f-spent").value = createState.spentValue;
+  document.getElementById("f-contracts-override-budget").checked = createState.contractsOverrideBudget;
+  document.getElementById("calc-info").textContent = createState.calcInfoText;
+  document.getElementById("dep-warn").classList.toggle("show", createState.showDependencyWarning);
+  document.getElementById("dep-type-editor").style.display = createState.showDependencyEditor ? "" : "none";
+  _updateAutoBadges(createState.hasItems);
 
   buildChips(0);
   renderModalPhases();
@@ -861,7 +934,7 @@ function openAdd() {
   switchTaskTab("general");
   document.getElementById("modal").style.display = "flex";
   _applyTaskModalPermissions();
-  if (_canMutateTaskModal()) setTimeout(() => document.getElementById("f-name").focus(), 50);
+  if (_canMutateTaskModal() && createState.focusField === "name") setTimeout(() => document.getElementById("f-name").focus(), 50);
 }
 
 function openEdit(ti) {
@@ -1079,11 +1152,20 @@ async function delTask(ti) {
 }
 
 function openNotesModal(ti) {
-  _notesTi = ti;
-  const t = tasks[ti];
-  document.getElementById("notes-modal-title").textContent = t.name;
-  const notes = typeof buildRuntimeCloneTaskNotes === "function" ? buildRuntimeCloneTaskNotes(t.notes || []) : (t.notes || []);
-  renderNotes(notes);
+  const session = typeof buildRuntimeTaskNotesOpenState === "function"
+    ? buildRuntimeTaskNotesOpenState({ tasks, taskIndex: ti })
+    : {
+        taskIndex: ti,
+        title: tasks?.[ti]?.name || "",
+        notes: typeof buildRuntimeCloneTaskNotes === "function"
+          ? buildRuntimeCloneTaskNotes(tasks?.[ti]?.notes || [])
+          : (tasks?.[ti]?.notes || []),
+        exists: !!tasks?.[ti],
+      };
+  if (!session.exists) return;
+  _notesTi = session.taskIndex;
+  document.getElementById("notes-modal-title").textContent = session.title;
+  renderNotes(session.notes);
   document.getElementById("notes-modal").style.display = "flex";
   _applyNotesModalPermissions();
 }
@@ -1104,7 +1186,7 @@ function renderNotes(notes) {
   el.innerHTML = notes
     .map((n, i) => {
       const histBtn = n.history?.length
-        ? `<button class="note-hist-btn" onclick="toggleNoteHistory(${i})"><i data-lucide="clock"></i> ${n.history.length}</button>`
+        ? `<button class="note-hist-btn" data-notes-action="toggle-history" data-note-index="${i}"><i data-lucide="clock"></i> ${n.history.length}</button>`
         : "";
       const histHtml = n.history?.length
         ? `<div class="note-history" id="note-hist-${i}" style="display:none">
@@ -1125,13 +1207,13 @@ function renderNotes(notes) {
       <div class="note-edit-row" id="note-edit-row-${i}" style="display:none">
         <textarea class="note-edit-ta" id="note-edit-ta-${i}">${_escHtml(n.text)}</textarea>
         <div class="note-edit-actions">
-          <button class="btn btn-acc btn-sm" onclick="saveNoteEdit(${i})">${notesModal.saveButtonLabel}</button>
-          <button class="btn btn-sm" onclick="cancelNoteEdit(${i})">${notesModal.cancelButtonLabel}</button>
+          <button class="btn btn-acc btn-sm" data-notes-action="save-edit" data-note-index="${i}">${notesModal.saveButtonLabel}</button>
+          <button class="btn btn-sm" data-notes-action="cancel-edit" data-note-index="${i}">${notesModal.cancelButtonLabel}</button>
         </div>
       </div>
       <div class="note-actions">
-        <button class="note-act-btn" onclick="startNoteEdit(${i})" title="${notesModal.editButtonLabel}"><i data-lucide="pencil"></i></button>
-        <button class="note-act-btn del" onclick="deleteNote(${i})" title="${notesModal.deleteButtonLabel}"><i data-lucide="trash-2"></i></button>
+        <button class="note-act-btn" data-notes-action="start-edit" data-note-index="${i}" title="${notesModal.editButtonLabel}"><i data-lucide="pencil"></i></button>
+        <button class="note-act-btn del" data-notes-action="delete-note" data-note-index="${i}" title="${notesModal.deleteButtonLabel}"><i data-lucide="trash-2"></i></button>
       </div>
       ${histHtml}
     </div>`;
@@ -1142,11 +1224,26 @@ function renderNotes(notes) {
   _applyNotesModalPermissions();
 }
 
-function _getNotesTask() { return _notesTi !== null ? tasks[_notesTi] : null; }
-function _getNotes() { return _getNotesTask()?.notes || []; }
+function _getNotes() {
+  return typeof buildRuntimeGetTaskNotesByIndex === "function"
+    ? buildRuntimeGetTaskNotesByIndex(tasks, _notesTi)
+    : (_notesTi !== null ? tasks?.[_notesTi]?.notes || [] : []);
+}
 function _setNotes(n) {
-  if (!_getNotesTask()) return;
-  _getNotesTask().notes = n;
+  const nextState = typeof buildRuntimeApplyTaskNotesToTasks === "function"
+    ? buildRuntimeApplyTaskNotesToTasks({
+        tasks,
+        taskIndex: _notesTi,
+        notes: n,
+      })
+    : {
+        tasks: _notesTi !== null
+          ? tasks.map((task, index) => index === _notesTi ? { ...task, notes: n } : task)
+          : tasks,
+        changed: _notesTi !== null,
+      };
+  if (!nextState.changed) return;
+  tasks = nextState.tasks;
   saveAll();
   _syncNotesCell(_notesTi);
 }
@@ -1155,15 +1252,29 @@ function _syncNotesCell(ti) {
   const notesModal = _getNotesModalModel();
   if (ti == null) return;
   const t = tasks[ti];
-  const count = typeof buildRuntimeCountVisibleTaskNotes === "function"
-    ? buildRuntimeCountVisibleTaskNotes(t.notes || [])
-    : (t.notes?.filter((n) => !n.deleted).length || 0);
+  const cellState = typeof buildRuntimeNotesCellState === "function"
+    ? buildRuntimeNotesCellState({
+        notes: t.notes || [],
+        countTitle: notesModal.countTitle,
+        defaultTitle: notesModal.defaultTitle,
+      })
+    : (() => {
+        const count = typeof buildRuntimeCountVisibleTaskNotes === "function"
+          ? buildRuntimeCountVisibleTaskNotes(t.notes || [])
+          : (t.notes?.filter((n) => !n.deleted).length || 0);
+        return {
+          count,
+          className: count > 0 ? "td-notes has-notes" : "td-notes",
+          title: count > 0 ? notesModal.countTitle(count) : notesModal.defaultTitle,
+          hasNotes: count > 0,
+        };
+      })();
   const cell = document.querySelector(`#tr${ti} .td-notes`);
   if (!cell) return;
-  cell.className = count > 0 ? "td-notes has-notes" : "td-notes";
-  cell.title = count > 0 ? notesModal.countTitle(count) : notesModal.defaultTitle;
-  cell.innerHTML = count > 0
-    ? `<i data-lucide="message-square-text"></i><span class="notes-count">${count}</span>`
+  cell.className = cellState.className;
+  cell.title = cellState.title;
+  cell.innerHTML = cellState.hasNotes
+    ? `<i data-lucide="message-square-text"></i><span class="notes-count">${cellState.count}</span>`
     : `<i data-lucide="message-square"></i>`;
   lucide.createIcons({ nodes: [cell] });
 }
@@ -1271,9 +1382,11 @@ function openCatEditor() {
     Swal.fire({ icon: "info", title: categoryEditor.accessDeniedTitle });
     return;
   }
-  tempCats = typeof buildRuntimeCloneCategoryDrafts === "function"
-    ? buildRuntimeCloneCategoryDrafts(cats)
-    : cats.map((c) => ({ ...c }));
+  tempCats = typeof buildRuntimeCategoryEditorState === "function"
+    ? buildRuntimeCategoryEditorState(cats).categories
+    : (typeof buildRuntimeCloneCategoryDrafts === "function"
+        ? buildRuntimeCloneCategoryDrafts(cats)
+        : cats.map((c) => ({ ...c })));
   renderCatList();
   document.getElementById("cat-modal").style.display = "flex";
 }
@@ -1293,56 +1406,31 @@ function renderCatList() {
     swatch.style.background = c.color;
     swatch.title = categoryEditor.swatchTitle;
     swatch.type = "button";
+    swatch.dataset.projectAction = "toggle-category-color";
+    swatch.dataset.catIndex = String(i);
     const dropdown = document.createElement("div");
     dropdown.className = "color-dropdown";
     dropdown.innerHTML = _buildColorDropdownHTML(i);
-    swatch.addEventListener("click", (e) => {
-      e.stopPropagation();
-      document
-        .querySelectorAll(".color-dropdown.open")
-        .forEach((d) => { if (d !== dropdown) d.classList.remove("open"); });
-      dropdown.classList.toggle("open");
-    });
     pickerWrap.appendChild(swatch);
     pickerWrap.appendChild(dropdown);
     const nameInp = document.createElement("input");
     nameInp.className = "cat-name-inp";
     nameInp.value = c.name;
     nameInp.placeholder = categoryEditor.namePlaceholder;
-    nameInp.addEventListener("input", () => { tempCats[i].name = nameInp.value; });
+    nameInp.dataset.projectInput = "category-name";
+    nameInp.dataset.catIndex = String(i);
     const delBtn = document.createElement("span");
     delBtn.className = "cat-del";
     delBtn.innerHTML = '<i data-lucide="x"></i>';
     delBtn.title = categoryEditor.deleteTitle;
-    delBtn.addEventListener("click", async () => {
-      const isUsed = typeof buildRuntimeIsCategoryUsedByTasks === "function"
-        ? buildRuntimeIsCategoryUsedByTasks(tasks, i)
-        : tasks.some((t) => t.cat === i);
-      if (isUsed) {
-        const res = await Swal.fire({
-          icon: "warning",
-          title: categoryEditor.deleteInUseTitle,
-          text: categoryEditor.deleteInUseText,
-          showCancelButton: true,
-          confirmButtonText: categoryEditor.deleteConfirmButtonText,
-          confirmButtonColor: categoryEditor.deleteConfirmButtonColor,
-          cancelButtonText: categoryEditor.deleteCancelButtonText,
-        });
-        if (!res.isConfirmed) return;
-      }
-      flushCatNames();
-      tempCats = typeof buildRuntimeRemoveCategoryDraftAt === "function"
-        ? buildRuntimeRemoveCategoryDraftAt(tempCats, i)
-        : tempCats.filter((_, idx) => idx !== i);
-      renderCatList();
-    });
+    delBtn.dataset.projectAction = "delete-category";
+    delBtn.dataset.catIndex = String(i);
     row.appendChild(pickerWrap);
     row.appendChild(nameInp);
     row.appendChild(delBtn);
     el.appendChild(row);
   });
   lucide.createIcons({ nodes: [document.getElementById("cat-editor-list")] });
-  document.addEventListener("click", _closeColorDropdowns, { once: false });
 }
 
 function _buildColorDropdownHTML(catIdx) {
@@ -1351,14 +1439,19 @@ function _buildColorDropdownHTML(catIdx) {
   const dots = CAT_PALETTE.map(
     (hex) =>
       `<div class="pal-dot${hex === cur ? " active" : ""}" style="background:${hex}" title="${hex}"
-            onclick="pickCatColor(${catIdx},'${hex}',this)"></div>`,
+            data-project-action="pick-category-color" data-cat-index="${catIdx}" data-color="${hex}"></div>`,
   ).join("");
   return `<div class="color-dropdown-inner">
     <div class="pal-grid">${dots}</div>
     <div class="color-custom-row">
       <span class="color-custom-lbl">${categoryEditor.colorCustomLabel}</span>
-      <input type="color" value="${cur}" oninput="pickCatColor(${catIdx},this.value,null)" />
+      <input type="color" value="${cur}" data-project-input="category-color" data-cat-index="${catIdx}" />
     </div></div>`;
+}
+
+function setCatDraftName(catIdx, value) {
+  if (!tempCats[catIdx]) return;
+  tempCats[catIdx].name = value;
 }
 
 function pickCatColor(catIdx, hex, dotEl) {
@@ -1371,16 +1464,60 @@ function pickCatColor(catIdx, hex, dotEl) {
   if (dotEl) rows[catIdx]?.querySelector(".color-dropdown")?.classList.remove("open");
 }
 
+function toggleCatColorDropdown(catIdx) {
+  const rows = document.querySelectorAll("#cat-editor-list .cat-row");
+  const dropdown = rows[catIdx]?.querySelector(".color-dropdown");
+  if (!dropdown) return;
+  document
+    .querySelectorAll(".color-dropdown.open")
+    .forEach((node) => { if (node !== dropdown) node.classList.remove("open"); });
+  dropdown.classList.toggle("open");
+}
+
+async function deleteCat(catIdx) {
+  const categoryEditor = _getCategoryEditorModel();
+  const deletionState = typeof buildRuntimeCategoryDeletionState === "function"
+    ? buildRuntimeCategoryDeletionState({
+        categories: tempCats,
+        index: catIdx,
+        tasks,
+      })
+    : {
+        isUsed: typeof buildRuntimeIsCategoryUsedByTasks === "function"
+          ? buildRuntimeIsCategoryUsedByTasks(tasks, catIdx)
+          : tasks.some((t) => t.cat === catIdx),
+        categories: typeof buildRuntimeRemoveCategoryDraftAt === "function"
+          ? buildRuntimeRemoveCategoryDraftAt(tempCats, catIdx)
+          : tempCats.filter((_, idx) => idx !== catIdx),
+      };
+  if (deletionState.isUsed) {
+    const res = await Swal.fire({
+      icon: "warning",
+      title: categoryEditor.deleteInUseTitle,
+      text: categoryEditor.deleteInUseText,
+      showCancelButton: true,
+      confirmButtonText: categoryEditor.deleteConfirmButtonText,
+      confirmButtonColor: categoryEditor.deleteConfirmButtonColor,
+      cancelButtonText: categoryEditor.deleteCancelButtonText,
+    });
+    if (!res.isConfirmed) return;
+  }
+  flushCatNames();
+  tempCats = deletionState.categories;
+  renderCatList();
+}
+
 function _closeColorDropdowns(e) {
   if (!e.target.closest(".color-picker-wrap"))
     document.querySelectorAll(".color-dropdown.open").forEach((d) => d.classList.remove("open"));
 }
 
 function flushCatNames() {
-  document.querySelectorAll("#cat-editor-list .cat-row").forEach((row, i) => {
-    const inp = row.querySelector(".cat-name-inp");
-    if (inp && tempCats[i]) tempCats[i].name = inp.value;
-  });
+  const values = [...document.querySelectorAll("#cat-editor-list .cat-row .cat-name-inp")]
+    .map((inp) => inp.value);
+  tempCats = typeof buildRuntimeApplyCategoryNamesFromValues === "function"
+    ? buildRuntimeApplyCategoryNamesFromValues(tempCats, values)
+    : tempCats.map((cat, i) => ({ ...cat, name: values[i] ?? cat.name }));
 }
 
 function addCat() {
@@ -1471,7 +1608,7 @@ function _renderDepList() {
   }
 
   const rows = depState.rows.map((d) => {
-    return `<tr class="dl-row" onclick="depListGo(${d.fromTi})" title="${dependencyListModal.rowTitle}">
+    return `<tr class="dl-row" data-dep-action="go-to-task" data-task-index="${d.fromTi}" title="${dependencyListModal.rowTitle}">
       <td class="dl-i">${d.index}</td>
       <td class="dl-task">
         <span class="dl-dot" style="background:${d.fromColor}"></span>
@@ -1609,11 +1746,9 @@ function openProjManager() {
     : { own: [], shared: [] };
 
   const renderProjectRow = (row) => {
-    return `<div class="pj-row${row.isActive ? " active" : ""}">
+    return `<div class="pj-row${row.isActive ? " active" : ""}" data-project-manager-action="switch-project" data-project-id="${row.id}">
        <div class="pj-main">
-         <input class="pj-name-inp" value="${row.name}" ${row.canManageProject ? "" : "disabled"}
-                onchange="${row.canManageProject ? `allProjects['${row.id}'].proj.name=this.value;updateProjSel();` : ""}"
-                onclick="event.stopPropagation()">
+         <input class="pj-name-inp" value="${row.name}" data-project-id="${row.id}" ${row.canManageProject ? "" : "disabled"}>
          <span class="pj-role-chip pj-role-${row.role}">${row.roleLabel}</span>
        </div>
        <div class="pj-sub">
@@ -1622,7 +1757,7 @@ function openProjManager() {
        </div>
        ${
           row.canManageProject
-            ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${row.id}')" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
+            ? `<span class="pj-del" data-project-manager-action="delete-project" data-project-id="${row.id}" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
             : ""
         }
       </div>`;
@@ -1662,7 +1797,10 @@ async function loadDemoProject() {
   if (!isConfirmed) return;
 
   const id = "p_" + Date.now();
-  allProjects[id] = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
+  const snapshot = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
+  allProjects = typeof buildRuntimeAddProjectToCollection === "function"
+    ? buildRuntimeAddProjectToCollection(allProjects || {}, id, snapshot)
+    : { ...(allProjects || {}), [id]: snapshot };
   try {
     const payload = typeof buildRuntimeStorageBufferPayload === "function"
       ? buildRuntimeStorageBufferPayload(allProjects, currentId, null)
@@ -1693,11 +1831,21 @@ async function createProject() {
   });
   if (!name) return;
   const id = "p_" + Date.now();
-  allProjects[id] = _buildEmptyProjectSnapshot(name, {
-    sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
-    sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
-    nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
+  const defaults = typeof buildRuntimeResolveProjectDefaults === "function"
+    ? buildRuntimeResolveProjectDefaults(userProfile?.defaults || null, DEF_PROJ)
+    : {
+        sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
+        sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
+        nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
+      };
+  const snapshot = _buildEmptyProjectSnapshot(name, {
+    sm: defaults.sm,
+    sy: defaults.sy,
+    nm: defaults.nm,
   });
+  allProjects = typeof buildRuntimeAddProjectToCollection === "function"
+    ? buildRuntimeAddProjectToCollection(allProjects || {}, id, snapshot)
+    : { ...(allProjects || {}), [id]: snapshot };
   saveAll();
   switchProject(id);
   openProjManager();
@@ -1728,11 +1876,23 @@ async function deleteProject(id) {
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
     await apiDeleteProject(id);
   }
-  const nextProjectId = _resolveNextProjectAfterDeletion(Object.keys(allProjects), currentId, id);
-  delete allProjects[id];
+  const collectionDeletion = typeof buildRuntimeApplyProjectDeletionToCollection === "function"
+    ? buildRuntimeApplyProjectDeletionToCollection(allProjects || {}, currentId, id)
+    : {
+        projects: Object.fromEntries(Object.entries(allProjects || {}).filter(([projectId]) => projectId !== id)),
+        deletionState: typeof buildRuntimeProjectDeletionState === "function"
+          ? buildRuntimeProjectDeletionState(Object.keys(allProjects || {}), currentId, id)
+          : {
+              nextCurrentId: _resolveNextProjectAfterDeletion(Object.keys(allProjects || {}), currentId, id),
+              shouldReloadCurrent: currentId === id,
+              remainingProjectIds: Object.keys(allProjects || {}).filter((projectId) => projectId !== id),
+            },
+      };
+  allProjects = collectionDeletion.projects;
+  const deletionState = collectionDeletion.deletionState;
   if (currentId === id) {
-    currentId = nextProjectId;
-    if (currentId) loadCurrent();
+    currentId = deletionState.nextCurrentId;
+    if (deletionState.shouldReloadCurrent && currentId) loadCurrent();
   }
   saveAll();
   render();

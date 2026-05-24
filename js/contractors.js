@@ -1977,7 +1977,7 @@ function _paymentRegisterCurrentState() {
   if (typeof buildRuntimePaymentRegisterCurrentState === "function") {
     return buildRuntimePaymentRegisterCurrentState(
       rows,
-      (type) => PAYMENT_TYPES[type] || type || "Р†РЅС€Рµ",
+      (type) => PAYMENT_TYPES[type] || type || "Інше",
     );
   }
   const registerRows = rows
@@ -1986,7 +1986,7 @@ function _paymentRegisterCurrentState() {
       supplier: row.supplier,
       date: payment.date || "",
       amount: +payment.amount || 0,
-      type: PAYMENT_TYPES[payment.type] || payment.type || "Р†РЅС€Рµ",
+      type: PAYMENT_TYPES[payment.type] || payment.type || "Інше",
       taskNo: payment.taskNo,
       taskName: payment.taskName,
       itemName: payment.itemName,
@@ -2513,14 +2513,10 @@ async function _confirmContractorImportMapping(rows) {
     confirmButtonText: CONTRACTOR_UI.importContinueLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
-      document.querySelectorAll(".contractor-import-map-select").forEach((select) => {
-        select.addEventListener("change", () => {
-          const cell = document.querySelector(`.contractor-import-map-examples[data-field="${select.dataset.field}"]`);
-          if (!cell) return;
-          const examples = select.value ? _ctColumnExamples(rows, select.value).map(_ctEsc).join(" | ") : "";
-          cell.innerHTML = examples || "<span class=\"muted\">-</span>";
-        });
-      });
+      window.__contractorImportRows = rows;
+    },
+    willClose: () => {
+      window.__contractorImportRows = null;
     },
     preConfirm: () => {
       const next = {};
@@ -2932,19 +2928,13 @@ async function _confirmContractorImport(preview) {
     confirmButtonText: hasImportableRows ? CONTRACTOR_UI.importLabel : CONTRACTOR_UI.importOkLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
-      const applyFilter = (filter) => {
-        document.querySelectorAll("[data-import-filter]").forEach((card) => {
-          card.classList.toggle("is-active", card.getAttribute("data-import-filter") === filter);
-        });
-        document.querySelectorAll("[data-import-review-row]").forEach((row) => {
-          const entry = reviewEntries[Number(row.getAttribute("data-entry-index"))];
-          row.hidden = !_ctImportEntryMatchesFilter(entry, filter);
-        });
-      };
-      document.querySelectorAll("[data-import-filter]").forEach((card) => {
-        card.addEventListener("click", () => applyFilter(card.getAttribute("data-import-filter") || "all"));
-      });
-      applyFilter("all");
+      window.__contractorImportReviewEntries = reviewEntries;
+      document.dispatchEvent(new CustomEvent("contractor-import-review-open", {
+        detail: { filter: "all" },
+      }));
+    },
+    willClose: () => {
+      window.__contractorImportReviewEntries = null;
     },
     preConfirm: () => {
       const updatedEntries = (preview.entries || []).map((entry) => ({ ...entry }));

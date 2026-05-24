@@ -56,6 +56,12 @@ import {
   buildTaskWindowModel,
   buildVisibleYearGroups,
 } from "../domain/render";
+import {
+  buildProjectSelectState,
+  buildRenderGroupStats,
+  hasActiveGanttFilters,
+  taskMatchesGanttFilters,
+} from "../domain/render-filters";
 import { buildAppUiModel } from "../domain/app-ui";
 import { buildApiUiModel } from "../domain/api-ui";
 import { buildChartsUiModel } from "../domain/charts-ui";
@@ -87,38 +93,9 @@ import {
   resolvePrintSettings,
 } from "../domain/print";
 import {
-  buildApiUiModel,
   buildFallbackAuthButtonModel,
   buildFallbackAuthModalRenderModel,
 } from "../domain/api-ui";
-import { buildChartsUiModel } from "../domain/charts-ui";
-import {
-  buildChartColors,
-  buildChartData,
-  buildChartDefinition,
-  buildChartOptions,
-  getChartAutoDefaults,
-  normalizeChartRenderType,
-} from "../domain/charts";
-import { buildFinanceUiModel } from "../domain/finance-ui";
-import {
-  buildFinanceRows,
-  buildFinanceSearchText,
-  calculateFinanceOverview,
-  financeItemTotal,
-  financeScopedCostItems,
-  financeTaskScope,
-  hasFinanceFilters,
-  summarizeFinanceDeletion,
-} from "../domain/finance";
-import { buildPrintUiModel } from "../domain/print-ui";
-import {
-  getPrintMetrics,
-  getPrintPreviewState,
-  resolvePrintGanttLayout,
-  resolvePrintSections,
-  resolvePrintSettings,
-} from "../domain/print";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
@@ -193,7 +170,20 @@ import {
   snapToHalfWeek,
 } from "../domain/modal";
 import {
+  addModalDependency,
+  addModalPhase,
+  buildDependencyDropdownState,
+  buildModalDependencyEditorState,
+  removeModalDependency,
+  removeModalPhase,
+  toggleModalDependencyEditor,
+  updateModalDependencyThreshold,
+  updateModalDependencyType,
+  updateModalPhaseProgress,
+} from "../domain/modal-state";
+import {
   applyTaskSave,
+  buildTaskModalCreateState,
   buildTaskModalEditState,
   buildTaskModalSaveModel,
   cloneModalCostItems,
@@ -202,6 +192,12 @@ import {
 } from "../domain/modal-orchestration";
 import {
   addTaskNote,
+  applyCategoryNamesFromValues,
+  buildCategoryDeletionState,
+  buildCategoryEditorState,
+  buildNotesCellState,
+  buildTaskNotesSession,
+  buildTaskNotesOpenState,
   buildProjectManagerGroupModel,
   cloneCategoryDrafts,
   cloneTaskNotes,
@@ -209,8 +205,10 @@ import {
   createNextCategoryDraft,
   deleteTaskNote,
   editTaskNote,
+  getTaskNotesByIndex,
   isCategoryUsedByTasks,
   removeCategoryDraftAt,
+  applyTaskNotesToTasks,
 } from "../domain/modal-panels";
 import {
   buildAuditEntryViewModel,
@@ -236,10 +234,15 @@ import {
 } from "../domain/storage";
 import { buildStorageUiModel } from "../domain/storage-ui";
 import {
+  addProjectToCollection,
+  applyProjectDeletionToCollection,
   applyProjectSettingsUpdate,
+  buildProjectDeletionState,
   canDeleteProjectCount,
   createDemoProjectSnapshot,
   createEmptyProjectSnapshot,
+  renameProjectInCollection,
+  resolveProjectDefaults,
   resolveNextProjectAfterDeletion,
 } from "../domain/project-lifecycle";
 import {
@@ -249,6 +252,11 @@ import {
   projectNameExists,
   resolveUniqueProjectName,
 } from "../domain/project-import";
+import {
+  buildImportedProjectActivationState,
+  buildProjectWorkbookExport,
+  resolveImportSource,
+} from "../domain/app";
 import {
   mapAccessibleProjectToSnapshotShell,
   mapActivityLogRow,
@@ -291,6 +299,11 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../services/supabase/auth-runtime";
 import {
+  buildSupabaseSessionHydrationResult,
+  buildSupabaseSignedOutUiPlan,
+  resolveSupabaseInitialSessionPlan,
+} from "../services/supabase/session-runtime";
+import {
   bindProjectCreateTasksRpcRequest,
   buildProjectCreateMutationRequest,
   buildProjectDeleteRequest,
@@ -317,9 +330,13 @@ import {
 } from "../services/supabase/collaboration-runtime";
 import {
   buildSupabaseReadOnlyUiState,
+  buildSupabaseShareDialogListItems,
   buildSupabaseShareDialogModel,
+  buildSupabaseShareDialogRenderModel,
   buildSupabaseShareErrorMessages,
+  buildSupabaseShareListHtml,
   buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleGuideHtml,
   buildSupabaseShareRoleOptions,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
@@ -404,10 +421,17 @@ const runtimeHelpers = {
   buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
   buildRuntimeHydratedAuthState: buildHydratedAuthState,
   buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+  buildRuntimeSupabaseSessionHydrationResult: buildSupabaseSessionHydrationResult,
+  buildRuntimeSupabaseSignedOutUiPlan: buildSupabaseSignedOutUiPlan,
+  buildRuntimeResolveSupabaseInitialSessionPlan: resolveSupabaseInitialSessionPlan,
   buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
   buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
   buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
   buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+  buildRuntimeSupabaseShareDialogListItems: buildSupabaseShareDialogListItems,
+  buildRuntimeSupabaseShareRoleGuideHtml: buildSupabaseShareRoleGuideHtml,
+  buildRuntimeSupabaseShareListHtml: buildSupabaseShareListHtml,
+  buildRuntimeSupabaseShareDialogRenderModel: buildSupabaseShareDialogRenderModel,
   buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
   buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
   buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
@@ -467,15 +491,23 @@ const runtimeHelpers = {
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   buildRuntimeStorageUiModel: buildStorageUiModel,
   buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+  buildRuntimeAddProjectToCollection: addProjectToCollection,
+  buildRuntimeRenameProjectInCollection: renameProjectInCollection,
+  buildRuntimeApplyProjectDeletionToCollection: applyProjectDeletionToCollection,
+  buildRuntimeProjectDeletionState: buildProjectDeletionState,
   buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
   buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
   canRuntimeDeleteProjectCount: canDeleteProjectCount,
+  buildRuntimeResolveProjectDefaults: resolveProjectDefaults,
   resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
   buildRuntimeCopiedTask: createCopiedTask,
   checkRuntimeProjectNameExists: projectNameExists,
   buildRuntimeUniqueProjectName: resolveUniqueProjectName,
   buildRuntimeNormalizeImportedBaseline: normalizeImportedBaseline,
   buildRuntimeImportedProjectSnapshot: buildImportedProjectSnapshot,
+  buildRuntimeProjectWorkbookExport: buildProjectWorkbookExport,
+  buildRuntimeResolveImportSource: resolveImportSource,
+  buildRuntimeImportedProjectActivationState: buildImportedProjectActivationState,
   normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
   getRuntimeProjectRoleLabel: getProjectRoleLabel,
   buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
@@ -486,6 +518,10 @@ const runtimeHelpers = {
   buildRuntimeLegendItems: buildLegendItems,
   buildRuntimeVisibleYearGroups: buildVisibleYearGroups,
   buildRuntimeTaskWindowModel: buildTaskWindowModel,
+  buildRuntimeProjectSelectState: buildProjectSelectState,
+  buildRuntimeHasActiveGanttFilters: hasActiveGanttFilters,
+  buildRuntimeTaskMatchesGanttFilters: taskMatchesGanttFilters,
+  buildRuntimeRenderGroupStats: buildRenderGroupStats,
   buildRuntimeAppUiModel: buildAppUiModel,
   buildRuntimeApiUiModel: buildApiUiModel,
   buildRuntimeFallbackAuthModalRenderModel: buildFallbackAuthModalRenderModel,
@@ -585,21 +621,40 @@ const runtimeHelpers = {
   buildRuntimeRemWeeks: remWeeks,
   buildRuntimeTaskCalcModel: buildTaskCalcModel,
   buildRuntimeDependencyListState: buildDependencyListState,
+  buildRuntimeAddModalPhase: addModalPhase,
+  buildRuntimeRemoveModalPhase: removeModalPhase,
+  buildRuntimeUpdateModalPhaseProgress: updateModalPhaseProgress,
+  buildRuntimeDependencyDropdownState: buildDependencyDropdownState,
+  buildRuntimeAddModalDependency: addModalDependency,
+  buildRuntimeRemoveModalDependency: removeModalDependency,
+  buildRuntimeToggleModalDependencyEditor: toggleModalDependencyEditor,
+  buildRuntimeModalDependencyEditorState: buildModalDependencyEditorState,
+  buildRuntimeUpdateModalDependencyType: updateModalDependencyType,
+  buildRuntimeUpdateModalDependencyThreshold: updateModalDependencyThreshold,
   buildRuntimeCloneModalCostItems: cloneModalCostItems,
   buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+  buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
   buildRuntimeTaskModalEditState: buildTaskModalEditState,
   buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
   buildRuntimeApplyTaskSave: applyTaskSave,
   buildRuntimeRemoveTaskAt: removeTaskAt,
   buildRuntimeCloneTaskNotes: cloneTaskNotes,
+  buildRuntimeTaskNotesSession: buildTaskNotesSession,
+  buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,
   buildRuntimeAddTaskNote: addTaskNote,
   buildRuntimeEditTaskNote: editTaskNote,
   buildRuntimeDeleteTaskNote: deleteTaskNote,
+  buildRuntimeGetTaskNotesByIndex: getTaskNotesByIndex,
+  buildRuntimeApplyTaskNotesToTasks: applyTaskNotesToTasks,
   buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
+  buildRuntimeNotesCellState: buildNotesCellState,
   buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
+  buildRuntimeCategoryEditorState: buildCategoryEditorState,
+  buildRuntimeApplyCategoryNamesFromValues: applyCategoryNamesFromValues,
   buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
   buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,
   buildRuntimeIsCategoryUsedByTasks: isCategoryUsedByTasks,
+  buildRuntimeCategoryDeletionState: buildCategoryDeletionState,
   buildRuntimeProjectManagerGroupModel: buildProjectManagerGroupModel,
   buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
   buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,

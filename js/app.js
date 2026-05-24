@@ -387,125 +387,35 @@ function _saveFilterState() {
 }
 
 function exportXLSX() {
-  const ml = getML();
-
-  const header = APP_UI.scheduleHeader;
-
-  const rows = tasks.map((t) => [
-    t.n,
-    t.name,
-    CN(t.cat),
-    t.contr || "",
-    `${ml[t.ms]?.name || ""} ${ml[t.ms]?.y || ""}`.trim(),
-    t.ws + 1,
-    `${ml[t.me]?.name || ""} ${ml[t.me]?.y || ""}`.trim(),
-    t.we + 1,
-    dur(t),
-    t.prog,
-    +t.budget || 0,
-    +t.spent || 0,
-    (+t.budget || 0) - (+t.spent || 0),
-    (t.deps || [])
-      .map((d) =>
-        typeof d === "number"
-          ? d
-          : `${d.n}(${d.type}${d.type === "SS" ? "+" + d.threshold + "%" : ""})`,
-      )
-      .join(", "),
-  ]);
+  const workbook = typeof buildRuntimeProjectWorkbookExport === "function"
+    ? buildRuntimeProjectWorkbookExport({
+        projectName: proj.name,
+        tasks,
+        categories: cats,
+        monthLabels: getML(),
+        scheduleHeader: APP_UI.scheduleHeader,
+        summaryHeader: APP_UI.summaryHeader,
+        estimateHeader: APP_UI.estimateHeader,
+        paymentsHeader: APP_UI.paymentsHeader,
+        workbookSheets: APP_UI.workbookSheets,
+        getCategoryName: (index) => CN(index),
+        getTaskDuration: (task) => dur(task),
+        getTaskCostItems: (task) => taskCostItems(task),
+        costTypeLabels: Object.fromEntries(
+          Object.entries(COST_TYPES || {}).map(([key, value]) => [key, value?.label || key]),
+        ),
+        paymentTypeLabels: PAYMENT_TYPES || {},
+      })
+    : null;
 
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet([header, ...rows]);
-
-  ws["!cols"] = [
-    { wch: 5 }, { wch: 36 }, { wch: 22 }, { wch: 18 },
-    { wch: 16 }, { wch: 7 }, { wch: 16 }, { wch: 7 },
-    { wch: 10 }, { wch: 10 }, { wch: 14 }, { wch: 14 },
-    { wch: 14 }, { wch: 18 },
-  ];
-  ws["!freeze"] = { xSplit: 0, ySplit: 1 };
-
-  XLSX.utils.book_append_sheet(wb, ws, APP_UI.workbookSheets.schedule);
-
-  const finHeader = APP_UI.summaryHeader;
-  const finRows = cats.map((c, i) => {
-    const ct = tasks.filter((t) => t.cat === i);
-    const b = ct.reduce((s, t) => s + (+t.budget || 0), 0);
-    const sp = ct.reduce((s, t) => s + (+t.spent || 0), 0);
-    const pg = ct.length
-      ? Math.round(ct.reduce((s, t) => s + t.prog, 0) / ct.length)
-      : 0;
-    return [c.name, ct.length, b, sp, b - sp, pg];
+  (workbook?.sheets || []).forEach((sheet) => {
+    const ws = XLSX.utils.aoa_to_sheet(sheet.rows);
+    ws["!cols"] = sheet.cols;
+    if (sheet.freeze) ws["!freeze"] = sheet.freeze;
+    XLSX.utils.book_append_sheet(wb, ws, sheet.name);
   });
-  const wsFin = XLSX.utils.aoa_to_sheet([finHeader, ...finRows]);
-  wsFin["!cols"] = [
-    { wch: 24 }, { wch: 12 }, { wch: 14 },
-    { wch: 14 }, { wch: 14 }, { wch: 16 },
-  ];
-  XLSX.utils.book_append_sheet(wb, wsFin, APP_UI.workbookSheets.summary);
-
-  const costHeader = APP_UI.estimateHeader;
-  const costRows = [];
-  tasks.forEach((t) => {
-    taskCostItems(t).forEach((it) => {
-      const qty = it.qty == null ? 1 : (+it.qty || 0);
-      const paid = (it.payments || []).reduce(
-        (s, p) => s + (+p.amount || 0),
-        0,
-      );
-      costRows.push([
-        t.n,
-        t.name,
-        COST_TYPES?.[it.type]?.label || it.type,
-        it.name,
-        it.supplier,
-        it.unit,
-        qty,
-        it.unitPrice || 0,
-        qty * (+it.unitPrice || 0),
-        paid,
-      ]);
-    });
-  });
-  if (costRows.length) {
-    const wsC = XLSX.utils.aoa_to_sheet([costHeader, ...costRows]);
-    wsC["!cols"] = [
-      { wch: 5 }, { wch: 30 }, { wch: 14 }, { wch: 28 },
-      { wch: 20 }, { wch: 6 }, { wch: 7 }, { wch: 10 },
-      { wch: 14 }, { wch: 14 },
-    ];
-    XLSX.utils.book_append_sheet(wb, wsC, APP_UI.workbookSheets.estimate);
-  }
-
-  const payHeader = APP_UI.paymentsHeader;
-  const payRows = [];
-  tasks.forEach((t) => {
-    taskCostItems(t).forEach((it) => {
-      (it.payments || []).forEach((p) => {
-        payRows.push([
-          t.n,
-          t.name,
-          it.supplier || "",
-          COST_TYPES?.[it.type]?.label || it.type || "",
-          it.name || "",
-          p.date || "",
-          PAYMENT_TYPES?.[p.type] || p.type || "",
-          +p.amount || 0,
-          p.note || "",
-        ]);
-      });
-    });
-  });
-  if (payRows.length) {
-    const wsP = XLSX.utils.aoa_to_sheet([payHeader, ...payRows]);
-    wsP["!cols"] = [
-      { wch: 5 }, { wch: 30 }, { wch: 24 }, { wch: 14 }, { wch: 28 },
-      { wch: 13 }, { wch: 12 }, { wch: 16 }, { wch: 28 },
-    ];
-    XLSX.utils.book_append_sheet(wb, wsP, APP_UI.workbookSheets.payments);
-  }
-
-  XLSX.writeFile(wb, `${proj.name}.xlsx`);
+  XLSX.writeFile(wb, workbook?.filename || `${proj.name}.xlsx`);
 }
 
 function exportJSON() {
@@ -550,23 +460,51 @@ function importJSON(e) {
     try {
       const d = JSON.parse(ev.target.result);
       if (Array.isArray(d.tasks)) {
-        if (currentId) saveAll();
+        const importState = typeof buildRuntimeResolveImportSource === "function"
+          ? buildRuntimeResolveImportSource({
+              data: d,
+              fileName: f.name,
+              fallbackProjectName: APP_UI.importedProjectFallbackName,
+              currentId,
+            })
+          : {
+              shouldSaveCurrent: Boolean(currentId),
+              importBaseName: f.name.replace(/\.json$/i, ""),
+              projectName: d?.proj?.name || f.name.replace(/\.json$/i, ""),
+              newProjectId: "p_" + Date.now(),
+            };
+        if (importState.shouldSaveCurrent) saveAll();
 
-        const id = "p_" + Date.now();
-        const importedProj = d.proj || { ...DEF_PROJ, name: f.name.replace(".json", "") };
-        const resolvedName = await _resolveImportProjectName(importedProj.name || f.name.replace(".json", ""));
+        const resolvedName = await _resolveImportProjectName(importState.projectName);
         if (!resolvedName) return;
 
-        allProjects[id] = _buildImportedProjectSnapshot(
+        const snapshot = _buildImportedProjectSnapshot(
           d,
-          f.name.replace(".json", ""),
+          importState.importBaseName,
           resolvedName,
         );
-        currentId = id;
-        if (typeof _projectRole !== "undefined") _projectRole = "owner";
+        const activation = typeof buildRuntimeImportedProjectActivationState === "function"
+          ? buildRuntimeImportedProjectActivationState({
+              projects: allProjects || {},
+              projectId: importState.newProjectId,
+              snapshot,
+              role: "owner",
+            })
+          : {
+              projects: {
+                ...(allProjects || {}),
+                [importState.newProjectId]: snapshot,
+              },
+              currentId: importState.newProjectId,
+              role: "owner",
+              hiddenCats: [],
+            };
+        allProjects = activation.projects;
+        currentId = activation.currentId;
+        if (typeof _projectRole !== "undefined") _projectRole = activation.role;
         loadCurrent();
         saveAll();
-        hiddenCats = new Set();
+        hiddenCats = new Set(activation.hiddenCats || []);
         render();
         updateProjSel();
         if (typeof _updateReadOnlyUI === "function") _updateReadOnlyUI();
@@ -574,25 +512,17 @@ function importJSON(e) {
           toast: true,
           position: "top-end",
           icon: "success",
-          title: appUi.importSuccessTitle(allProjects[id].proj.name),
+          title: appUi.importSuccessTitle(snapshot.proj.name),
           showConfirmButton: false,
           timer: 3000,
         });
       }
     } catch {
-      if (appUi) {
-        Swal.fire({
-          icon: "error",
-          title: appUi.importInvalidTitle,
-          text: appUi.importInvalidText,
-        });
-      } else
       Swal.fire({
         icon: "error",
         title: appUi.importInvalidTitle,
         text: appUi.importInvalidText,
       });
-      }
     }
   };
   r.readAsText(f);

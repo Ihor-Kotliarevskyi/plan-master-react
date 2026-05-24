@@ -276,7 +276,7 @@ function _renderUserModal() {
           <div class="settings-section-body">
             <div class="setting-row">
               <label>${themePanel.themeLabel}</label>
-              <button class="theme-toggle" style="border:none" onclick="toggleTheme();_renderUserModal()">
+              <button class="theme-toggle" style="border:none" data-user-action="toggle-theme">
                 <span class="theme-icon"><i data-lucide="${identity.themeToggle.icon}"></i></span>
                 <span class="theme-label">${identity.themeToggle.label}</span>
               </button>
@@ -293,19 +293,19 @@ function _renderUserModal() {
               <div class="setting-row">
                 <label class="baseline-saved-lbl">${baselinePanel.savedLabel}</label>
                 <button class="btn btn-sm btn-tog${baselinePanel.showBaseline ? " on" : ""}"
-                        onclick="toggleBaseline();_renderUserModal()">
+                        data-user-action="toggle-baseline">
                   ${baselinePanel.showBaseline ? '<i data-lucide="eye-off"></i>' : '<i data-lucide="eye"></i>'} ${baselinePanel.toggleLabel}
                 </button>
               </div>
               <div class="baseline-actions">
-                <button class="btn btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="rotate-ccw"></i> ${baselinePanel.saveActionLabel}</button>
-                <button class="btn btn-sm btn-danger" onclick="clearBaseline();_renderUserModal()"><i data-lucide="trash-2"></i> ${baselinePanel.deleteActionLabel}</button>
+                <button class="btn btn-sm" data-user-action="save-baseline"><i data-lucide="rotate-ccw"></i> ${baselinePanel.saveActionLabel}</button>
+                <button class="btn btn-sm btn-danger" data-user-action="clear-baseline"><i data-lucide="trash-2"></i> ${baselinePanel.deleteActionLabel}</button>
               </div>`
                 : `
               <div class="baseline-empty-hint">
                 ${baselinePanel.emptyHint}
               </div>
-              <button class="btn btn-acc btn-sm" onclick="saveBaseline();_renderUserModal()"><i data-lucide="save"></i> ${baselinePanel.saveActionLabel}</button>`;
+              <button class="btn btn-acc btn-sm" data-user-action="save-baseline"><i data-lucide="save"></i> ${baselinePanel.saveActionLabel}</button>`;
             })()}
           </div>
         </div>
@@ -322,16 +322,15 @@ function _renderUserModal() {
               class="user-inline-input"
               value="${_esc(identity.displayName)}"
               placeholder="Введіть ім'я"
-              oninput="_syncUserNamePreview(this.value)"
+              data-user-input="name-preview"
             />
             <span class="user-email-hint">${_esc(p.email) || "email не вказано"}</span>
             <div class="user-avatar-actions">
               <label class="avatar-upload-btn">
                 <i data-lucide="camera"></i> Фото
-                <input type="file" accept="image/*" style="display:none"
-                       onchange="handleAvatarUpload(event)" />
+                <input type="file" accept="image/*" style="display:none" data-user-input="avatar-upload" />
               </label>
-              ${p.avatar ? `<button class="avatar-clear-btn" onclick="clearAvatar()"><i data-lucide="x"></i></button>` : ""}
+              ${p.avatar ? `<button class="avatar-clear-btn" data-user-action="clear-avatar"><i data-lucide="x"></i></button>` : ""}
             </div>
           </div>
         </div>
@@ -392,7 +391,7 @@ function _renderAccountSection(loggedIn, sbp, p) {
     : "";
   const auditBtn =
     typeof canViewAuditLog === "function" && canViewAuditLog()
-      ? `<button class="btn btn-sm" onclick="openAuditLogModal()"><i data-lucide="history"></i> ${accountSection.auditLogLabel}</button>`
+      ? `<button class="btn btn-sm" data-user-action="open-audit-log"><i data-lucide="history"></i> ${accountSection.auditLogLabel}</button>`
       : "";
   if (loggedIn && sbp) {
     return `
@@ -405,8 +404,7 @@ function _renderAccountSection(loggedIn, sbp, p) {
         </div>
         <div class="setting-row" style="margin-top:8px">
           <label class="sync-enabled-lbl">● ${_esc(syncBadge.label)}</label>
-          <button class="btn btn-sm btn-danger"
-            onclick="closeUserModal();apiLogout().then(()=>{ updateUserBtn(); })">
+          <button class="btn btn-sm btn-danger" data-user-action="logout">
             ${accountSection.logoutLabel}
           </button>
         </div>
@@ -425,8 +423,8 @@ function _renderAccountSection(loggedIn, sbp, p) {
           ${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").hintText : "Sign in to save projects in the cloud and access them from any device.")}
         </p>
         <div class="auth-tabs">
-          <button id="atab-login" class="btn btn-sm btn-acc" onclick="_switchAuthTab('login')" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").loginTabLabel : "Sign in")}</button>
-          <button id="atab-register" class="btn btn-sm" onclick="_switchAuthTab('register')" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").registerTabLabel : "Register")}</button>
+          <button id="atab-login" class="btn btn-sm btn-acc" data-user-action="switch-auth-tab" data-auth-tab="login" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").loginTabLabel : "Sign in")}</button>
+          <button id="atab-register" class="btn btn-sm" data-user-action="switch-auth-tab" data-auth-tab="register" style="flex:1">${_esc(typeof buildRuntimeAuthFormModel === "function" ? buildRuntimeAuthFormModel("login").registerTabLabel : "Register")}</button>
         </div>
         <div id="auth-tab-body">${_renderAuthForm("login")}</div>
       </div>
@@ -453,7 +451,7 @@ function _renderAuthForm(tab) {
       <div class="fg"><label>${_esc(model.emailLabel)}</label><input id="auth-email" type="email" placeholder="${_esc(model.emailPlaceholder)}"/></div>
       <div class="fg"><label>${_esc(model.passwordLabel)}</label><input id="auth-pass" type="password" placeholder="${_esc(model.passwordPlaceholder)}"/></div>
       <div id="auth-error" class="auth-error" style="display:none"></div>
-      <button class="btn btn-acc auth-submit-btn" type="button" onclick="_submitAuthInCabinet('${tab}')">
+      <button class="btn btn-acc auth-submit-btn" type="button" data-user-action="submit-auth" data-auth-tab="${tab}">
         ${_esc(model.submitLabel)}
       </button>
     </div>`;

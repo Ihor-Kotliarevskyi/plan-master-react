@@ -32,6 +32,29 @@ export interface CreateDemoProjectSnapshotInput {
   meta?: Partial<ProjectSnapshotMeta>;
 }
 
+export interface ResolvedProjectDefaults {
+  sm: number;
+  sy: number;
+  nm: number;
+}
+
+export interface ProjectDeletionState {
+  nextCurrentId: string | null;
+  shouldReloadCurrent: boolean;
+  remainingProjectIds: string[];
+}
+
+export interface ProjectCollectionRenameResult {
+  projects: Record<string, ProjectSnapshot>;
+  nextName: string;
+  changed: boolean;
+}
+
+export interface ProjectCollectionDeletionResult {
+  projects: Record<string, ProjectSnapshot>;
+  deletionState: ProjectDeletionState;
+}
+
 function clonePhaseWithShift(phase: TaskPhase, shift: number): TaskPhase {
   return {
     ...phase,
@@ -126,6 +149,21 @@ export function createDemoProjectSnapshot(
   };
 }
 
+export function resolveProjectDefaults(
+  userDefaults: {
+    sm?: number | null;
+    sy?: number | null;
+    nm?: number | null;
+  } | null | undefined,
+  fallbackDefaults: Pick<ProjectSettings, "sm" | "sy" | "nm">,
+): ResolvedProjectDefaults {
+  return {
+    sm: userDefaults?.sm ?? fallbackDefaults.sm,
+    sy: userDefaults?.sy ?? fallbackDefaults.sy,
+    nm: userDefaults?.nm ?? fallbackDefaults.nm,
+  };
+}
+
 export function canDeleteProjectCount(projectCount: number): boolean {
   return projectCount > 1;
 }
@@ -137,4 +175,83 @@ export function resolveNextProjectAfterDeletion(
 ): string | null {
   if (currentId !== deletedId) return currentId;
   return projectIds.find((projectId) => projectId !== deletedId) || null;
+}
+
+export function buildProjectDeletionState(
+  projectIds: string[],
+  currentId: string | null,
+  deletedId: string,
+): ProjectDeletionState {
+  const remainingProjectIds = (projectIds || []).filter((projectId) => projectId !== deletedId);
+  const nextCurrentId = resolveNextProjectAfterDeletion(projectIds, currentId, deletedId);
+  return {
+    nextCurrentId,
+    shouldReloadCurrent: currentId === deletedId && !!nextCurrentId,
+    remainingProjectIds,
+  };
+}
+
+export function addProjectToCollection(
+  projects: Record<string, ProjectSnapshot>,
+  id: string,
+  snapshot: ProjectSnapshot,
+): Record<string, ProjectSnapshot> {
+  return {
+    ...(projects || {}),
+    [id]: snapshot,
+  };
+}
+
+export function renameProjectInCollection(
+  projects: Record<string, ProjectSnapshot>,
+  id: string,
+  name: string,
+): ProjectCollectionRenameResult {
+  const snapshot = projects?.[id];
+  if (!snapshot) {
+    return {
+      projects: { ...(projects || {}) },
+      nextName: "",
+      changed: false,
+    };
+  }
+
+  const nextName = name.trim() || snapshot.proj.name;
+  if (nextName === snapshot.proj.name) {
+    return {
+      projects: { ...(projects || {}) },
+      nextName,
+      changed: false,
+    };
+  }
+
+  return {
+    projects: {
+      ...(projects || {}),
+      [id]: {
+        ...snapshot,
+        proj: {
+          ...snapshot.proj,
+          name: nextName,
+        },
+      },
+    },
+    nextName,
+    changed: true,
+  };
+}
+
+export function applyProjectDeletionToCollection(
+  projects: Record<string, ProjectSnapshot>,
+  currentId: string | null,
+  deletedId: string,
+): ProjectCollectionDeletionResult {
+  const deletionState = buildProjectDeletionState(Object.keys(projects || {}), currentId, deletedId);
+  const nextProjects = { ...(projects || {}) };
+  delete nextProjects[deletedId];
+
+  return {
+    projects: nextProjects,
+    deletionState,
+  };
 }

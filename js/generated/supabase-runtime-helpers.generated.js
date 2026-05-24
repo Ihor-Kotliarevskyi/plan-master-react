@@ -521,6 +521,48 @@
     };
   }
 
+  // src/domain/render-filters.ts
+  function buildProjectSelectState(params) {
+    const mapItems = (entries, isShared) => entries.map(([id, snapshot]) => {
+      const role = params.normalizeRole(snapshot?._role || "owner");
+      return {
+        id,
+        name: snapshot?.proj?.name || "",
+        selected: id === params.currentId,
+        roleLabelSuffix: isShared ? `${params.sharedRoleSeparator}${params.getRoleLabel(role)}` : ""
+      };
+    });
+    return {
+      own: mapItems(params.ownEntries || [], false),
+      shared: mapItems(params.sharedEntries || [], true)
+    };
+  }
+  function hasActiveGanttFilters(ganttFilters, multiFilterValues) {
+    return Boolean(
+      multiFilterValues(ganttFilters?.contractor).length || multiFilterValues(ganttFilters?.pay).length
+    );
+  }
+  function taskMatchesGanttFilters(params) {
+    const { task, hiddenCats, ganttFilters, multiFilterAny, multiFilterValues, taskContractors, taskCostSummary } = params;
+    if (hiddenCats.has(task.cat)) return false;
+    if (!multiFilterAny(ganttFilters.contractor, taskContractors(task))) return false;
+    const payFilters = multiFilterValues(ganttFilters.pay);
+    if (!payFilters.length) return true;
+    const summary = taskCostSummary(task);
+    const matchesPay = payFilters.includes("debt") && summary.budget > 0 && summary.rest > 0.5 || payFilters.includes("paid") && summary.budget > 0 && Math.abs(summary.rest) <= 0.5 || payFilters.includes("over") && summary.rest < -0.5 || payFilters.includes("unpaid") && summary.budget > 0 && summary.paid <= 0.5 || payFilters.includes("hasPayments") && (summary.paid > 0.5 || summary.payments > 0) || payFilters.includes("noPayments") && summary.paid <= 0.5 && summary.payments === 0;
+    return matchesPay;
+  }
+  function buildRenderGroupStats(params) {
+    const totalTasks = (params.tasks || []).length;
+    const doneTasks = (params.tasks || []).filter((task) => task.prog === 100).length;
+    const totalBudget = (params.tasks || []).reduce((sum, task) => sum + (Number(task.budget) || 0), 0);
+    return {
+      totalTasks,
+      doneTasks,
+      totalBudget
+    };
+  }
+
   // src/domain/app-ui.ts
   function buildAppUiModel() {
     return {
@@ -2050,6 +2092,92 @@
     };
   }
 
+  // src/domain/modal-state.ts
+  function addModalPhase(phases, projectMonths) {
+    const nextPhases = (phases || []).map((phase) => ({ ...phase }));
+    const last = nextPhases[nextPhases.length - 1] || { me: 0 };
+    const newMs = Math.min(projectMonths - 1, (last.me || 0) + 1);
+    nextPhases.push({ ms: newMs, ws: 0, me: Math.min(projectMonths - 1, newMs + 1), we: 3, prog: 0 });
+    return nextPhases;
+  }
+  function removeModalPhase(phases, index) {
+    if ((phases || []).length <= 1) return (phases || []).map((phase) => ({ ...phase }));
+    return (phases || []).filter((_, phaseIndex) => phaseIndex !== index).map((phase) => ({ ...phase }));
+  }
+  function updateModalPhaseProgress(phases, index, value, getWeightedProgress2) {
+    const nextPhases = (phases || []).map((phase) => ({ ...phase }));
+    if (!nextPhases[index]) return { phases: nextPhases, totalProgress: getWeightedProgress2(nextPhases) };
+    nextPhases[index].prog = value;
+    if (value < 100) {
+      nextPhases.forEach((phase, phaseIndex) => {
+        if (phaseIndex > index) phase.prog = 0;
+      });
+    }
+    return {
+      phases: nextPhases,
+      totalProgress: getWeightedProgress2(nextPhases)
+    };
+  }
+  function buildDependencyDropdownState(params) {
+    const added = new Set((params.modalDeps || []).map((dep) => dep.id));
+    const needle = String(params.query || "").trim().toLowerCase();
+    const items = (params.tasks || []).filter((task, index) => index !== params.editIdx && !added.has(task.id)).filter((task) => !needle || `${task.n} ${task.name}`.toLowerCase().includes(needle)).map((task) => ({
+      id: task.id,
+      taskNumber: task.n,
+      name: task.name
+    }));
+    return {
+      items,
+      visible: items.length > 0
+    };
+  }
+  function addModalDependency(deps, id) {
+    if ((deps || []).some((dep) => dep.id === id)) {
+      return { deps: (deps || []).map((dep) => ({ ...dep })), editingDepId: id, didAdd: false };
+    }
+    return {
+      deps: [...(deps || []).map((dep) => ({ ...dep })), { id, type: "FS", threshold: 0 }],
+      editingDepId: id,
+      didAdd: true
+    };
+  }
+  function removeModalDependency(deps, id, editingDepId) {
+    return {
+      deps: (deps || []).filter((dep) => dep.id !== id).map((dep) => ({ ...dep })),
+      editingDepId: editingDepId === id ? null : editingDepId
+    };
+  }
+  function toggleModalDependencyEditor(editingDepId, id) {
+    return editingDepId === id ? null : id;
+  }
+  function buildModalDependencyEditorState(params) {
+    if (!params.editingDepId) {
+      return { visible: false, dependency: null, taskNumber: "?", taskName: "" };
+    }
+    const dependency = (params.deps || []).find((dep) => dep.id === params.editingDepId) || null;
+    if (!dependency) {
+      return { visible: false, dependency: null, taskNumber: "?", taskName: "" };
+    }
+    const task = (params.tasks || []).find((candidate) => candidate.id === dependency.id);
+    return {
+      visible: true,
+      dependency,
+      taskNumber: task?.n ?? "?",
+      taskName: task?.name || ""
+    };
+  }
+  function updateModalDependencyType(deps, id, type) {
+    return (deps || []).map(
+      (dep) => dep.id === id ? { ...dep, type, threshold: type !== "SS" ? 0 : dep.threshold || 25 } : { ...dep }
+    );
+  }
+  function updateModalDependencyThreshold(deps, id, value) {
+    const threshold = Math.min(99, Math.max(1, Math.round(value)));
+    return (deps || []).map(
+      (dep) => dep.id === id ? { ...dep, threshold } : { ...dep }
+    );
+  }
+
   // src/domain/modal-orchestration.ts
   function cloneModalCostItems(items) {
     return (items || []).map((item) => ({
@@ -2088,6 +2216,26 @@
       budgetValue: hasItems && (taskBudget <= 0 || contractsOverrideBudget) ? params.totalBudget : params.task?.budget || "",
       spentValue: hasItems ? params.totalSpent : params.task?.spent || "",
       contractsOverrideBudget
+    };
+  }
+  function buildTaskModalCreateState(params) {
+    return {
+      editIdx: null,
+      editingDepId: null,
+      modalDeps: [],
+      modalPhases: [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }],
+      costTi: null,
+      costItems: [],
+      expandedIds: /* @__PURE__ */ new Set(),
+      title: params.title,
+      budgetValue: "",
+      spentValue: "",
+      contractsOverrideBudget: false,
+      calcInfoText: params.fillCostHint,
+      showDependencyWarning: false,
+      showDependencyEditor: false,
+      hasItems: false,
+      focusField: "name"
     };
   }
   function buildTaskModalSaveModel(params) {
@@ -2167,6 +2315,44 @@
       history: (note.history || []).map((entry) => ({ ...entry }))
     }));
   }
+  function buildTaskNotesSession(task) {
+    return {
+      taskIndex: null,
+      title: String(task?.name || ""),
+      notes: cloneTaskNotes(task?.notes || []),
+      exists: !!task
+    };
+  }
+  function buildTaskNotesOpenState(params) {
+    const task = params.taskIndex !== null ? params.tasks?.[params.taskIndex] : null;
+    return {
+      taskIndex: params.taskIndex,
+      title: String(task?.name || ""),
+      notes: cloneTaskNotes(task?.notes || []),
+      exists: !!task
+    };
+  }
+  function getTaskNotesByIndex(tasks, taskIndex) {
+    if (taskIndex === null || !tasks?.[taskIndex]) return [];
+    return cloneTaskNotes(tasks[taskIndex]?.notes || []);
+  }
+  function applyTaskNotesToTasks(params) {
+    if (params.taskIndex === null || !params.tasks?.[params.taskIndex]) {
+      return {
+        tasks: [...params.tasks || []],
+        changed: false
+      };
+    }
+    return {
+      tasks: (params.tasks || []).map(
+        (task, index) => index === params.taskIndex ? {
+          ...task,
+          notes: cloneTaskNotes(params.notes)
+        } : task
+      ),
+      changed: true
+    };
+  }
   function addTaskNote(params) {
     const nextNotes = cloneTaskNotes(params.notes);
     nextNotes.push({
@@ -2210,8 +2396,28 @@
   function countVisibleTaskNotes(notes) {
     return (notes || []).filter((note) => !note.deleted).length;
   }
+  function buildNotesCellState(params) {
+    const count = countVisibleTaskNotes(params.notes);
+    return {
+      count,
+      className: count > 0 ? "td-notes has-notes" : "td-notes",
+      title: count > 0 ? params.countTitle(count) : params.defaultTitle,
+      hasNotes: count > 0
+    };
+  }
   function cloneCategoryDrafts(categories) {
     return (categories || []).map((category) => ({ ...category }));
+  }
+  function buildCategoryEditorState(categories) {
+    return {
+      categories: cloneCategoryDrafts(categories)
+    };
+  }
+  function applyCategoryNamesFromValues(categories, values) {
+    return cloneCategoryDrafts(categories).map((category, index) => ({
+      ...category,
+      name: values[index] ?? category.name
+    }));
   }
   function removeCategoryDraftAt(categories, index) {
     return (categories || []).filter((_, categoryIndex) => categoryIndex !== index);
@@ -2226,6 +2432,12 @@
   }
   function isCategoryUsedByTasks(tasks, index) {
     return (tasks || []).some((task) => task.cat === index);
+  }
+  function buildCategoryDeletionState(params) {
+    return {
+      isUsed: isCategoryUsedByTasks(params.tasks, params.index),
+      categories: removeCategoryDraftAt(params.categories, params.index)
+    };
   }
   function buildProjectManagerGroupModel(params) {
     const grouped = groupProjectEntriesByAccess(Object.entries(params.projects || {}));
@@ -2488,12 +2700,75 @@
       ...meta || {}
     };
   }
+  function resolveProjectDefaults(userDefaults, fallbackDefaults) {
+    return {
+      sm: userDefaults?.sm ?? fallbackDefaults.sm,
+      sy: userDefaults?.sy ?? fallbackDefaults.sy,
+      nm: userDefaults?.nm ?? fallbackDefaults.nm
+    };
+  }
   function canDeleteProjectCount(projectCount) {
     return projectCount > 1;
   }
   function resolveNextProjectAfterDeletion(projectIds, currentId, deletedId) {
     if (currentId !== deletedId) return currentId;
     return projectIds.find((projectId) => projectId !== deletedId) || null;
+  }
+  function buildProjectDeletionState(projectIds, currentId, deletedId) {
+    const remainingProjectIds = (projectIds || []).filter((projectId) => projectId !== deletedId);
+    const nextCurrentId = resolveNextProjectAfterDeletion(projectIds, currentId, deletedId);
+    return {
+      nextCurrentId,
+      shouldReloadCurrent: currentId === deletedId && !!nextCurrentId,
+      remainingProjectIds
+    };
+  }
+  function addProjectToCollection(projects, id, snapshot) {
+    return {
+      ...projects || {},
+      [id]: snapshot
+    };
+  }
+  function renameProjectInCollection(projects, id, name) {
+    const snapshot = projects?.[id];
+    if (!snapshot) {
+      return {
+        projects: { ...projects || {} },
+        nextName: "",
+        changed: false
+      };
+    }
+    const nextName = name.trim() || snapshot.proj.name;
+    if (nextName === snapshot.proj.name) {
+      return {
+        projects: { ...projects || {} },
+        nextName,
+        changed: false
+      };
+    }
+    return {
+      projects: {
+        ...projects || {},
+        [id]: {
+          ...snapshot,
+          proj: {
+            ...snapshot.proj,
+            name: nextName
+          }
+        }
+      },
+      nextName,
+      changed: true
+    };
+  }
+  function applyProjectDeletionToCollection(projects, currentId, deletedId) {
+    const deletionState = buildProjectDeletionState(Object.keys(projects || {}), currentId, deletedId);
+    const nextProjects = { ...projects || {} };
+    delete nextProjects[deletedId];
+    return {
+      projects: nextProjects,
+      deletionState
+    };
   }
 
   // src/domain/project-import.ts
@@ -2620,6 +2895,190 @@
       tasks,
       nextN: maxN + 1,
       ...meta || {}
+    };
+  }
+
+  // src/domain/app.ts
+  function buildMonthText(monthLabels, monthIndex) {
+    return `${monthLabels[monthIndex]?.name || ""} ${monthLabels[monthIndex]?.y || ""}`.trim();
+  }
+  function buildDependencyText(deps) {
+    return deps.map(
+      (dep) => typeof dep === "number" ? dep : `${dep.n}(${dep.type}${dep.type === "SS" ? `+${dep.threshold || 0}%` : ""})`
+    ).join(", ");
+  }
+  function buildProjectWorkbookExport(input) {
+    const {
+      projectName,
+      tasks,
+      categories,
+      monthLabels,
+      scheduleHeader,
+      summaryHeader,
+      estimateHeader,
+      paymentsHeader,
+      workbookSheets,
+      getCategoryName,
+      getTaskDuration,
+      getTaskCostItems,
+      costTypeLabels,
+      paymentTypeLabels
+    } = input;
+    const scheduleRows = tasks.map((task) => [
+      task.n,
+      task.name,
+      getCategoryName(task.cat),
+      String(task.contr || ""),
+      buildMonthText(monthLabels, task.ms),
+      task.ws + 1,
+      buildMonthText(monthLabels, task.me),
+      task.we + 1,
+      getTaskDuration(task),
+      task.prog,
+      Number(task.budget) || 0,
+      Number(task.spent) || 0,
+      (Number(task.budget) || 0) - (Number(task.spent) || 0),
+      buildDependencyText(Array.isArray(task.deps) ? task.deps : [])
+    ]);
+    const summaryRows = categories.map((category, index) => {
+      const categoryTasks = tasks.filter((task) => task.cat === index);
+      const budget = categoryTasks.reduce((sum, task) => sum + (Number(task.budget) || 0), 0);
+      const spent = categoryTasks.reduce((sum, task) => sum + (Number(task.spent) || 0), 0);
+      const progress = categoryTasks.length ? Math.round(categoryTasks.reduce((sum, task) => sum + task.prog, 0) / categoryTasks.length) : 0;
+      return [category.name, categoryTasks.length, budget, spent, budget - spent, progress];
+    });
+    const estimateRows = [];
+    const paymentRows = [];
+    tasks.forEach((task) => {
+      getTaskCostItems(task).forEach((item) => {
+        const qty = item.qty == null ? 1 : +item.qty || 0;
+        const paid = (Array.isArray(item.payments) ? item.payments : []).reduce(
+          (sum, payment) => sum + (+payment.amount || 0),
+          0
+        );
+        estimateRows.push([
+          task.n,
+          task.name,
+          costTypeLabels[item.type] || item.type,
+          item.name,
+          item.supplier,
+          item.unit,
+          qty,
+          item.unitPrice || 0,
+          qty * (+item.unitPrice || 0),
+          paid
+        ]);
+        (Array.isArray(item.payments) ? item.payments : []).forEach((payment) => {
+          paymentRows.push([
+            task.n,
+            task.name,
+            item.supplier || "",
+            costTypeLabels[item.type] || item.type || "",
+            item.name || "",
+            payment.date || "",
+            paymentTypeLabels[payment.type] || payment.type || "",
+            +payment.amount || 0,
+            payment.note || ""
+          ]);
+        });
+      });
+    });
+    const sheets = [
+      {
+        name: workbookSheets.schedule,
+        rows: [scheduleHeader, ...scheduleRows],
+        cols: [
+          { wch: 5 },
+          { wch: 36 },
+          { wch: 22 },
+          { wch: 18 },
+          { wch: 16 },
+          { wch: 7 },
+          { wch: 16 },
+          { wch: 7 },
+          { wch: 10 },
+          { wch: 10 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 18 }
+        ],
+        freeze: { xSplit: 0, ySplit: 1 }
+      },
+      {
+        name: workbookSheets.summary,
+        rows: [summaryHeader, ...summaryRows],
+        cols: [
+          { wch: 24 },
+          { wch: 12 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 14 },
+          { wch: 16 }
+        ]
+      }
+    ];
+    if (estimateRows.length) {
+      sheets.push({
+        name: workbookSheets.estimate,
+        rows: [estimateHeader, ...estimateRows],
+        cols: [
+          { wch: 5 },
+          { wch: 30 },
+          { wch: 14 },
+          { wch: 28 },
+          { wch: 20 },
+          { wch: 6 },
+          { wch: 7 },
+          { wch: 10 },
+          { wch: 14 },
+          { wch: 14 }
+        ]
+      });
+    }
+    if (paymentRows.length) {
+      sheets.push({
+        name: workbookSheets.payments,
+        rows: [paymentsHeader, ...paymentRows],
+        cols: [
+          { wch: 5 },
+          { wch: 30 },
+          { wch: 24 },
+          { wch: 14 },
+          { wch: 28 },
+          { wch: 13 },
+          { wch: 12 },
+          { wch: 16 },
+          { wch: 28 }
+        ]
+      });
+    }
+    return {
+      filename: `${projectName}.xlsx`,
+      sheets
+    };
+  }
+  function resolveImportSource(input) {
+    const { data, fileName, fallbackProjectName, currentId } = input;
+    const importBaseName = String(fileName || fallbackProjectName).replace(/\.json$/i, "");
+    const projectName = String(data?.proj?.name || importBaseName || fallbackProjectName).trim() || fallbackProjectName;
+    return {
+      shouldSaveCurrent: Boolean(currentId),
+      importBaseName,
+      projectName,
+      newProjectId: `p_${Date.now()}`
+    };
+  }
+  function buildImportedProjectActivationState(input) {
+    const nextProjects = {
+      ...input.projects || {},
+      [input.projectId]: input.snapshot
+    };
+    return {
+      projects: nextProjects,
+      currentId: input.projectId,
+      role: input.role,
+      hiddenCats: []
     };
   }
 
@@ -3033,6 +3492,26 @@
     };
   }
 
+  // src/services/supabase/session-runtime.ts
+  function buildSupabaseSessionHydrationResult(user, profile, loadProjects) {
+    return {
+      user,
+      profile,
+      shouldRefreshSyncStatus: true,
+      shouldUpdateUserButton: true,
+      shouldLoadProjects: loadProjects
+    };
+  }
+  function buildSupabaseSignedOutUiPlan(refreshStatus = "offline") {
+    return {
+      refreshStatus,
+      shouldUpdateReadOnlyUi: true
+    };
+  }
+  function resolveSupabaseInitialSessionPlan(hasSessionUser) {
+    return hasSessionUser ? { kind: "hydrate", loadProjects: false } : { kind: "guest", loadProjects: false };
+  }
+
   // src/services/supabase/project-runtime.ts
   function resolveLoadedProjectRole(ownerId, authUserId, shareRole) {
     if (ownerId && ownerId === authUserId) return "owner";
@@ -3234,6 +3713,59 @@
       emailRequiredMessage: "Enter email"
     };
   }
+  function buildSupabaseShareDialogListItems(params) {
+    return (params.items || []).map((item) => ({
+      id: item.id,
+      displayLabel: item.displayLabel,
+      roleOptionsHtml: buildSupabaseShareRoleOptions(
+        params.roles,
+        params.getRoleLabel,
+        item.normalizedRole || item.role
+      )
+    }));
+  }
+  function buildSupabaseShareRoleGuideHtml(items) {
+    return `
+    <div class="share-role-guide">
+      ${(items || []).map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}
+    </div>`;
+  }
+  function buildSupabaseShareListHtml(params) {
+    if (!(params.items || []).length) {
+      return `<div class="share-empty">${params.emptyText}</div>`;
+    }
+    return params.items.map((item) => `
+        <div class="share-row">
+          <span>${item.displayLabel}</span>
+          <select class="cost-sel" data-share-action="change-role" data-share-id="${item.id}">
+            ${item.roleOptionsHtml}
+          </select>
+          <button class="cost-act-btn del" data-share-action="remove-share" data-share-id="${item.id}">×</button>
+        </div>`).join("");
+  }
+  function buildSupabaseShareDialogRenderModel(params) {
+    return {
+      title: params.dialog.modalTitle,
+      html: `
+      <div class="share-modal-body">
+        <div class="share-proj-name">${params.dialog.projectLabel}: <b>${params.projectName}</b></div>
+        <div class="share-list">${params.listHtml}</div>
+        <hr class="share-divider">
+        <div class="share-add-title">${params.dialog.grantSectionTitle}</div>
+        <div class="share-add-row">
+          <input id="share-email" type="email" placeholder="${params.dialog.emailPlaceholder}" class="share-email-inp">
+          <select id="share-role" class="share-role-sel">
+            ${params.roleOptionsHtml}
+          </select>
+        </div>
+        ${params.roleGuideHtml}
+        <div id="share-err" class="share-err"></div>
+      </div>`,
+      confirmButtonText: params.dialog.confirmButtonText,
+      cancelButtonText: params.dialog.cancelButtonText,
+      emailRequiredMessage: params.dialog.emailRequiredMessage
+    };
+  }
   function buildSupabaseShareErrorMessages() {
     return {
       updateRoleErrorTitle: "Failed to update role",
@@ -3338,10 +3870,17 @@
     buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
     buildRuntimeHydratedAuthState: buildHydratedAuthState,
     buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+    buildRuntimeSupabaseSessionHydrationResult: buildSupabaseSessionHydrationResult,
+    buildRuntimeSupabaseSignedOutUiPlan: buildSupabaseSignedOutUiPlan,
+    buildRuntimeResolveSupabaseInitialSessionPlan: resolveSupabaseInitialSessionPlan,
     buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
     buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
     buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
     buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+    buildRuntimeSupabaseShareDialogListItems: buildSupabaseShareDialogListItems,
+    buildRuntimeSupabaseShareRoleGuideHtml: buildSupabaseShareRoleGuideHtml,
+    buildRuntimeSupabaseShareListHtml: buildSupabaseShareListHtml,
+    buildRuntimeSupabaseShareDialogRenderModel: buildSupabaseShareDialogRenderModel,
     buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
     buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
     buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,
@@ -3395,15 +3934,23 @@
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     buildRuntimeStorageUiModel: buildStorageUiModel,
     buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+    buildRuntimeAddProjectToCollection: addProjectToCollection,
+    buildRuntimeRenameProjectInCollection: renameProjectInCollection,
+    buildRuntimeApplyProjectDeletionToCollection: applyProjectDeletionToCollection,
+    buildRuntimeProjectDeletionState: buildProjectDeletionState,
     buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
     buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
     canRuntimeDeleteProjectCount: canDeleteProjectCount,
+    buildRuntimeResolveProjectDefaults: resolveProjectDefaults,
     resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
     buildRuntimeCopiedTask: createCopiedTask,
     checkRuntimeProjectNameExists: projectNameExists,
     buildRuntimeUniqueProjectName: resolveUniqueProjectName,
     buildRuntimeNormalizeImportedBaseline: normalizeImportedBaseline,
     buildRuntimeImportedProjectSnapshot: buildImportedProjectSnapshot,
+    buildRuntimeProjectWorkbookExport: buildProjectWorkbookExport,
+    buildRuntimeResolveImportSource: resolveImportSource,
+    buildRuntimeImportedProjectActivationState: buildImportedProjectActivationState,
     normalizeRuntimeBufferedProjectRoles: normalizeBufferedProjectRoles,
     getRuntimeProjectRoleLabel: getProjectRoleLabel,
     buildRuntimeAccountSyncPanelModel: buildAccountSyncPanelModel,
@@ -3414,6 +3961,10 @@
     buildRuntimeLegendItems: buildLegendItems,
     buildRuntimeVisibleYearGroups: buildVisibleYearGroups,
     buildRuntimeTaskWindowModel: buildTaskWindowModel,
+    buildRuntimeProjectSelectState: buildProjectSelectState,
+    buildRuntimeHasActiveGanttFilters: hasActiveGanttFilters,
+    buildRuntimeTaskMatchesGanttFilters: taskMatchesGanttFilters,
+    buildRuntimeRenderGroupStats: buildRenderGroupStats,
     buildRuntimeAppUiModel: buildAppUiModel,
     buildRuntimeApiUiModel: buildApiUiModel,
     buildRuntimeFallbackAuthModalRenderModel: buildFallbackAuthModalRenderModel,
@@ -3513,21 +4064,40 @@
     buildRuntimeRemWeeks: remWeeks,
     buildRuntimeTaskCalcModel: buildTaskCalcModel,
     buildRuntimeDependencyListState: buildDependencyListState,
+    buildRuntimeAddModalPhase: addModalPhase,
+    buildRuntimeRemoveModalPhase: removeModalPhase,
+    buildRuntimeUpdateModalPhaseProgress: updateModalPhaseProgress,
+    buildRuntimeDependencyDropdownState: buildDependencyDropdownState,
+    buildRuntimeAddModalDependency: addModalDependency,
+    buildRuntimeRemoveModalDependency: removeModalDependency,
+    buildRuntimeToggleModalDependencyEditor: toggleModalDependencyEditor,
+    buildRuntimeModalDependencyEditorState: buildModalDependencyEditorState,
+    buildRuntimeUpdateModalDependencyType: updateModalDependencyType,
+    buildRuntimeUpdateModalDependencyThreshold: updateModalDependencyThreshold,
     buildRuntimeCloneModalCostItems: cloneModalCostItems,
     buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+    buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
     buildRuntimeTaskModalEditState: buildTaskModalEditState,
     buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
     buildRuntimeApplyTaskSave: applyTaskSave,
     buildRuntimeRemoveTaskAt: removeTaskAt,
     buildRuntimeCloneTaskNotes: cloneTaskNotes,
+    buildRuntimeTaskNotesSession: buildTaskNotesSession,
+    buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,
     buildRuntimeAddTaskNote: addTaskNote,
     buildRuntimeEditTaskNote: editTaskNote,
     buildRuntimeDeleteTaskNote: deleteTaskNote,
+    buildRuntimeGetTaskNotesByIndex: getTaskNotesByIndex,
+    buildRuntimeApplyTaskNotesToTasks: applyTaskNotesToTasks,
     buildRuntimeCountVisibleTaskNotes: countVisibleTaskNotes,
+    buildRuntimeNotesCellState: buildNotesCellState,
     buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
+    buildRuntimeCategoryEditorState: buildCategoryEditorState,
+    buildRuntimeApplyCategoryNamesFromValues: applyCategoryNamesFromValues,
     buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
     buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,
     buildRuntimeIsCategoryUsedByTasks: isCategoryUsedByTasks,
+    buildRuntimeCategoryDeletionState: buildCategoryDeletionState,
     buildRuntimeProjectManagerGroupModel: buildProjectManagerGroupModel,
     buildRuntimeAuthFlowMessages: buildAuthFlowMessages,
     buildRuntimeProfileFeedbackMessages: buildProfileFeedbackMessages,

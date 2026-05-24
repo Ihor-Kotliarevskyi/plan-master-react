@@ -27,11 +27,14 @@ and Supabase adapters happen against stable interfaces.
   - `src/domain/settings-ui.ts`
   - `src/domain/account-section-ui.ts`
   - `src/domain/modal.ts`
+  - `src/domain/modal-state.ts`
   - `src/domain/modal-orchestration.ts`
   - `src/domain/modal-panels.ts`
   - `src/domain/modal-ui.ts`
   - `src/domain/render.ts`
+  - `src/domain/render-filters.ts`
   - `src/domain/render-ui.ts`
+  - `src/domain/app.ts`
   - `src/domain/app-ui.ts`
   - `src/domain/api-ui.ts`
   - `src/domain/charts-ui.ts`
@@ -62,6 +65,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/project-list.ts`
   - `src/services/supabase/runtime.ts`
   - `src/services/supabase/auth-runtime.ts`
+  - `src/services/supabase/session-runtime.ts`
   - `src/services/supabase/account-runtime.ts`
   - `src/services/supabase/ui-runtime.ts`
   - `src/services/supabase/collaboration-runtime.ts`
@@ -123,10 +127,14 @@ and Supabase adapters happen against stable interfaces.
   - auth-state reset and hydration model
   - logout sync-decision
   - auth-event planning for `INITIAL_SESSION` / `SIGNED_IN` / `TOKEN_REFRESHED` / `USER_UPDATED` / `SIGNED_OUT`
+  - initial-session bootstrap planning
+  - session hydration result planning
+  - signed-out UI plan
   - readonly/share-button UI state model
   - share modal list projection
   - share role option and guide rendering helpers
   - share dialog copy and error-state models
+  - share dialog list/render model building
   - share success toast models
   - sync-indicator timing plan
   - activity write request model
@@ -150,24 +158,40 @@ and Supabase adapters happen against stable interfaces.
   - legend chip state projection
   - visible year-group projection
   - task row / bar / phase window projection
+  - project selector state projection
+  - gantt filter-state detection
+  - task visibility checks for gantt filters
+  - grouped category summary stats
 - `js/modal.js` now uses the generated helper layer for:
   - project settings update and timeline-shift orchestration
+  - resolved project defaults for new-project creation
+  - project deletion state resolution
   - empty-project and demo-project snapshot creation
   - delete-project guard evaluation
   - next-project resolution after deletion
+  - task modal create-state projection
   - task modal edit-state projection
   - task modal save-model construction
   - task save apply/update orchestration
   - task remove-at mutation helper
   - note add/edit/delete state mutation
+  - task-notes session state projection
+  - notes-cell state projection
   - visible note-count calculation
+  - category editor state projection
   - category draft cloning/add/remove helpers
+  - category-name draft application
   - category-in-use detection
+  - category deletion state resolution
   - project manager grouped row projection
   - modal phase/date conversion helpers
+  - modal phase add/remove/progress state
   - weighted progress and active-phase resolution
   - task cost summary calculation for modal footer
   - dependency-list aggregation and filtered row projection
+  - dependency dropdown candidate projection
+  - dependency add/remove/type/threshold state mutation
+  - dependency editor state projection
 - `js/baseline.js` and `js/guard.js` now use the generated helper layer for:
   - baseline save/clear/missing dialogs
   - capability-guard action labels and denial toasts
@@ -286,6 +310,9 @@ and Supabase adapters happen against stable interfaces.
   - project-name collision checks and unique-name suggestion
   - imported baseline remapping
   - imported project snapshot normalization from legacy JSON
+  - workbook export sheet/row projection
+  - import source resolution from file/project data
+  - imported-project activation state application
 - `js/supabase-api.js`, `js/api.js`, `js/modal.js`, `js/render.js`, and `js/user.js` now use the generated helper layer for:
   - role labels
   - shared-project presentation text

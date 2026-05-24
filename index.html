@@ -39,10 +39,10 @@
   <div class="app-head">
     <div class="proj-block">
       <select class="proj-sel" id="proj-sel" onchange="switchProject(this.value)"></select>
-      <button class="btn btn-icon" onclick="openProjManager()" title="Управління проєктами">
+      <button class="btn btn-icon" data-project-manager-action="open-manager" title="Управління проєктами">
         <i data-lucide="folder"></i>
       </button>
-      <button class="btn btn-icon" onclick="openProj()" title="Налаштування проєкту">
+      <button class="btn btn-icon" data-project-action="open-settings" title="Налаштування проєкту">
         <i data-lucide="settings"></i>
       </button>
       <span class="proj-dates" id="head-dates"></span>
@@ -56,7 +56,7 @@
         <i data-lucide="more-horizontal"></i>
       </button>
       <div class="tools-dropdown" id="tools-dropdown">
-        <button class="tools-item" onclick="openPrintDialog();closeToolsMenu()">
+        <button class="tools-item" data-print-action="open-dialog">
           <i data-lucide="printer"></i> Друк / PDF
         </button>
         <div class="tools-sep"></div>
@@ -72,11 +72,11 @@
         </label>
       </div>
     </div>
-    <button id="user-btn" class="user-btn" onclick="openUserModal()" title="Кабінет користувача">
+    <button id="user-btn" class="user-btn" title="Кабінет користувача">
       <div class="user-avatar">К</div>
       <span>Профіль</span>
     </button>
-    <button id="share-btn" class="btn btn-sm" style="display: none" onclick="openShareModal()"
+    <button id="share-btn" class="btn btn-sm" style="display: none" 
       title="Керувати доступом до проєкту">
       <i data-lucide="users"></i> Доступ
     </button>
@@ -118,14 +118,15 @@
         <div class="scurve-header">
           <span class="scurve-title"><i data-lucide="trending-up"></i> S-крива освоєння бюджету (кумулятивна)</span>
           <div class="scurve-actions">
-            <button class="scurve-toggle" id="scurve-weekly-toggle" onclick="toggleWeeklyCostBars()" type="button">
+            <button class="scurve-toggle" id="scurve-weekly-toggle" data-finance-chart-action="toggle-weekly-bars"
+              type="button">
               Витрати/тижд.
             </button>
-            <button class="scurve-icon-btn" onclick="adjustFinanceChartHeight(-40)" type="button"
+            <button class="scurve-icon-btn" data-finance-chart-action="shrink-height" type="button"
               title="Зменшити висоту">
               -
             </button>
-            <button class="scurve-icon-btn" onclick="adjustFinanceChartHeight(40)" type="button"
+            <button class="scurve-icon-btn" data-finance-chart-action="grow-height" type="button"
               title="Збільшити висоту">
               +
             </button>
@@ -168,31 +169,31 @@
         <span id="contractor-reset-filter"></span>
         <div id="contractor-selection-actions"></div>
         <span class="contractor-toolbar-spacer"></span>
-        <button class="btn btn-sm btn-acc" onclick="openContractorEntryModal()">
+        <button class="btn btn-sm btn-acc" data-contractor-entry-action="open-modal">
           <i data-lucide="plus"></i> Контрагент
         </button>
         <div class="tools-menu contractor-tools-menu" id="contractor-tools-menu">
-          <button class="btn btn-icon tools-trigger" onclick="toggleContractorToolsMenu()" title="Імпорт та реєстри">
+          <button class="btn btn-icon tools-trigger" data-contractor-tools-action="toggle-menu" title="Імпорт та реєстри">
             <i data-lucide="more-horizontal"></i>
           </button>
           <div class="tools-dropdown" id="contractor-tools-dropdown">
-            <button class="tools-item" onclick="exportContractorImportTemplate();closeContractorToolsMenu()">
+            <button class="tools-item" data-contractor-tools-action="export-template">
               <i data-lucide="upload"></i> Шаблон
             </button>
             <label class="tools-item contractor-import-btn">
               <i data-lucide="download"></i> Імпорт оплат
               <input type="file" accept=".xlsx,.xls,.csv" style="display:none"
-                onchange="importContractorTable(event);closeContractorToolsMenu()" />
+                data-contractor-tools-input="import-file" />
             </label>
             <div class="tools-sep"></div>
-            <button class="tools-item" onclick="deleteSelectedContractors();closeContractorToolsMenu()">
+            <button class="tools-item" data-contractor-tools-action="delete-selected">
               <i data-lucide="trash-2"></i> Видалити вибраних
             </button>
-            <button class="tools-item" onclick="deleteVisibleContractors();closeContractorToolsMenu()">
+            <button class="tools-item" data-contractor-tools-action="delete-visible">
               <i data-lucide="trash"></i> Видалити всіх за фільтром
             </button>
             <div class="tools-sep"></div>
-            <button class="tools-item" onclick="openPaymentRegisterModal();closeContractorToolsMenu()">
+            <button class="tools-item" data-payment-register-action="open-modal">
               <i data-lucide="file-spreadsheet"></i> Реєстри
             </button>
           </div>
@@ -207,23 +208,23 @@
 
   <!-- MODAL: PAYMENT REGISTERS -->
   <div class="overlay" id="payment-register-modal" style="display: none"
-    onclick="if (event.target === this) closePaymentRegisterModal();">
+    data-payment-register-root>
     <div class="modal payment-register-modal">
       <div class="modal-header">
         <h3><i data-lucide="file-spreadsheet"></i> Реєстри платежів</h3>
-        <button class="btn btn-sm" onclick="closePaymentRegisterModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-payment-register-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="payment-register-actions">
-        <button class="btn btn-acc" onclick="createPaymentRegisterFromFilters()">
+        <button class="btn btn-acc" data-payment-register-action="create-from-filters">
           <i data-lucide="plus"></i> Сформувати з поточного фільтра
         </button>
-        <button class="btn btn-sm" onclick="exportCurrentPaymentRegister('xlsx')">
+        <button class="btn btn-sm" data-payment-register-action="export-current" data-export-type="xlsx">
           <i data-lucide="file-spreadsheet"></i> Поточний XLSX
         </button>
-        <button class="btn btn-sm" onclick="exportCurrentPaymentRegister('csv')">
+        <button class="btn btn-sm" data-payment-register-action="export-current" data-export-type="csv">
           <i data-lucide="file-text"></i> Поточний CSV
         </button>
-        <button class="btn btn-sm" onclick="printCurrentPaymentRegister()">
+        <button class="btn btn-sm" data-payment-register-action="print-current">
           <i data-lucide="printer"></i> Друк поточного
         </button>
       </div>
@@ -234,11 +235,11 @@
 
   <!-- MODAL: CONTRACTOR ENTRY -->
   <div class="overlay" id="contractor-entry-modal" style="display: none"
-    onclick="if (event.target === this) closeContractorEntryModal();">
+    data-contractor-entry-root>
     <div class="modal contractor-entry-modal">
       <div class="modal-header">
         <h3><i data-lucide="receipt-text"></i> Контрагент</h3>
-        <button class="btn btn-sm" onclick="closeContractorEntryModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-contractor-entry-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="contractor-entry-grid contractor-contract-manager">
         <div class="fg contractor-entry-span">
@@ -247,14 +248,14 @@
         </div>
         <div class="contractor-contract-list contractor-entry-span" id="ce-contract-list"></div>
         <div class="contractor-entry-span">
-          <button type="button" class="btn btn-sm" onclick="addContractorContractRow()">
+          <button type="button" class="btn btn-sm" data-contractor-entry-action="add-contract-row">
             <i data-lucide="plus"></i> Додати договір
           </button>
         </div>
       </div>
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeContractorEntryModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveContractorEntry()">Зберегти</button>
+        <button class="btn" data-contractor-entry-action="close-modal">Скасувати</button>
+        <button class="btn btn-acc" data-contractor-entry-action="save-entry">Зберегти</button>
       </div>
     </div>
   </div>
@@ -310,7 +311,7 @@
             <option value="pending">Не розпочато</option>
           </select>
         </div>
-        <button class="btn btn-acc btn-align-end" onclick="addCustomChart()">
+        <button class="btn btn-acc btn-align-end" data-chart-action="add-custom-chart">
           + Побудувати
         </button>
       </div>
@@ -319,15 +320,15 @@
   </div>
 
   <!-- MODAL: TASK -->
-  <div class="overlay" id="modal" style="display: none" onclick="if (event.target === this) closeModal();">
+  <div class="overlay" id="modal" style="display: none" data-task-modal-root>
     <div class="modal task-modal-wide">
       <div class="task-modal-header">
         <h3 id="m-title">Нова робота</h3>
         <div class="task-tabs">
-          <div class="task-tab active" id="ttab-general" onclick="switchTaskTab('general')">
+          <div class="task-tab active" id="ttab-general" data-task-modal-action="switch-tab" data-task-tab="general">
             <i data-lucide="clipboard-list"></i> Загальне
           </div>
-          <div class="task-tab" id="ttab-costs" onclick="switchTaskTab('costs')">
+          <div class="task-tab" id="ttab-costs" data-task-modal-action="switch-tab" data-task-tab="costs">
             <i data-lucide="wallet"></i> Кошторис
           </div>
         </div>
@@ -347,7 +348,7 @@
             <div class="fg">
               <div class="modal-section-header">
                 <label>Фази та терміни</label>
-                <button class="btn btn-sm" onclick="modalAddPhase()" type="button">+ Фаза</button>
+                <button class="btn btn-sm" data-task-modal-action="add-phase" type="button">+ Фаза</button>
               </div>
               <div id="modal-phases"></div>
             </div>
@@ -362,7 +363,7 @@
                   <div class="dep-search-wrap">
                     <i data-lucide="search" class="dep-search-icon"></i>
                     <input type="text" id="dep-search" placeholder="Знайти та додати залежність..." autocomplete="off"
-                      oninput="filterDepSearch(this.value)" onfocus="showDepDropdown()" />
+                       />
                   </div>
                 </div>
                 <div class="dep-dropdown" id="dep-dropdown"></div>
@@ -376,12 +377,12 @@
                   <span id="budget-auto-badge" class="auto-badge">авто</span>
                 </label>
                 <div class="num-wrap">
-                  <button class="num-btn" type="button" onclick="adjNum('f-budget',-1000)">−</button>
-                  <input id="f-budget" type="number" min="0" step="1000" placeholder="0" oninput="updCalc()" />
-                  <button class="num-btn" type="button" onclick="adjNum('f-budget',1000)">+</button>
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-budget" data-delta="-1000">−</button>
+                  <input id="f-budget" type="number" min="0" step="1000" placeholder="0" data-task-modal-input="budget" />
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-budget" data-delta="1000">+</button>
                 </div>
                 <label class="calc-toggle">
-                  <input id="f-contracts-override-budget" type="checkbox" onchange="updCalc()" />
+                  <input id="f-contracts-override-budget" type="checkbox" data-task-modal-input="contracts-override-budget" />
                   Договори формують суму роботи
                 </label>
               </div>
@@ -390,9 +391,9 @@
                   <span id="spent-auto-badge" class="auto-badge">авто</span>
                 </label>
                 <div class="num-wrap">
-                  <button class="num-btn" type="button" onclick="adjNum('f-spent',-1000)">−</button>
-                  <input id="f-spent" type="number" min="0" step="1000" placeholder="0" oninput="updCalc()" />
-                  <button class="num-btn" type="button" onclick="adjNum('f-spent',1000)">+</button>
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-spent" data-delta="-1000">−</button>
+                  <input id="f-spent" type="number" min="0" step="1000" placeholder="0" data-task-modal-input="spent" />
+                  <button class="num-btn" type="button" data-task-modal-action="num-step" data-target-id="f-spent" data-delta="1000">+</button>
                 </div>
               </div>
             </div>
@@ -415,19 +416,19 @@
 
       <div id="task-pane-costs" class="task-pane">
         <div class="cost-toolbar">
-          <button class="btn btn-sm" onclick="addCostItem('material')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="material">
             <i data-lucide="layers"></i> Матеріали
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('work')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="work">
             <i data-lucide="hard-hat"></i> Роботи
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('equipment')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="equipment">
             <i data-lucide="wrench"></i> Техніка
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('service')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="service">
             <i data-lucide="handshake"></i> Послуги
           </button>
-          <button class="btn btn-sm" onclick="addCostItem('other')">
+          <button class="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="other">
             <i data-lucide="box"></i> Інше
           </button>
         </div>
@@ -458,14 +459,14 @@
       </div>
 
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveTask()">Зберегти</button>
+        <button class="btn" data-task-modal-action="close-modal">Скасувати</button>
+        <button class="btn btn-acc" data-task-modal-action="save-task">Зберегти</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: DEP LIST -->
-  <div class="overlay" id="dep-list-modal" style="display:none" onclick="if(event.target===this)closeDepList()">
+  <div class="overlay" id="dep-list-modal" style="display:none" data-dep-list-root>
     <div class="modal dl-modal">
       <div class="modal-header">
         <div class="dl-modal-title">
@@ -473,21 +474,21 @@
           <span class="dl-count-badge" id="dl-count"></span>
         </div>
         <div class="dl-filters">
-          <button class="dl-filter-btn on" data-f="all" onclick="setDepListFilter('all')">Всі</button>
-          <button class="dl-filter-btn" data-f="FS" onclick="setDepListFilter('FS')">FS</button>
-          <button class="dl-filter-btn" data-f="SS" onclick="setDepListFilter('SS')">SS</button>
-          <button class="dl-filter-btn" data-f="FF" onclick="setDepListFilter('FF')">FF</button>
+          <button class="dl-filter-btn on" data-f="all" data-dep-action="set-filter">Всі</button>
+          <button class="dl-filter-btn" data-f="FS" data-dep-action="set-filter">FS</button>
+          <button class="dl-filter-btn" data-f="SS" data-dep-action="set-filter">SS</button>
+          <button class="dl-filter-btn" data-f="FF" data-dep-action="set-filter">FF</button>
         </div>
       </div>
       <div class="dl-wrap" id="dl-body"></div>
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeDepList()">Закрити</button>
+        <button class="btn" data-dep-action="close-modal">Закрити</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: PROJECT SETTINGS -->
-  <div class="overlay" id="proj-modal" style="display: none" onclick="if (event.target === this) closeProjModal();">
+  <div class="overlay" id="proj-modal" style="display: none" data-project-settings-root>
     <div class="modal">
       <h3>Налаштування проєкту</h3>
       <div class="fg"><label>Назва</label><input id="p-name" /></div>
@@ -498,64 +499,64 @@
         <div class="fg">
           <label>Рік</label>
           <div class="num-wrap">
-            <button type="button" class="num-btn" onclick="numStep('p-sy',-1)">−</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-sy" data-delta="-1">−</button>
             <input id="p-sy" type="number" min="2020" max="2035" />
-            <button type="button" class="num-btn" onclick="numStep('p-sy',1)">+</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-sy" data-delta="1">+</button>
           </div>
         </div>
         <div class="fg">
           <label>Тривалість (міс.)</label>
           <div class="num-wrap">
-            <button type="button" class="num-btn" onclick="numStep('p-nm',-1)">−</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-nm" data-delta="-1">−</button>
             <input id="p-nm" type="number" min="3" max="120" />
-            <button type="button" class="num-btn" onclick="numStep('p-nm',1)">+</button>
+            <button type="button" class="num-btn" data-project-action="num-step" data-target-id="p-nm" data-delta="1">+</button>
           </div>
         </div>
       </div>
 
       <div class="proj-modal-cats">
-        <button class="btn btn-full" onclick="closeProjModal();openCatEditor()">
+        <button class="btn btn-full" data-project-action="open-categories">
           <i data-lucide="palette"></i> Редагувати категорії
         </button>
       </div>
       <div class="m-btns">
-        <button class="btn" onclick="closeProjModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveProjSettings()">Зберегти</button>
+        <button class="btn" data-project-action="close-settings">Скасувати</button>
+        <button class="btn btn-acc" data-project-action="save-settings">Зберегти</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: CATEGORY EDITOR -->
-  <div class="overlay" id="cat-modal" style="display: none" onclick="if (event.target === this) closeCatModal();">
+  <div class="overlay" id="cat-modal" style="display: none" data-project-categories-root>
     <div class="modal">
       <h3>Редагування категорій</h3>
       <div class="cat-editor-list" id="cat-editor-list"></div>
-      <button class="btn btn-acc btn-full" onclick="addCat()">+ Додати категорію</button>
+      <button class="btn btn-acc btn-full" data-project-action="add-category">+ Додати категорію</button>
       <div class="m-btns">
-        <button class="btn" onclick="closeCatModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveCats()">Зберегти</button>
+        <button class="btn" data-project-action="close-categories">Скасувати</button>
+        <button class="btn btn-acc" data-project-action="save-categories">Зберегти</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: PROJECT MANAGER -->
-  <div class="overlay" id="projmgr-modal" style="display: none" onclick="if (event.target === this) closeProjMgr();">
+  <div class="overlay" id="projmgr-modal" style="display: none" data-project-manager-root>
     <div class="modal">
       <h3>Управління проєктами</h3>
       <div class="proj-list" id="proj-list-el"></div>
-      <button class="btn btn-acc btn-full" onclick="createProject()">+ Новий проєкт</button>
-      <button class="btn btn-full" onclick="loadDemoProject()">
+      <button class="btn btn-acc btn-full" data-project-manager-action="create-project">+ Новий проєкт</button>
+      <button class="btn btn-full" data-project-manager-action="load-demo">
         <i data-lucide="clipboard-list"></i> Завантажити демо-проєкт
       </button>
       <div class="m-btns">
-        <button class="btn btn-acc" onclick="closeProjMgr()">Закрити</button>
+        <button class="btn btn-acc" data-project-manager-action="close-manager">Закрити</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: CHART EDIT -->
   <div class="overlay" id="chart-edit-modal" style="display: none"
-    onclick="if (event.target === this) closeChartEdit();">
+    data-chart-edit-root>
     <div class="modal">
       <h3>Редагувати графік</h3>
       <input type="hidden" id="ce-id" />
@@ -620,22 +621,22 @@
         </select>
       </div>
       <div class="m-btns">
-        <button class="btn" onclick="closeChartEdit()">Скасувати</button>
-        <button class="btn btn-acc" onclick="applyChartEdit()">Оновити</button>
+        <button class="btn" data-chart-action="close-edit">Скасувати</button>
+        <button class="btn btn-acc" data-chart-action="apply-edit">Оновити</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: PRINT / PDF -->
-  <div class="overlay" id="print-modal" style="display: none" onclick="if (event.target === this) closePrintDialog();">
+  <div class="overlay" id="print-modal" style="display: none" data-print-dialog-root>
     <div class="modal modal-w860 print-modal-box">
       <div class="print-modal-layout">
         <div class="print-preview-panel">
           <div class="print-preview-head">
-            <button class="btn btn-sm btn-icon" id="print-prev-page" onclick="changePrintPreviewPage(-1)"
+            <button class="btn btn-sm btn-icon" id="print-prev-page" data-print-action="prev-page"
               title="Попередня сторінка">&lsaquo;</button>
             <span id="print-preview-meta" class="print-preview-meta"></span>
-            <button class="btn btn-sm btn-icon" id="print-next-page" onclick="changePrintPreviewPage(1)"
+            <button class="btn btn-sm btn-icon" id="print-next-page" data-print-action="next-page"
               title="Наступна сторінка">&rsaquo;</button>
           </div>
           <div class="print-preview-shell">
@@ -656,10 +657,7 @@
               <div class="ps-desc">Зведення + таблиця задач</div>
             </div>
             <div class="print-section-card full-col">
-              <label><input type="checkbox" id="print-charts" onchange="
-                  document.getElementById('print-chart-picker').style.display =
-                    this.checked ? 'block' : 'none'
-                " />
+              <label><input type="checkbox" id="print-charts" data-print-action="toggle-chart-picker" />
                 <i data-lucide="bar-chart-2"></i> Графіки аналітики</label>
               <div class="ps-desc">Вибрати конкретні графіки нижче</div>
             </div>
@@ -726,9 +724,9 @@
             </label>
           </div>
           <div class="print-actions">
-            <button class="btn" onclick="closePrintDialog()">Скасувати</button>
-            <button class="btn" onclick="doPrint()"><i data-lucide="printer"></i> Друк</button>
-            <button class="btn btn-acc" onclick="doExportPDF()">
+            <button class="btn" data-print-action="close-dialog">Скасувати</button>
+            <button class="btn" data-print-action="do-print"><i data-lucide="printer"></i> Друк</button>
+            <button class="btn btn-acc" data-print-action="export-pdf">
               <i data-lucide="file-text"></i> Зберегти PDF
             </button>
           </div>
@@ -738,34 +736,34 @@
   </div>
 
   <!-- MODAL: NOTES -->
-  <div class="overlay" id="notes-modal" style="display: none" onclick="if (event.target === this) closeNotesModal();">
+  <div class="overlay" id="notes-modal" style="display: none" data-notes-modal-root>
     <div class="modal modal-w460">
       <div class="modal-header">
         <h3><i data-lucide="message-square"></i> <span id="notes-modal-title">Нотатки</span></h3>
-        <button class="btn btn-sm" onclick="closeNotesModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-notes-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="notes-list" id="notes-list"></div>
       <div class="notes-add-row">
         <textarea id="note-input" placeholder="Додати нотатку..."></textarea>
-        <button class="btn btn-acc" onclick="addNote()">+</button>
+        <button class="btn btn-acc" data-notes-action="add-note">+</button>
       </div>
       <div class="m-btns">
-        <button class="btn btn-acc" onclick="closeNotesModal()">Закрити</button>
+        <button class="btn btn-acc" data-notes-action="close-modal">Закрити</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: USER CABINET -->
-  <div class="overlay" id="user-modal" style="display: none" onclick="if (event.target === this) closeUserModal();">
+  <div class="overlay" id="user-modal" style="display: none" data-user-cabinet-root>
     <div class="modal um-modal">
       <div class="modal-header modal-header-lg">
         <h3><i data-lucide="user-circle"></i> Кабінет користувача</h3>
-        <button class="btn btn-sm" onclick="closeUserModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-user-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="user-modal-body" id="user-modal-body"></div>
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeUserModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveUserProfile()">Зберегти</button>
+        <button class="btn" data-user-action="close-modal">Скасувати</button>
+        <button class="btn btn-acc" data-user-action="save-profile">Зберегти</button>
       </div>
     </div>
   </div>
@@ -807,7 +805,24 @@
   <!-- <script src="./js/api.js"></script> -->
   <script src="./js/supabase-api.js"></script>
   <script src="./js/guard.js"></script>
+  <script type="module" src="/src/islands/user-cabinet.ts"></script>
+  <script type="module" src="/src/islands/auth-cabinet.ts"></script>
+  <script type="module" src="/src/islands/audit-viewer.ts"></script>
+  <script type="module" src="/src/islands/share-modal.ts"></script>
+  <script type="module" src="/src/islands/project-settings.ts"></script>
+  <script type="module" src="/src/islands/project-manager.ts"></script>
+  <script type="module" src="/src/islands/print-dialog.ts"></script>
+  <script type="module" src="/src/islands/chart-edit.ts"></script>
+  <script type="module" src="/src/islands/task-modal.ts"></script>
+  <script type="module" src="/src/islands/notes-modal.ts"></script>
+  <script type="module" src="/src/islands/dependency-list.ts"></script>
+  <script type="module" src="/src/islands/contractor-entry.ts"></script>
+  <script type="module" src="/src/islands/payment-register.ts"></script>
+  <script type="module" src="/src/islands/contractor-tools.ts"></script>
+  <script type="module" src="/src/islands/contractor-import-review.ts"></script>
+  <script type="module" src="/src/islands/finance-chart-controls.ts"></script>
+  <script type="module" src="/src/islands/print-chart-picker.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
-
 </html>
+

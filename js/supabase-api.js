@@ -897,9 +897,7 @@ async function openShareModal() {
   const getRoleLabel = (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
   const roleOptions = typeof buildRuntimeSupabaseShareRoleOptions === "function"
     ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, "viewer")
-    : SHAREABLE_PROJECT_ROLES.map(
-        (role) => `<option value="${role}">${getRoleLabel(role)}</option>`,
-      ).join("");
+    : SHAREABLE_PROJECT_ROLES.map((role) => `<option value="${role}">${getRoleLabel(role)}</option>`).join("");
   const roleGuideItems = typeof buildRuntimeSupabaseShareRoleGuide === "function"
     ? buildRuntimeSupabaseShareRoleGuide()
     : [
@@ -907,10 +905,9 @@ async function openShareModal() {
         { title: "Editor", description: "edits tasks but cannot manage access." },
         { title: "Viewer", description: "read-only access." },
       ];
-  const roleGuide = `
-    <div class="share-role-guide">
-      ${roleGuideItems.map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}
-    </div>`;
+  const roleGuideHtml = typeof buildRuntimeSupabaseShareRoleGuideHtml === "function"
+    ? buildRuntimeSupabaseShareRoleGuideHtml(roleGuideItems)
+    : `<div class="share-role-guide">${roleGuideItems.map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}</div>`;
 
   const shareModalState = typeof buildRuntimeSupabaseShareModalState === "function"
     ? buildRuntimeSupabaseShareModalState({
@@ -929,48 +926,79 @@ async function openShareModal() {
         })),
       };
 
-  const list = shareModalState.items.length
-    ? shareModalState.items.map((share) => {
-      return `
-        <div class="share-row">
-          <span>${share.displayLabel}</span>
-          <select class="cost-sel" onchange="handleShareRoleChange('${share.id}',this.value)">
-            ${typeof buildRuntimeSupabaseShareRoleOptions === "function"
-              ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, share.normalizedRole || share.role)
-              : SHAREABLE_PROJECT_ROLES.map(
-                  (role) => `<option value="${role}"${share.normalizedRole === role ? " selected" : ""}>${getRoleLabel(role)}</option>`,
-                ).join("")}
-          </select>
-          <button class="cost-act-btn del" onclick="handleShareRemoval('${share.id}')">✕</button>
-        </div>`;
-    }).join("")
-    : `<div class="share-empty">${shareDialog.emptyText}</div>`;
+  const shareListItems = typeof buildRuntimeSupabaseShareDialogListItems === "function"
+    ? buildRuntimeSupabaseShareDialogListItems({
+        items: shareModalState.items,
+        roles: SHAREABLE_PROJECT_ROLES,
+        getRoleLabel,
+      })
+    : shareModalState.items.map((share) => ({
+        id: share.id,
+        displayLabel: share.displayLabel,
+        roleOptionsHtml: typeof buildRuntimeSupabaseShareRoleOptions === "function"
+          ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, share.normalizedRole || share.role)
+          : SHAREABLE_PROJECT_ROLES.map(
+              (role) => `<option value="${role}"${share.normalizedRole === role ? " selected" : ""}>${getRoleLabel(role)}</option>`,
+            ).join(""),
+      }));
+
+  const shareListHtml = typeof buildRuntimeSupabaseShareListHtml === "function"
+    ? buildRuntimeSupabaseShareListHtml({
+        items: shareListItems,
+        emptyText: shareDialog.emptyText,
+      })
+    : (shareListItems.length
+        ? shareListItems.map((item) => `
+            <div class="share-row">
+              <span>${item.displayLabel}</span>
+              <select class="cost-sel" onchange="handleShareRoleChange('${item.id}',this.value)">
+                ${item.roleOptionsHtml}
+              </select>
+              <button class="cost-act-btn del" onclick="handleShareRemoval('${item.id}')">?</button>
+            </div>`).join("")
+        : `<div class="share-empty">${shareDialog.emptyText}</div>`);
+
+  const shareRenderModel = typeof buildRuntimeSupabaseShareDialogRenderModel === "function"
+    ? buildRuntimeSupabaseShareDialogRenderModel({
+        dialog: shareDialog,
+        projectName: shareModalState.projectName,
+        listHtml: shareListHtml,
+        roleOptionsHtml: roleOptions,
+        roleGuideHtml: roleGuideHtml,
+      })
+    : {
+        title: shareDialog.modalTitle,
+        html: `
+          <div class="share-modal-body">
+            <div class="share-proj-name">${shareDialog.projectLabel}: <b>${shareModalState.projectName}</b></div>
+            <div class="share-list">${shareListHtml}</div>
+            <hr class="share-divider">
+            <div class="share-add-title">${shareDialog.grantSectionTitle}</div>
+            <div class="share-add-row">
+              <input id="share-email" type="email" placeholder="${shareDialog.emailPlaceholder}" class="share-email-inp">
+              <select id="share-role" class="share-role-sel">
+                ${roleOptions}
+              </select>
+            </div>
+            ${roleGuideHtml}
+            <div id="share-err" class="share-err"></div>
+          </div>`,
+        confirmButtonText: shareDialog.confirmButtonText,
+        cancelButtonText: shareDialog.cancelButtonText,
+        emailRequiredMessage: shareDialog.emailRequiredMessage,
+      };
 
   Swal.fire({
-    title: shareDialog.modalTitle,
-    html: `
-      <div class="share-modal-body">
-        <div class="share-proj-name">${shareDialog.projectLabel}: <b>${shareModalState.projectName}</b></div>
-        <div class="share-list">${list}</div>
-        <hr class="share-divider">
-        <div class="share-add-title">${shareDialog.grantSectionTitle}</div>
-        <div class="share-add-row">
-          <input id="share-email" type="email" placeholder="${shareDialog.emailPlaceholder}" class="share-email-inp">
-          <select id="share-role" class="share-role-sel">
-            ${roleOptions}
-          </select>
-        </div>
-        ${roleGuide}
-        <div id="share-err" class="share-err"></div>
-      </div>`,
+    title: shareRenderModel.title,
+    html: shareRenderModel.html,
     showCancelButton: true,
-    confirmButtonText: shareDialog.confirmButtonText,
-    cancelButtonText: shareDialog.cancelButtonText,
+    confirmButtonText: shareRenderModel.confirmButtonText,
+    cancelButtonText: shareRenderModel.cancelButtonText,
     preConfirm: async () => {
       const email = document.getElementById("share-email").value.trim();
       const role = document.getElementById("share-role").value;
       if (!email) {
-        Swal.showValidationMessage(shareDialog.emailRequiredMessage);
+        Swal.showValidationMessage(shareRenderModel.emailRequiredMessage);
         return false;
       }
       try {
@@ -1020,14 +1048,20 @@ async function _hydrateSession(session, { loadProjects = true } = {}) {
   if (!session?.user) return;
   _sbUser = session.user;
   const profile = await _loadProfile();
-  const hydrated = typeof buildRuntimeHydratedAuthState === "function"
-    ? buildRuntimeHydratedAuthState(session.user, profile)
-    : { user: session.user, profile };
+  const hydrated = typeof buildRuntimeSupabaseSessionHydrationResult === "function"
+    ? buildRuntimeSupabaseSessionHydrationResult(session.user, profile, loadProjects)
+    : {
+        user: session.user,
+        profile,
+        shouldRefreshSyncStatus: true,
+        shouldUpdateUserButton: true,
+        shouldLoadProjects: loadProjects,
+      };
   _sbUser = hydrated.user;
   _sbProfile = hydrated.profile;
-  if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
-  else updateUserBtn();
-  if (loadProjects) await apiLoadProjects();
+  if (hydrated.shouldRefreshSyncStatus && typeof refreshUserSyncStatus === "function") refreshUserSyncStatus();
+  else if (hydrated.shouldUpdateUserButton) updateUserBtn();
+  if (hydrated.shouldLoadProjects) await apiLoadProjects();
 }
 
 sb.auth.onAuthStateChange(async (event, session) => {
@@ -1067,12 +1101,15 @@ sb.auth.onAuthStateChange(async (event, session) => {
     const resetState = typeof buildRuntimeResetSupabaseAuthState === "function"
       ? buildRuntimeResetSupabaseAuthState()
       : { user: null, profile: null, projectRole: null };
+    const signedOutPlan = typeof buildRuntimeSupabaseSignedOutUiPlan === "function"
+      ? buildRuntimeSupabaseSignedOutUiPlan(plan.refreshStatus || "offline")
+      : { refreshStatus: plan.refreshStatus || "offline", shouldUpdateReadOnlyUi: true };
     _sbUser = resetState.user;
     _sbProfile = resetState.profile;
     _projectRole = resetState.projectRole;
-    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus(plan.refreshStatus || "offline");
+    if (typeof refreshUserSyncStatus === "function") refreshUserSyncStatus(signedOutPlan.refreshStatus);
     else updateUserBtn();
-    _updateReadOnlyUI();
+    if (signedOutPlan.shouldUpdateReadOnlyUi) _updateReadOnlyUI();
     return;
   }
 
@@ -1081,8 +1118,11 @@ sb.auth.onAuthStateChange(async (event, session) => {
 
 document.addEventListener("DOMContentLoaded", () => {
   sb.auth.getSession().then(async ({ data: { session } }) => {
-    if (session?.user) {
-      await _hydrateSession(session, { loadProjects: false });
+    const initialSessionPlan = typeof buildRuntimeResolveSupabaseInitialSessionPlan === "function"
+      ? buildRuntimeResolveSupabaseInitialSessionPlan(!!session?.user)
+      : { kind: session?.user ? "hydrate" : "guest", loadProjects: false };
+    if (initialSessionPlan.kind === "hydrate" && session?.user) {
+      await _hydrateSession(session, { loadProjects: initialSessionPlan.loadProjects });
       return;
     }
     updateUserBtn();

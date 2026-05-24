@@ -24,6 +24,7 @@ What is true now:
 - Supabase schema, RLS, and sharing flows already support that model
 - audit logging foundation already exists
 - a first TypeScript and generated-helper bridge already exists
+- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, project settings, project manager, print dialog shell, print chart picker, chart edit dialog, task modal shell, notes modal, dependency list modal, contractor entry modal, payment register modal, contractor tools menu, contractor import/review shell, and finance chart controls
 
 What is still legacy:
 
@@ -71,7 +72,7 @@ Residual work:
 
 ### Phase 1 - Modular decomposition without UI stack rewrite
 
-Status: `substantially completed`
+Status: `completed for current scope`
 
 Implemented outcome:
 
@@ -83,8 +84,8 @@ Implemented outcome:
 
 Residual work:
 
-- continue shrinking mixed UI/domain logic in legacy runtime files
-- decide when to start a true module-based UI bootstrap
+- preserve the same permission semantics during later UI migration
+- keep new runtime slices aligned with the same capability model
 
 ### Phase 2 - TypeScript bootstrap
 
@@ -179,12 +180,11 @@ Best next targets:
 3. choose the first area that can move from legacy globals to a module-based UI
    bootstrap without touching the gantt core
 
-Good candidates for the first module-based UI island:
+Good candidates for the next module-based UI islands:
 
-- user cabinet
-- share modal
-- project settings
-- audit viewer
+- advanced finance controls around non-chart finance tooling
+- remaining print dialog orchestration outside the shell
+- finance chart modal/editor shells if that area is expanded
 
 Bad candidates for the first UI island:
 
@@ -224,16 +224,18 @@ Document roles:
 
 The repo is past the dangerous early migration stage.
 
-What is already closed enough not to revisit:
+What is already closed enough not to revisit for the current migration scope:
 
 - capability model
 - project role model
 - sharing foundation
 - Supabase schema and RLS repair for the new role model
 - TypeScript bootstrap
+- Phase 1 roles/sharing decomposition
 
 What remains ahead:
 
 - more legacy runtime decomposition
 - a later UI bootstrap shift
 - only after that, any decision about company-level architecture
+
