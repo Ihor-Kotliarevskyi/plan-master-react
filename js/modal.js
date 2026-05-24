@@ -835,23 +835,46 @@ function updCalc() {
 
 function openAdd() {
   const taskFormPanel = _getTaskFormPanelModel();
-  editIdx = null;
-  _editingDepId = null;
-  _modalDeps = [];
-  _modalPhases = [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }];
-  _costTi = null;
-  _costItems = [];
-  _expandedIds = new Set();
+  const createState = typeof buildRuntimeTaskModalCreateState === "function"
+    ? buildRuntimeTaskModalCreateState({
+        title: taskFormPanel.newTaskTitle,
+        fillCostHint: taskFormPanel.fillCostHint,
+      })
+    : {
+        editIdx: null,
+        editingDepId: null,
+        modalDeps: [],
+        modalPhases: [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }],
+        costTi: null,
+        costItems: [],
+        expandedIds: new Set(),
+        title: taskFormPanel.newTaskTitle,
+        budgetValue: "",
+        spentValue: "",
+        contractsOverrideBudget: false,
+        calcInfoText: taskFormPanel.fillCostHint,
+        showDependencyWarning: false,
+        showDependencyEditor: false,
+        hasItems: false,
+        focusField: "name",
+      };
+  editIdx = createState.editIdx;
+  _editingDepId = createState.editingDepId;
+  _modalDeps = createState.modalDeps;
+  _modalPhases = createState.modalPhases;
+  _costTi = createState.costTi;
+  _costItems = createState.costItems;
+  _expandedIds = createState.expandedIds;
 
-  document.getElementById("m-title").textContent = taskFormPanel.newTaskTitle;
+  document.getElementById("m-title").textContent = createState.title;
   document.getElementById("f-name").value = "";
-  document.getElementById("f-budget").value = "";
-  document.getElementById("f-spent").value = "";
-  document.getElementById("f-contracts-override-budget").checked = false;
-  document.getElementById("calc-info").textContent = taskFormPanel.fillCostHint;
-  document.getElementById("dep-warn").classList.remove("show");
-  document.getElementById("dep-type-editor").style.display = "none";
-  _updateAutoBadges(false);
+  document.getElementById("f-budget").value = createState.budgetValue;
+  document.getElementById("f-spent").value = createState.spentValue;
+  document.getElementById("f-contracts-override-budget").checked = createState.contractsOverrideBudget;
+  document.getElementById("calc-info").textContent = createState.calcInfoText;
+  document.getElementById("dep-warn").classList.toggle("show", createState.showDependencyWarning);
+  document.getElementById("dep-type-editor").style.display = createState.showDependencyEditor ? "" : "none";
+  _updateAutoBadges(createState.hasItems);
 
   buildChips(0);
   renderModalPhases();
@@ -861,7 +884,7 @@ function openAdd() {
   switchTaskTab("general");
   document.getElementById("modal").style.display = "flex";
   _applyTaskModalPermissions();
-  if (_canMutateTaskModal()) setTimeout(() => document.getElementById("f-name").focus(), 50);
+  if (_canMutateTaskModal() && createState.focusField === "name") setTimeout(() => document.getElementById("f-name").focus(), 50);
 }
 
 function openEdit(ti) {
@@ -1693,10 +1716,17 @@ async function createProject() {
   });
   if (!name) return;
   const id = "p_" + Date.now();
+  const defaults = typeof buildRuntimeResolveProjectDefaults === "function"
+    ? buildRuntimeResolveProjectDefaults(userProfile?.defaults || null, DEF_PROJ)
+    : {
+        sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
+        sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
+        nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
+      };
   allProjects[id] = _buildEmptyProjectSnapshot(name, {
-    sm: userProfile?.defaults?.sm ?? DEF_PROJ.sm,
-    sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
-    nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
+    sm: defaults.sm,
+    sy: defaults.sy,
+    nm: defaults.nm,
   });
   saveAll();
   switchProject(id);
@@ -1728,11 +1758,16 @@ async function deleteProject(id) {
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
     await apiDeleteProject(id);
   }
-  const nextProjectId = _resolveNextProjectAfterDeletion(Object.keys(allProjects), currentId, id);
+  const deletionState = typeof buildRuntimeProjectDeletionState === "function"
+    ? buildRuntimeProjectDeletionState(Object.keys(allProjects), currentId, id)
+    : {
+        nextCurrentId: _resolveNextProjectAfterDeletion(Object.keys(allProjects), currentId, id),
+        shouldReloadCurrent: currentId === id,
+      };
   delete allProjects[id];
   if (currentId === id) {
-    currentId = nextProjectId;
-    if (currentId) loadCurrent();
+    currentId = deletionState.nextCurrentId;
+    if (deletionState.shouldReloadCurrent && currentId) loadCurrent();
   }
   saveAll();
   render();

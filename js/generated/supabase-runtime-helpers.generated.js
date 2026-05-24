@@ -2090,6 +2090,26 @@
       contractsOverrideBudget
     };
   }
+  function buildTaskModalCreateState(params) {
+    return {
+      editIdx: null,
+      editingDepId: null,
+      modalDeps: [],
+      modalPhases: [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }],
+      costTi: null,
+      costItems: [],
+      expandedIds: /* @__PURE__ */ new Set(),
+      title: params.title,
+      budgetValue: "",
+      spentValue: "",
+      contractsOverrideBudget: false,
+      calcInfoText: params.fillCostHint,
+      showDependencyWarning: false,
+      showDependencyEditor: false,
+      hasItems: false,
+      focusField: "name"
+    };
+  }
   function buildTaskModalSaveModel(params) {
     const phases = (params.phases || []).map((phase) => ({ ...phase }));
     const first = phases[0] || { ms: 0, ws: 0 };
@@ -2488,12 +2508,28 @@
       ...meta || {}
     };
   }
+  function resolveProjectDefaults(userDefaults, fallbackDefaults) {
+    return {
+      sm: userDefaults?.sm ?? fallbackDefaults.sm,
+      sy: userDefaults?.sy ?? fallbackDefaults.sy,
+      nm: userDefaults?.nm ?? fallbackDefaults.nm
+    };
+  }
   function canDeleteProjectCount(projectCount) {
     return projectCount > 1;
   }
   function resolveNextProjectAfterDeletion(projectIds, currentId, deletedId) {
     if (currentId !== deletedId) return currentId;
     return projectIds.find((projectId) => projectId !== deletedId) || null;
+  }
+  function buildProjectDeletionState(projectIds, currentId, deletedId) {
+    const remainingProjectIds = (projectIds || []).filter((projectId) => projectId !== deletedId);
+    const nextCurrentId = resolveNextProjectAfterDeletion(projectIds, currentId, deletedId);
+    return {
+      nextCurrentId,
+      shouldReloadCurrent: currentId === deletedId && !!nextCurrentId,
+      remainingProjectIds
+    };
   }
 
   // src/domain/project-import.ts
@@ -3395,9 +3431,11 @@
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     buildRuntimeStorageUiModel: buildStorageUiModel,
     buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+    buildRuntimeProjectDeletionState: buildProjectDeletionState,
     buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
     buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
     canRuntimeDeleteProjectCount: canDeleteProjectCount,
+    buildRuntimeResolveProjectDefaults: resolveProjectDefaults,
     resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
     buildRuntimeCopiedTask: createCopiedTask,
     checkRuntimeProjectNameExists: projectNameExists,
@@ -3515,6 +3553,7 @@
     buildRuntimeDependencyListState: buildDependencyListState,
     buildRuntimeCloneModalCostItems: cloneModalCostItems,
     buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+    buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
     buildRuntimeTaskModalEditState: buildTaskModalEditState,
     buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
     buildRuntimeApplyTaskSave: applyTaskSave,

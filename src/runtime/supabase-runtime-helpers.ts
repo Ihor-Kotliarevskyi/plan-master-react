@@ -87,38 +87,9 @@ import {
   resolvePrintSettings,
 } from "../domain/print";
 import {
-  buildApiUiModel,
   buildFallbackAuthButtonModel,
   buildFallbackAuthModalRenderModel,
 } from "../domain/api-ui";
-import { buildChartsUiModel } from "../domain/charts-ui";
-import {
-  buildChartColors,
-  buildChartData,
-  buildChartDefinition,
-  buildChartOptions,
-  getChartAutoDefaults,
-  normalizeChartRenderType,
-} from "../domain/charts";
-import { buildFinanceUiModel } from "../domain/finance-ui";
-import {
-  buildFinanceRows,
-  buildFinanceSearchText,
-  calculateFinanceOverview,
-  financeItemTotal,
-  financeScopedCostItems,
-  financeTaskScope,
-  hasFinanceFilters,
-  summarizeFinanceDeletion,
-} from "../domain/finance";
-import { buildPrintUiModel } from "../domain/print-ui";
-import {
-  getPrintMetrics,
-  getPrintPreviewState,
-  resolvePrintGanttLayout,
-  resolvePrintSections,
-  resolvePrintSettings,
-} from "../domain/print";
 import {
   buildContractorFilterLabels,
   buildContractorSelectionLabels,
@@ -194,6 +165,7 @@ import {
 } from "../domain/modal";
 import {
   applyTaskSave,
+  buildTaskModalCreateState,
   buildTaskModalEditState,
   buildTaskModalSaveModel,
   cloneModalCostItems,
@@ -237,9 +209,11 @@ import {
 import { buildStorageUiModel } from "../domain/storage-ui";
 import {
   applyProjectSettingsUpdate,
+  buildProjectDeletionState,
   canDeleteProjectCount,
   createDemoProjectSnapshot,
   createEmptyProjectSnapshot,
+  resolveProjectDefaults,
   resolveNextProjectAfterDeletion,
 } from "../domain/project-lifecycle";
 import {
@@ -467,9 +441,11 @@ const runtimeHelpers = {
   buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
   buildRuntimeStorageUiModel: buildStorageUiModel,
   buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
+  buildRuntimeProjectDeletionState: buildProjectDeletionState,
   buildRuntimeCreateEmptyProjectSnapshot: createEmptyProjectSnapshot,
   buildRuntimeCreateDemoProjectSnapshot: createDemoProjectSnapshot,
   canRuntimeDeleteProjectCount: canDeleteProjectCount,
+  buildRuntimeResolveProjectDefaults: resolveProjectDefaults,
   resolveRuntimeNextProjectAfterDeletion: resolveNextProjectAfterDeletion,
   buildRuntimeCopiedTask: createCopiedTask,
   checkRuntimeProjectNameExists: projectNameExists,
@@ -587,6 +563,7 @@ const runtimeHelpers = {
   buildRuntimeDependencyListState: buildDependencyListState,
   buildRuntimeCloneModalCostItems: cloneModalCostItems,
   buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
+  buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
   buildRuntimeTaskModalEditState: buildTaskModalEditState,
   buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
   buildRuntimeApplyTaskSave: applyTaskSave,

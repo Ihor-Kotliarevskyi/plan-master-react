@@ -152,9 +152,12 @@ and Supabase adapters happen against stable interfaces.
   - task row / bar / phase window projection
 - `js/modal.js` now uses the generated helper layer for:
   - project settings update and timeline-shift orchestration
+  - resolved project defaults for new-project creation
+  - project deletion state resolution
   - empty-project and demo-project snapshot creation
   - delete-project guard evaluation
   - next-project resolution after deletion
+  - task modal create-state projection
   - task modal edit-state projection
   - task modal save-model construction
   - task save apply/update orchestration

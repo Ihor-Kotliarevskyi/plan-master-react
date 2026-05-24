@@ -32,6 +32,18 @@ export interface CreateDemoProjectSnapshotInput {
   meta?: Partial<ProjectSnapshotMeta>;
 }
 
+export interface ResolvedProjectDefaults {
+  sm: number;
+  sy: number;
+  nm: number;
+}
+
+export interface ProjectDeletionState {
+  nextCurrentId: string | null;
+  shouldReloadCurrent: boolean;
+  remainingProjectIds: string[];
+}
+
 function clonePhaseWithShift(phase: TaskPhase, shift: number): TaskPhase {
   return {
     ...phase,
@@ -126,6 +138,21 @@ export function createDemoProjectSnapshot(
   };
 }
 
+export function resolveProjectDefaults(
+  userDefaults: {
+    sm?: number | null;
+    sy?: number | null;
+    nm?: number | null;
+  } | null | undefined,
+  fallbackDefaults: Pick<ProjectSettings, "sm" | "sy" | "nm">,
+): ResolvedProjectDefaults {
+  return {
+    sm: userDefaults?.sm ?? fallbackDefaults.sm,
+    sy: userDefaults?.sy ?? fallbackDefaults.sy,
+    nm: userDefaults?.nm ?? fallbackDefaults.nm,
+  };
+}
+
 export function canDeleteProjectCount(projectCount: number): boolean {
   return projectCount > 1;
 }
@@ -137,4 +164,18 @@ export function resolveNextProjectAfterDeletion(
 ): string | null {
   if (currentId !== deletedId) return currentId;
   return projectIds.find((projectId) => projectId !== deletedId) || null;
+}
+
+export function buildProjectDeletionState(
+  projectIds: string[],
+  currentId: string | null,
+  deletedId: string,
+): ProjectDeletionState {
+  const remainingProjectIds = (projectIds || []).filter((projectId) => projectId !== deletedId);
+  const nextCurrentId = resolveNextProjectAfterDeletion(projectIds, currentId, deletedId);
+  return {
+    nextCurrentId,
+    shouldReloadCurrent: currentId === deletedId && !!nextCurrentId,
+    remainingProjectIds,
+  };
 }

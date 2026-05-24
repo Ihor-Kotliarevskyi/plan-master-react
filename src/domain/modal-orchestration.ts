@@ -42,6 +42,25 @@ export interface TaskModalEditState {
   contractsOverrideBudget: boolean;
 }
 
+export interface TaskModalCreateState {
+  editIdx: null;
+  editingDepId: null;
+  modalDeps: AnyRecord[];
+  modalPhases: AnyRecord[];
+  costTi: null;
+  costItems: AnyRecord[];
+  expandedIds: Set<string>;
+  title: string;
+  budgetValue: string;
+  spentValue: string;
+  contractsOverrideBudget: boolean;
+  calcInfoText: string;
+  showDependencyWarning: boolean;
+  showDependencyEditor: boolean;
+  hasItems: boolean;
+  focusField: "name";
+}
+
 export function cloneModalCostItems(items: AnyRecord[] | null | undefined): AnyRecord[] {
   return (items || []).map((item) => ({
     ...item,
@@ -88,6 +107,30 @@ export function buildTaskModalEditState(params: {
     budgetValue: hasItems && (taskBudget <= 0 || contractsOverrideBudget) ? params.totalBudget : (params.task?.budget || ""),
     spentValue: hasItems ? params.totalSpent : (params.task?.spent || ""),
     contractsOverrideBudget,
+  };
+}
+
+export function buildTaskModalCreateState(params: {
+  title: string;
+  fillCostHint: string;
+}): TaskModalCreateState {
+  return {
+    editIdx: null,
+    editingDepId: null,
+    modalDeps: [],
+    modalPhases: [{ ms: 0, ws: 0, me: 1, we: 3, prog: 0 }],
+    costTi: null,
+    costItems: [],
+    expandedIds: new Set<string>(),
+    title: params.title,
+    budgetValue: "",
+    spentValue: "",
+    contractsOverrideBudget: false,
+    calcInfoText: params.fillCostHint,
+    showDependencyWarning: false,
+    showDependencyEditor: false,
+    hasItems: false,
+    focusField: "name",
   };
 }
 

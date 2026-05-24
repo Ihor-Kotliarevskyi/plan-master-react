@@ -195,6 +195,7 @@ import {
 } from "../src/domain/modal";
 import {
   applyTaskSave,
+  buildTaskModalCreateState,
   buildTaskModalEditState,
   buildTaskModalSaveModel,
   cloneModalCostItems,
@@ -234,9 +235,11 @@ import {
 } from "../src/domain/storage";
 import {
   applyProjectSettingsUpdate,
+  buildProjectDeletionState,
   canDeleteProjectCount,
   createDemoProjectSnapshot,
   createEmptyProjectSnapshot,
+  resolveProjectDefaults,
   resolveNextProjectAfterDeletion,
 } from "../src/domain/project-lifecycle";
 import {
@@ -426,6 +429,13 @@ assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.re
 const fallbackAuthButtonModel = buildFallbackAuthButtonModel(true, "Ihor", buildApiUiModel().auth);
 assert.equal(fallbackAuthButtonModel.mode, "logout");
 assert.equal(fallbackAuthButtonModel.title.length > 0, true);
+const taskModalCreateState = buildTaskModalCreateState({
+  title: "New Task",
+  fillCostHint: "Fill cost",
+});
+assert.equal(taskModalCreateState.title, "New Task");
+assert.equal(taskModalCreateState.modalPhases.length, 1);
+assert.equal(taskModalCreateState.hasItems, false);
 
 const fallbackProjectShell = buildFallbackProjectShell({
   id: "fallback-1",
@@ -462,6 +472,10 @@ assert.equal(fallbackProjectSyncRequest.tasksPayload.tasks.length, 1);
 const fallbackProjectCreateRequest = buildFallbackProjectCreateRequest(fallbackLoadedProjectSnapshot);
 assert.equal(fallbackProjectCreateRequest.payload.nextN, 8);
 assert.equal(buildFallbackProjectDeleteRequest("fallback-1").projectId, "fallback-1");
+assert.equal(resolveProjectDefaults({ sm: 4, sy: 2027 }, { sm: 1, sy: 2026, nm: 12 }).sy, 2027);
+const projectDeletionState = buildProjectDeletionState(["a", "b", "c"], "b", "b");
+assert.equal(projectDeletionState.nextCurrentId, "a");
+assert.equal(projectDeletionState.shouldReloadCurrent, true);
 assert.equal(buildFallbackShareGrantRequest(" USER@example.com ", "manager", (role) => ["viewer", "editor", "manager"].includes(role)).email, "user@example.com");
 assert.equal(buildFallbackShareRoleUpdateRequest("editor", (role) => ["viewer", "editor", "manager"].includes(role)).role, "editor");
 assert.equal(buildFallbackShareRemoveRequest("user-2").userId, "user-2");
