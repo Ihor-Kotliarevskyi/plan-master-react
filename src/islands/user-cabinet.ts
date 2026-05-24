@@ -8,11 +8,6 @@ type UserCabinetRuntime = Window & {
   saveBaseline?: () => void;
   clearBaseline?: () => void;
   clearAvatar?: () => void;
-  openAuditLogModal?: () => Promise<void> | void;
-  apiLogout?: () => Promise<void>;
-  updateUserBtn?: () => void;
-  _switchAuthTab?: (tab: string) => void;
-  _submitAuthInCabinet?: (tab: string) => Promise<void> | void;
   handleAvatarUpload?: (event: Event) => void;
   _syncUserNamePreview?: (value: string) => void;
 };
@@ -49,20 +44,6 @@ async function handleUserAction(action: string, element: HTMLElement): Promise<v
       return;
     case "clear-avatar":
       await Promise.resolve(runtime.clearAvatar?.());
-      return;
-    case "open-audit-log":
-      await Promise.resolve(runtime.openAuditLogModal?.());
-      return;
-    case "logout":
-      runtime.closeUserModal?.();
-      await runtime.apiLogout?.();
-      runtime.updateUserBtn?.();
-      return;
-    case "switch-auth-tab":
-      await Promise.resolve(runtime._switchAuthTab?.(element.dataset.authTab || "login"));
-      return;
-    case "submit-auth":
-      await Promise.resolve(runtime._submitAuthInCabinet?.(element.dataset.authTab || "login"));
       return;
     default:
       return;
