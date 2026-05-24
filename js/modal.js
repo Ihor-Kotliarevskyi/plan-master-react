@@ -1683,11 +1683,9 @@ function openProjManager() {
     : { own: [], shared: [] };
 
   const renderProjectRow = (row) => {
-    return `<div class="pj-row${row.isActive ? " active" : ""}">
+    return `<div class="pj-row${row.isActive ? " active" : ""}" data-project-manager-action="switch-project" data-project-id="${row.id}">
        <div class="pj-main">
-         <input class="pj-name-inp" value="${row.name}" ${row.canManageProject ? "" : "disabled"}
-                onchange="${row.canManageProject ? `allProjects['${row.id}'].proj.name=this.value;updateProjSel();` : ""}"
-                onclick="event.stopPropagation()">
+         <input class="pj-name-inp" value="${row.name}" data-project-id="${row.id}" ${row.canManageProject ? "" : "disabled"}>
          <span class="pj-role-chip pj-role-${row.role}">${row.roleLabel}</span>
        </div>
        <div class="pj-sub">
@@ -1696,7 +1694,7 @@ function openProjManager() {
        </div>
        ${
           row.canManageProject
-            ? `<span class="pj-del" onclick="event.stopPropagation();deleteProject('${row.id}')" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
+            ? `<span class="pj-del" data-project-manager-action="delete-project" data-project-id="${row.id}" title="${projectManagerList.deleteTitle}"><i data-lucide="trash-2"></i></span>`
             : ""
         }
       </div>`;

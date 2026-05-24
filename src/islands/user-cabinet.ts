@@ -113,3 +113,5 @@ if (document.readyState === "loading") {
 } else {
   initUserCabinetIsland();
 }
+
+export {};

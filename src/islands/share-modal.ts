@@ -35,3 +35,5 @@ if (document.readyState === "loading") {
 } else {
   initShareModalIsland();
 }
+
+export {};

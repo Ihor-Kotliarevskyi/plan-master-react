@@ -89,3 +89,5 @@ if (document.readyState === "loading") {
 } else {
   initProjectSettingsIsland();
 }
+
+export {};

@@ -39,7 +39,7 @@
   <div class="app-head">
     <div class="proj-block">
       <select class="proj-sel" id="proj-sel" onchange="switchProject(this.value)"></select>
-      <button class="btn btn-icon" onclick="openProjManager()" title="Управління проєктами">
+      <button class="btn btn-icon" data-project-manager-action="open-manager" title="Управління проєктами">
         <i data-lucide="folder"></i>
       </button>
       <button class="btn btn-icon" data-project-action="open-settings" title="Налаштування проєкту">
@@ -539,16 +539,16 @@
   </div>
 
   <!-- MODAL: PROJECT MANAGER -->
-  <div class="overlay" id="projmgr-modal" style="display: none" onclick="if (event.target === this) closeProjMgr();">
+  <div class="overlay" id="projmgr-modal" style="display: none" data-project-manager-root>
     <div class="modal">
       <h3>Управління проєктами</h3>
       <div class="proj-list" id="proj-list-el"></div>
-      <button class="btn btn-acc btn-full" onclick="createProject()">+ Новий проєкт</button>
-      <button class="btn btn-full" onclick="loadDemoProject()">
+      <button class="btn btn-acc btn-full" data-project-manager-action="create-project">+ Новий проєкт</button>
+      <button class="btn btn-full" data-project-manager-action="load-demo">
         <i data-lucide="clipboard-list"></i> Завантажити демо-проєкт
       </button>
       <div class="m-btns">
-        <button class="btn btn-acc" onclick="closeProjMgr()">Закрити</button>
+        <button class="btn btn-acc" data-project-manager-action="close-manager">Закрити</button>
       </div>
     </div>
   </div>
@@ -810,6 +810,7 @@
   <script type="module" src="/src/islands/user-cabinet.ts"></script>
   <script type="module" src="/src/islands/share-modal.ts"></script>
   <script type="module" src="/src/islands/project-settings.ts"></script>
+  <script type="module" src="/src/islands/project-manager.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
 
