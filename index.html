@@ -56,7 +56,7 @@
         <i data-lucide="more-horizontal"></i>
       </button>
       <div class="tools-dropdown" id="tools-dropdown">
-        <button class="tools-item" onclick="openPrintDialog();closeToolsMenu()">
+        <button class="tools-item" data-print-action="open-dialog">
           <i data-lucide="printer"></i> Друк / PDF
         </button>
         <div class="tools-sep"></div>
@@ -310,7 +310,7 @@
             <option value="pending">Не розпочато</option>
           </select>
         </div>
-        <button class="btn btn-acc btn-align-end" onclick="addCustomChart()">
+        <button class="btn btn-acc btn-align-end" data-chart-action="add-custom-chart">
           + Побудувати
         </button>
       </div>
@@ -555,7 +555,7 @@
 
   <!-- MODAL: CHART EDIT -->
   <div class="overlay" id="chart-edit-modal" style="display: none"
-    onclick="if (event.target === this) closeChartEdit();">
+    data-chart-edit-root>
     <div class="modal">
       <h3>Редагувати графік</h3>
       <input type="hidden" id="ce-id" />
@@ -620,22 +620,22 @@
         </select>
       </div>
       <div class="m-btns">
-        <button class="btn" onclick="closeChartEdit()">Скасувати</button>
-        <button class="btn btn-acc" onclick="applyChartEdit()">Оновити</button>
+        <button class="btn" data-chart-action="close-edit">Скасувати</button>
+        <button class="btn btn-acc" data-chart-action="apply-edit">Оновити</button>
       </div>
     </div>
   </div>
 
   <!-- MODAL: PRINT / PDF -->
-  <div class="overlay" id="print-modal" style="display: none" onclick="if (event.target === this) closePrintDialog();">
+  <div class="overlay" id="print-modal" style="display: none" data-print-dialog-root>
     <div class="modal modal-w860 print-modal-box">
       <div class="print-modal-layout">
         <div class="print-preview-panel">
           <div class="print-preview-head">
-            <button class="btn btn-sm btn-icon" id="print-prev-page" onclick="changePrintPreviewPage(-1)"
+            <button class="btn btn-sm btn-icon" id="print-prev-page" data-print-action="prev-page"
               title="Попередня сторінка">&lsaquo;</button>
             <span id="print-preview-meta" class="print-preview-meta"></span>
-            <button class="btn btn-sm btn-icon" id="print-next-page" onclick="changePrintPreviewPage(1)"
+            <button class="btn btn-sm btn-icon" id="print-next-page" data-print-action="next-page"
               title="Наступна сторінка">&rsaquo;</button>
           </div>
           <div class="print-preview-shell">
@@ -656,10 +656,7 @@
               <div class="ps-desc">Зведення + таблиця задач</div>
             </div>
             <div class="print-section-card full-col">
-              <label><input type="checkbox" id="print-charts" onchange="
-                  document.getElementById('print-chart-picker').style.display =
-                    this.checked ? 'block' : 'none'
-                " />
+              <label><input type="checkbox" id="print-charts" data-print-action="toggle-chart-picker" />
                 <i data-lucide="bar-chart-2"></i> Графіки аналітики</label>
               <div class="ps-desc">Вибрати конкретні графіки нижче</div>
             </div>
@@ -726,9 +723,9 @@
             </label>
           </div>
           <div class="print-actions">
-            <button class="btn" onclick="closePrintDialog()">Скасувати</button>
-            <button class="btn" onclick="doPrint()"><i data-lucide="printer"></i> Друк</button>
-            <button class="btn btn-acc" onclick="doExportPDF()">
+            <button class="btn" data-print-action="close-dialog">Скасувати</button>
+            <button class="btn" data-print-action="do-print"><i data-lucide="printer"></i> Друк</button>
+            <button class="btn btn-acc" data-print-action="export-pdf">
               <i data-lucide="file-text"></i> Зберегти PDF
             </button>
           </div>
@@ -813,7 +810,10 @@
   <script type="module" src="/src/islands/share-modal.ts"></script>
   <script type="module" src="/src/islands/project-settings.ts"></script>
   <script type="module" src="/src/islands/project-manager.ts"></script>
+  <script type="module" src="/src/islands/print-dialog.ts"></script>
+  <script type="module" src="/src/islands/chart-edit.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
 
 </html>
+
