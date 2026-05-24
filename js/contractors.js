@@ -1977,7 +1977,7 @@ function _paymentRegisterCurrentState() {
   if (typeof buildRuntimePaymentRegisterCurrentState === "function") {
     return buildRuntimePaymentRegisterCurrentState(
       rows,
-      (type) => PAYMENT_TYPES[type] || type || "Р†РЅС€Рµ",
+      (type) => PAYMENT_TYPES[type] || type || "Інше",
     );
   }
   const registerRows = rows
