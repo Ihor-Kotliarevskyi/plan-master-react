@@ -168,7 +168,7 @@
         <span id="contractor-reset-filter"></span>
         <div id="contractor-selection-actions"></div>
         <span class="contractor-toolbar-spacer"></span>
-        <button class="btn btn-sm btn-acc" onclick="openContractorEntryModal()">
+        <button class="btn btn-sm btn-acc" data-contractor-entry-action="open-modal">
           <i data-lucide="plus"></i> Контрагент
         </button>
         <div class="tools-menu contractor-tools-menu" id="contractor-tools-menu">
@@ -192,7 +192,7 @@
               <i data-lucide="trash"></i> Видалити всіх за фільтром
             </button>
             <div class="tools-sep"></div>
-            <button class="tools-item" onclick="openPaymentRegisterModal();closeContractorToolsMenu()">
+            <button class="tools-item" data-payment-register-action="open-modal">
               <i data-lucide="file-spreadsheet"></i> Реєстри
             </button>
           </div>
@@ -207,23 +207,23 @@
 
   <!-- MODAL: PAYMENT REGISTERS -->
   <div class="overlay" id="payment-register-modal" style="display: none"
-    onclick="if (event.target === this) closePaymentRegisterModal();">
+    data-payment-register-root>
     <div class="modal payment-register-modal">
       <div class="modal-header">
         <h3><i data-lucide="file-spreadsheet"></i> Реєстри платежів</h3>
-        <button class="btn btn-sm" onclick="closePaymentRegisterModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-payment-register-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="payment-register-actions">
-        <button class="btn btn-acc" onclick="createPaymentRegisterFromFilters()">
+        <button class="btn btn-acc" data-payment-register-action="create-from-filters">
           <i data-lucide="plus"></i> Сформувати з поточного фільтра
         </button>
-        <button class="btn btn-sm" onclick="exportCurrentPaymentRegister('xlsx')">
+        <button class="btn btn-sm" data-payment-register-action="export-current" data-export-type="xlsx">
           <i data-lucide="file-spreadsheet"></i> Поточний XLSX
         </button>
-        <button class="btn btn-sm" onclick="exportCurrentPaymentRegister('csv')">
+        <button class="btn btn-sm" data-payment-register-action="export-current" data-export-type="csv">
           <i data-lucide="file-text"></i> Поточний CSV
         </button>
-        <button class="btn btn-sm" onclick="printCurrentPaymentRegister()">
+        <button class="btn btn-sm" data-payment-register-action="print-current">
           <i data-lucide="printer"></i> Друк поточного
         </button>
       </div>
@@ -234,11 +234,11 @@
 
   <!-- MODAL: CONTRACTOR ENTRY -->
   <div class="overlay" id="contractor-entry-modal" style="display: none"
-    onclick="if (event.target === this) closeContractorEntryModal();">
+    data-contractor-entry-root>
     <div class="modal contractor-entry-modal">
       <div class="modal-header">
         <h3><i data-lucide="receipt-text"></i> Контрагент</h3>
-        <button class="btn btn-sm" onclick="closeContractorEntryModal()"><i data-lucide="x"></i></button>
+        <button class="btn btn-sm" data-contractor-entry-action="close-modal"><i data-lucide="x"></i></button>
       </div>
       <div class="contractor-entry-grid contractor-contract-manager">
         <div class="fg contractor-entry-span">
@@ -247,14 +247,14 @@
         </div>
         <div class="contractor-contract-list contractor-entry-span" id="ce-contract-list"></div>
         <div class="contractor-entry-span">
-          <button type="button" class="btn btn-sm" onclick="addContractorContractRow()">
+          <button type="button" class="btn btn-sm" data-contractor-entry-action="add-contract-row">
             <i data-lucide="plus"></i> Додати договір
           </button>
         </div>
       </div>
       <div class="m-btns m-btns-sep">
-        <button class="btn" onclick="closeContractorEntryModal()">Скасувати</button>
-        <button class="btn btn-acc" onclick="saveContractorEntry()">Зберегти</button>
+        <button class="btn" data-contractor-entry-action="close-modal">Скасувати</button>
+        <button class="btn btn-acc" data-contractor-entry-action="save-entry">Зберегти</button>
       </div>
     </div>
   </div>
@@ -815,6 +815,8 @@
   <script type="module" src="/src/islands/task-modal.ts"></script>
   <script type="module" src="/src/islands/notes-modal.ts"></script>
   <script type="module" src="/src/islands/dependency-list.ts"></script>
+  <script type="module" src="/src/islands/contractor-entry.ts"></script>
+  <script type="module" src="/src/islands/payment-register.ts"></script>
   <script>lucide.createIcons();</script>
 </body>
 </html>
