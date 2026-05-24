@@ -50,6 +50,20 @@ export interface SupabaseShareDialogModel {
   emailRequiredMessage: string;
 }
 
+export interface SupabaseShareDialogListItem {
+  id: string;
+  displayLabel: string;
+  roleOptionsHtml: string;
+}
+
+export interface SupabaseShareDialogRenderModel {
+  title: string;
+  html: string;
+  confirmButtonText: string;
+  cancelButtonText: string;
+  emailRequiredMessage: string;
+}
+
 export interface SupabaseShareErrorMessages {
   updateRoleErrorTitle: string;
   updateRoleErrorText: string;
@@ -120,6 +134,76 @@ export function buildSupabaseShareDialogModel(): SupabaseShareDialogModel {
     confirmButtonText: "Grant access",
     cancelButtonText: "Close",
     emailRequiredMessage: "Enter email",
+  };
+}
+
+export function buildSupabaseShareDialogListItems(params: {
+  items: SupabaseShareListItem[];
+  roles: string[];
+  getRoleLabel: (role: string) => string;
+}): SupabaseShareDialogListItem[] {
+  return (params.items || []).map((item) => ({
+    id: item.id,
+    displayLabel: item.displayLabel,
+    roleOptionsHtml: buildSupabaseShareRoleOptions(
+      params.roles,
+      params.getRoleLabel,
+      item.normalizedRole || item.role,
+    ),
+  }));
+}
+
+export function buildSupabaseShareRoleGuideHtml(items: SupabaseShareRoleGuideItem[]): string {
+  return `
+    <div class="share-role-guide">
+      ${(items || []).map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}
+    </div>`;
+}
+
+export function buildSupabaseShareListHtml(params: {
+  items: SupabaseShareDialogListItem[];
+  emptyText: string;
+}): string {
+  if (!(params.items || []).length) {
+    return `<div class="share-empty">${params.emptyText}</div>`;
+  }
+  return params.items.map((item) => `
+        <div class="share-row">
+          <span>${item.displayLabel}</span>
+          <select class="cost-sel" onchange="handleShareRoleChange('${item.id}',this.value)">
+            ${item.roleOptionsHtml}
+          </select>
+          <button class="cost-act-btn del" onclick="handleShareRemoval('${item.id}')">×</button>
+        </div>`).join("");
+}
+
+export function buildSupabaseShareDialogRenderModel(params: {
+  dialog: SupabaseShareDialogModel;
+  projectName: string;
+  listHtml: string;
+  roleOptionsHtml: string;
+  roleGuideHtml: string;
+}): SupabaseShareDialogRenderModel {
+  return {
+    title: params.dialog.modalTitle,
+    html: `
+      <div class="share-modal-body">
+        <div class="share-proj-name">${params.dialog.projectLabel}: <b>${params.projectName}</b></div>
+        <div class="share-list">${params.listHtml}</div>
+        <hr class="share-divider">
+        <div class="share-add-title">${params.dialog.grantSectionTitle}</div>
+        <div class="share-add-row">
+          <input id="share-email" type="email" placeholder="${params.dialog.emailPlaceholder}" class="share-email-inp">
+          <select id="share-role" class="share-role-sel">
+            ${params.roleOptionsHtml}
+          </select>
+        </div>
+        ${params.roleGuideHtml}
+        <div id="share-err" class="share-err"></div>
+      </div>`,
+    confirmButtonText: params.dialog.confirmButtonText,
+    cancelButtonText: params.dialog.cancelButtonText,
+    emailRequiredMessage: params.dialog.emailRequiredMessage,
   };
 }
 

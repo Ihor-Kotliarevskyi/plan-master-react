@@ -3413,6 +3413,26 @@
     };
   }
 
+  // src/services/supabase/session-runtime.ts
+  function buildSupabaseSessionHydrationResult(user, profile, loadProjects) {
+    return {
+      user,
+      profile,
+      shouldRefreshSyncStatus: true,
+      shouldUpdateUserButton: true,
+      shouldLoadProjects: loadProjects
+    };
+  }
+  function buildSupabaseSignedOutUiPlan(refreshStatus = "offline") {
+    return {
+      refreshStatus,
+      shouldUpdateReadOnlyUi: true
+    };
+  }
+  function resolveSupabaseInitialSessionPlan(hasSessionUser) {
+    return hasSessionUser ? { kind: "hydrate", loadProjects: false } : { kind: "guest", loadProjects: false };
+  }
+
   // src/services/supabase/project-runtime.ts
   function resolveLoadedProjectRole(ownerId, authUserId, shareRole) {
     if (ownerId && ownerId === authUserId) return "owner";
@@ -3614,6 +3634,59 @@
       emailRequiredMessage: "Enter email"
     };
   }
+  function buildSupabaseShareDialogListItems(params) {
+    return (params.items || []).map((item) => ({
+      id: item.id,
+      displayLabel: item.displayLabel,
+      roleOptionsHtml: buildSupabaseShareRoleOptions(
+        params.roles,
+        params.getRoleLabel,
+        item.normalizedRole || item.role
+      )
+    }));
+  }
+  function buildSupabaseShareRoleGuideHtml(items) {
+    return `
+    <div class="share-role-guide">
+      ${(items || []).map((item) => `<div><b>${item.title}:</b> ${item.description}</div>`).join("")}
+    </div>`;
+  }
+  function buildSupabaseShareListHtml(params) {
+    if (!(params.items || []).length) {
+      return `<div class="share-empty">${params.emptyText}</div>`;
+    }
+    return params.items.map((item) => `
+        <div class="share-row">
+          <span>${item.displayLabel}</span>
+          <select class="cost-sel" onchange="handleShareRoleChange('${item.id}',this.value)">
+            ${item.roleOptionsHtml}
+          </select>
+          <button class="cost-act-btn del" onclick="handleShareRemoval('${item.id}')">×</button>
+        </div>`).join("");
+  }
+  function buildSupabaseShareDialogRenderModel(params) {
+    return {
+      title: params.dialog.modalTitle,
+      html: `
+      <div class="share-modal-body">
+        <div class="share-proj-name">${params.dialog.projectLabel}: <b>${params.projectName}</b></div>
+        <div class="share-list">${params.listHtml}</div>
+        <hr class="share-divider">
+        <div class="share-add-title">${params.dialog.grantSectionTitle}</div>
+        <div class="share-add-row">
+          <input id="share-email" type="email" placeholder="${params.dialog.emailPlaceholder}" class="share-email-inp">
+          <select id="share-role" class="share-role-sel">
+            ${params.roleOptionsHtml}
+          </select>
+        </div>
+        ${params.roleGuideHtml}
+        <div id="share-err" class="share-err"></div>
+      </div>`,
+      confirmButtonText: params.dialog.confirmButtonText,
+      cancelButtonText: params.dialog.cancelButtonText,
+      emailRequiredMessage: params.dialog.emailRequiredMessage
+    };
+  }
   function buildSupabaseShareErrorMessages() {
     return {
       updateRoleErrorTitle: "Failed to update role",
@@ -3718,10 +3791,17 @@
     buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
     buildRuntimeHydratedAuthState: buildHydratedAuthState,
     buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+    buildRuntimeSupabaseSessionHydrationResult: buildSupabaseSessionHydrationResult,
+    buildRuntimeSupabaseSignedOutUiPlan: buildSupabaseSignedOutUiPlan,
+    buildRuntimeResolveSupabaseInitialSessionPlan: resolveSupabaseInitialSessionPlan,
     buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
     buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
     buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
     buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+    buildRuntimeSupabaseShareDialogListItems: buildSupabaseShareDialogListItems,
+    buildRuntimeSupabaseShareRoleGuideHtml: buildSupabaseShareRoleGuideHtml,
+    buildRuntimeSupabaseShareListHtml: buildSupabaseShareListHtml,
+    buildRuntimeSupabaseShareDialogRenderModel: buildSupabaseShareDialogRenderModel,
     buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
     buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
     buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,

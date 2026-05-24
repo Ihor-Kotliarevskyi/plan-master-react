@@ -319,6 +319,11 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../src/services/supabase/auth-runtime";
 import {
+  buildSupabaseSessionHydrationResult,
+  buildSupabaseSignedOutUiPlan,
+  resolveSupabaseInitialSessionPlan,
+} from "../src/services/supabase/session-runtime";
+import {
   bindProjectCreateTasksRpcRequest,
   buildProjectCreateMutationRequest,
   buildProjectDeleteRequest,
@@ -328,10 +333,14 @@ import {
 } from "../src/services/supabase/project-runtime";
 import {
   buildSupabaseReadOnlyUiState,
+  buildSupabaseShareDialogListItems,
   buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleGuideHtml,
   buildSupabaseShareRoleOptions,
   buildSupabaseShareDialogModel,
+  buildSupabaseShareDialogRenderModel,
   buildSupabaseShareErrorMessages,
+  buildSupabaseShareListHtml,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
   buildSupabaseShareModalState,
@@ -451,6 +460,9 @@ assert.equal(buildFallbackHttpRequestOptions("token-1").headers.Authorization, "
 assert.equal(resolveFallbackHttpOutcome(401, { expired: true }).kind, "session_expired");
 assert.equal(resolveFallbackHttpOutcome(500, { error: "Boom" }).message, "Boom");
 assert.equal(buildSupabaseAccountErrorMessages().emailConfirmationRequired, "Check your email to confirm registration.");
+assert.equal(buildSupabaseSessionHydrationResult("user-1", { name: "Ihor" }, true).shouldLoadProjects, true);
+assert.equal(buildSupabaseSignedOutUiPlan().refreshStatus, "offline");
+assert.equal(resolveSupabaseInitialSessionPlan(true).kind, "hydrate");
 const fallbackAuthModalRenderModel = buildFallbackAuthModalRenderModel("register", buildApiUiModel().auth);
 assert.equal(fallbackAuthModalRenderModel.showNameField, true);
 assert.equal(fallbackAuthModalRenderModel.submitLabel, buildApiUiModel().auth.registerSubmitLabel);
@@ -610,6 +622,28 @@ assert.equal(shareRoleUpdate.role, "viewer");
 const shareView = mapProjectShareRow(shareRow);
 assert.equal(shareView.role, "manager");
 assert.equal(shareView.user.email, "user2@example.com");
+const shareRoleGuideHtml = buildSupabaseShareRoleGuideHtml(buildSupabaseShareRoleGuide());
+assert.equal(shareRoleGuideHtml.includes("Manager"), true);
+const shareDialogListItems = buildSupabaseShareDialogListItems({
+  items: [buildSupabaseShareModalState({ shares: [shareView], projectName: "Shared Project", getRoleLabel: (role) => role.toUpperCase() }).items[0]],
+  roles: ["viewer", "editor", "manager"],
+  getRoleLabel: (role) => role.toUpperCase(),
+});
+assert.equal(shareDialogListItems[0]?.displayLabel, "user2@example.com");
+const shareListHtml = buildSupabaseShareListHtml({
+  items: shareDialogListItems,
+  emptyText: "Empty",
+});
+assert.equal(shareListHtml.includes("share-row"), true);
+const shareDialogRenderModel = buildSupabaseShareDialogRenderModel({
+  dialog: buildSupabaseShareDialogModel(),
+  projectName: "Shared Project",
+  listHtml: shareListHtml,
+  roleOptionsHtml: buildSupabaseShareRoleOptions(["viewer"], (role) => role.toUpperCase(), "viewer"),
+  roleGuideHtml: shareRoleGuideHtml,
+});
+assert.equal(shareDialogRenderModel.title, "Shared Access");
+assert.equal(shareDialogRenderModel.html.includes("Shared Project"), true);
 
 const auditEntry = mapActivityLogRow(activityRow);
 assert.equal(auditEntry.eventType, "task.updated");

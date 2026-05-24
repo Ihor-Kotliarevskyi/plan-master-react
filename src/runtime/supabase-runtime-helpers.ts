@@ -293,6 +293,11 @@ import {
   resolveSupabaseAuthEventPlan,
 } from "../services/supabase/auth-runtime";
 import {
+  buildSupabaseSessionHydrationResult,
+  buildSupabaseSignedOutUiPlan,
+  resolveSupabaseInitialSessionPlan,
+} from "../services/supabase/session-runtime";
+import {
   bindProjectCreateTasksRpcRequest,
   buildProjectCreateMutationRequest,
   buildProjectDeleteRequest,
@@ -319,9 +324,13 @@ import {
 } from "../services/supabase/collaboration-runtime";
 import {
   buildSupabaseReadOnlyUiState,
+  buildSupabaseShareDialogListItems,
   buildSupabaseShareDialogModel,
+  buildSupabaseShareDialogRenderModel,
   buildSupabaseShareErrorMessages,
+  buildSupabaseShareListHtml,
   buildSupabaseShareRoleGuide,
+  buildSupabaseShareRoleGuideHtml,
   buildSupabaseShareRoleOptions,
   buildSupabaseRoleUpdatedToast,
   buildSupabaseShareGrantedToast,
@@ -406,10 +415,17 @@ const runtimeHelpers = {
   buildRuntimeLogoutSyncDecision: buildLogoutSyncDecision,
   buildRuntimeHydratedAuthState: buildHydratedAuthState,
   buildRuntimeResolveSupabaseAuthEventPlan: resolveSupabaseAuthEventPlan,
+  buildRuntimeSupabaseSessionHydrationResult: buildSupabaseSessionHydrationResult,
+  buildRuntimeSupabaseSignedOutUiPlan: buildSupabaseSignedOutUiPlan,
+  buildRuntimeResolveSupabaseInitialSessionPlan: resolveSupabaseInitialSessionPlan,
   buildRuntimeSupabaseShareModalState: buildSupabaseShareModalState,
   buildRuntimeSupabaseShareRoleOptions: buildSupabaseShareRoleOptions,
   buildRuntimeSupabaseShareRoleGuide: buildSupabaseShareRoleGuide,
   buildRuntimeSupabaseShareDialogModel: buildSupabaseShareDialogModel,
+  buildRuntimeSupabaseShareDialogListItems: buildSupabaseShareDialogListItems,
+  buildRuntimeSupabaseShareRoleGuideHtml: buildSupabaseShareRoleGuideHtml,
+  buildRuntimeSupabaseShareListHtml: buildSupabaseShareListHtml,
+  buildRuntimeSupabaseShareDialogRenderModel: buildSupabaseShareDialogRenderModel,
   buildRuntimeSupabaseShareErrorMessages: buildSupabaseShareErrorMessages,
   buildRuntimeSupabaseReadOnlyUiState: buildSupabaseReadOnlyUiState,
   buildRuntimeSupabaseRoleUpdatedToast: buildSupabaseRoleUpdatedToast,

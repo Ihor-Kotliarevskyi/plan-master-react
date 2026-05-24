@@ -65,6 +65,7 @@ and Supabase adapters happen against stable interfaces.
   - `src/services/supabase/project-list.ts`
   - `src/services/supabase/runtime.ts`
   - `src/services/supabase/auth-runtime.ts`
+  - `src/services/supabase/session-runtime.ts`
   - `src/services/supabase/account-runtime.ts`
   - `src/services/supabase/ui-runtime.ts`
   - `src/services/supabase/collaboration-runtime.ts`
@@ -126,10 +127,14 @@ and Supabase adapters happen against stable interfaces.
   - auth-state reset and hydration model
   - logout sync-decision
   - auth-event planning for `INITIAL_SESSION` / `SIGNED_IN` / `TOKEN_REFRESHED` / `USER_UPDATED` / `SIGNED_OUT`
+  - initial-session bootstrap planning
+  - session hydration result planning
+  - signed-out UI plan
   - readonly/share-button UI state model
   - share modal list projection
   - share role option and guide rendering helpers
   - share dialog copy and error-state models
+  - share dialog list/render model building
   - share success toast models
   - sync-indicator timing plan
   - activity write request model
