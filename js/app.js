@@ -222,7 +222,7 @@ function restoreActiveTab() {
   try {
     activeTab = JSON.parse(localStorage.getItem(UI_SK) || "{}").activeTab || "gantt";
   } catch (_) {}
-  const tab = [...document.querySelectorAll(".tab")].find((el) => el.getAttribute("onclick")?.includes(`'${activeTab}'`));
+  const tab = document.querySelector(`.tab[data-app-shell-action="switch-tab"][data-tab-id="${activeTab}"]`);
   if (tab) switchTab(activeTab, tab);
 }
 
