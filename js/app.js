@@ -330,10 +330,6 @@ function toggleContractorToolsMenu() {
 function closeContractorToolsMenu() {
   document.getElementById("contractor-tools-dropdown")?.classList.remove("open");
 }
-document.addEventListener("click", (e) => {
-  if (!e.target.closest("#tools-menu")) closeToolsMenu();
-  if (!e.target.closest("#contractor-tools-menu")) closeContractorToolsMenu();
-});
 
 function toggleCat(i, e) {
   if (e?.shiftKey) {
@@ -529,35 +525,6 @@ function importJSON(e) {
   e.target.value = "";
 }
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    [
-      closeModal,
-      closeProjModal,
-      closeCatModal,
-      closeProjMgr,
-      closeChartEdit,
-      closeUserModal,
-      closePhaseModal,
-      closePrintDialog,
-      closeNotesModal,
-      closeCostModal,
-      typeof closeContractorEntryModal === "function" ? closeContractorEntryModal : null,
-      typeof closeAuthModal === "function" ? closeAuthModal : null,
-    ].forEach((fn) => fn && fn());
-  }
-  if (e.key === "Enter" && e.ctrlKey) {
-    if (document.getElementById("modal").style.display !== "none") saveTask();
-    if (document.getElementById("proj-modal").style.display !== "none")
-      saveProjSettings();
-    if (document.getElementById("cat-modal").style.display !== "none")
-      saveCats();
-    if (document.getElementById("chart-edit-modal").style.display !== "none")
-      applyChartEdit();
-    if (document.getElementById("contractor-entry-modal")?.style.display !== "none")
-      saveContractorEntry();
-  }
-});
 
 loadAll();
 render();
@@ -662,12 +629,6 @@ function closeOverdueBanner() {
     banner.dataset.closed = "1";
   }
   if (reopenBtn) reopenBtn.style.display = "";
-}
-
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-  });
 }
 
 let deferredPrompt;
