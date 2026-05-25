@@ -443,6 +443,16 @@ async function apiRemoveShare(userId) {
   return _fetch(`/projects/${sid}/shares/${userId}`, { method: "DELETE" });
 }
 
+async function handleShareRoleChange(shareId, role) {
+  await apiUpdateShareRole(shareId, role);
+  await openShareModal();
+}
+
+async function handleShareRemoval(shareId) {
+  await apiRemoveShare(shareId);
+  await openShareModal();
+}
+
 async function openShareModal() {
   if (!canManageShares()) {
     Swal.fire({ icon: "info", title: API_UI.share.accessDeniedTitle });
@@ -461,13 +471,13 @@ async function openShareModal() {
                <span class="share-name">${s.userId?.name || "—"}
                  <span class="share-email">${s.userId?.email || ""}</span>
                </span>
-               <select class="cost-sel" onchange="apiUpdateShareRole('${s.userId?._id}',this.value)">
+               <select class="cost-sel" data-share-action="change-role" data-share-id="${s.userId?._id}">
                  ${SHAREABLE_PROJECT_ROLES.map(
                    (role) => `<option value="${role}"${shareRole === role ? " selected" : ""}>${typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role]}</option>`,
                  ).join("")}
                </select>
                <button class="cost-act-btn del"
-                       onclick="apiRemoveShare('${s.userId?._id}');openShareModal()">✕</button>
+                       data-share-action="remove-share" data-share-id="${s.userId?._id}">✕</button>
              </div>`;
           },
         )
@@ -547,14 +557,14 @@ function _renderAuthModal(tab) {
       };
   document.getElementById("auth-modal-body").innerHTML = `
     <div class="auth-tabs">
-      <button class="${modalModel.loginTabClassName}" onclick="_renderAuthModal('login')">${API_UI.auth.loginTabLabel}</button>
-      <button class="${modalModel.registerTabClassName}" onclick="_renderAuthModal('register')">${API_UI.auth.registerTabLabel}</button>
+      <button class="${modalModel.loginTabClassName}" data-fallback-auth-action="switch-tab" data-auth-tab="login">${API_UI.auth.loginTabLabel}</button>
+      <button class="${modalModel.registerTabClassName}" data-fallback-auth-action="switch-tab" data-auth-tab="register">${API_UI.auth.registerTabLabel}</button>
     </div>
     ${modalModel.showNameField ? `<div class="fg"><label>${API_UI.auth.nameLabel}</label><input id="auth-name" placeholder="${API_UI.auth.namePlaceholder}"/></div>` : ""}
     <div class="fg"><label>Email</label><input id="auth-email" type="email" placeholder="example@mail.com"/></div>
     <div class="fg"><label>${API_UI.auth.passwordLabel}</label><input id="auth-pass" type="password" placeholder="${API_UI.auth.passwordPlaceholder}"/></div>
     <div id="auth-error" class="auth-error" style="display:none"></div>
-    <button class="btn btn-acc auth-submit-btn" onclick="_submitAuth('${tab}')">
+    <button class="btn btn-acc auth-submit-btn" data-fallback-auth-action="submit-auth" data-auth-tab="${tab}">
       ${modalModel.submitLabel}</button>`;
 }
 
@@ -600,28 +610,16 @@ function updateAuthBtn() {
   const btn = document.getElementById("auth-status-btn");
   if (!btn) return;
   if (isLoggedIn() && _apiUser) {
-    btn.textContent = `☁ ${_apiUser.name}`;
+    btn.textContent = `Cloud ${_apiUser.name}`;
     btn.title = API_UI.auth.syncedTitle;
-    btn.onclick = async () => {
-      const r = await Swal.fire({
-        icon: "question", title: API_UI.auth.syncedLogoutPromptTitle,
-        text: API_UI.auth.syncedLogoutPromptText,
-        showCancelButton: true, confirmButtonText: API_UI.auth.logoutConfirmButtonText, cancelButtonText: API_UI.share.cancelButtonText,
-      });
-      if (r.isConfirmed) {
-        apiLogout();
-        _projectRole = null;
-        updateAuthBtn();
-        _updateReadOnlyUI();
-      }
-    };
+    btn.dataset.fallbackAuthBtn = "logout";
   } else {
     btn.textContent = API_UI.auth.loginButtonLabel;
-    btn.onclick = () => openAuthModal("login");
+    btn.title = "";
+    btn.dataset.fallbackAuthBtn = "login";
   }
   _updateReadOnlyUI();
 }
-
 
 (async () => {
   if (_authToken) {
