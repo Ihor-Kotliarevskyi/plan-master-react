@@ -178,10 +178,10 @@ function renderFinFilters() {
   const hasFinFilters = _hasFinanceFilters();
   document.getElementById("fin-filters").innerHTML = `
     <div class="fin-filter-tabs">
-      <button class="fin-tab" id="fin-tab-overview" onclick="switchFinTab('overview')" type="button">
+      <button class="fin-tab" id="fin-tab-overview" data-finance-surface-action="switch-tab" data-fin-tab="overview" type="button">
         <i data-lucide="trending-up"></i> ${FINANCE_UI.filters.overviewTabLabel}
       </button>
-      <button class="fin-tab" id="fin-tab-table" onclick="switchFinTab('table')" type="button">
+      <button class="fin-tab" id="fin-tab-table" data-finance-surface-action="switch-tab" data-fin-tab="table" type="button">
         <i data-lucide="table-2"></i> ${FINANCE_UI.filters.tableTabLabel}
       </button>
     </div>
@@ -190,10 +190,9 @@ function renderFinFilters() {
       <input type="text" id="fin-search-inp" class="fin-search-inp"
              placeholder="${FINANCE_UI.filters.searchPlaceholder}"
              value="${htmlEsc(finFilters.q || "")}"
-             oninput="onFinSearch(this.value)"
-             onkeydown="if(event.key==='Escape'){clearFinSearch()}">
+             data-finance-surface-input="search">
       <button type="button" id="fin-search-clear" class="fin-search-clear${finFilters.q ? " show" : ""}"
-              onclick="clearFinSearch()" title="${FINANCE_UI.filters.clearSearchTitle}">
+              data-finance-surface-action="clear-search" title="${FINANCE_UI.filters.clearSearchTitle}">
         <i data-lucide="x"></i>
       </button>
     </div>
@@ -203,24 +202,24 @@ function renderFinFilters() {
     <div class="ff-group">
       <label>${FINANCE_UI.filters.budgetMinLabel}</label>
       <input type="number" min="0" step="10000" value="${finFilters.budgetMin}" class="ff-input-narrow"
-             placeholder="${FINANCE_UI.filters.budgetMinPlaceholder}" onchange="finFilters.budgetMin=this.value;renderFinFilters();renderFinance()">
+             placeholder="${FINANCE_UI.filters.budgetMinPlaceholder}" data-finance-surface-input="budget-min">
     </div>
     <div class="ff-group">
       <label>${FINANCE_UI.filters.budgetMaxLabel}</label>
       <input type="number" min="0" step="10000" value="${finFilters.budgetMax}" class="ff-input-narrow"
-             placeholder="${FINANCE_UI.filters.budgetMaxPlaceholder}" onchange="finFilters.budgetMax=this.value;renderFinFilters();renderFinance()">
+             placeholder="${FINANCE_UI.filters.budgetMaxPlaceholder}" data-finance-surface-input="budget-max">
     </div>
     <div class="ff-group ff-group-actions">
       <label class="ff-checkbox">
         <input type="checkbox" ${finFilters.onlyBudget ? "checked" : ""}
-               onchange="finFilters.onlyBudget=this.checked;renderFinFilters();renderFinance()"> ${FINANCE_UI.filters.onlyBudgetLabel}
+               data-finance-surface-input="only-budget"> ${FINANCE_UI.filters.onlyBudgetLabel}
       </label>
-      ${hasFinFilters ? `<button class="btn btn-sm" onclick="resetFinanceFilters()" title="${FINANCE_UI.filters.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
+      ${hasFinFilters ? `<button class="btn btn-sm" data-finance-surface-action="reset-filters" title="${FINANCE_UI.filters.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
       <button class="btn btn-sm btn-tog${showEVM ? " on" : ""}"
-              onclick="showEVM=!showEVM;renderFinance()" title="${FINANCE_UI.filters.evmToggleTitle}">
+              data-finance-surface-action="toggle-evm" title="${FINANCE_UI.filters.evmToggleTitle}">
         <i data-lucide="bar-chart-2"></i> ${FINANCE_UI.filters.evmToggleLabel}
       </button>
-      <button class="btn btn-sm danger" onclick="deleteVisibleFinanceTasks()" title="${FINANCE_UI.filters.deleteTasksTitle}">
+      <button class="btn btn-sm danger" data-finance-surface-action="delete-visible-tasks" title="${FINANCE_UI.filters.deleteTasksTitle}">
         <i data-lucide="trash"></i> ${FINANCE_UI.filters.deleteTasksLabel}
       </button>
     </div>`;
@@ -244,6 +243,24 @@ function _hasFinanceFilters() {
 function resetFinanceFilters() {
   finFilters = { ...finFilters, cat: [], stat: [], contr: [], budgetMin: "", budgetMax: "", onlyBudget: false };
   renderFinFilters();
+  renderFinance();
+}
+
+function setFinanceBudgetFilter(field, value) {
+  if (field !== "budgetMin" && field !== "budgetMax") return;
+  finFilters[field] = value;
+  renderFinFilters();
+  renderFinance();
+}
+
+function setFinanceOnlyBudget(value) {
+  finFilters.onlyBudget = !!value;
+  renderFinFilters();
+  renderFinance();
+}
+
+function toggleFinanceEVM() {
+  showEVM = !showEVM;
   renderFinance();
 }
 
@@ -548,9 +565,9 @@ function _renderFinanceTable() {
   const thead = cols
     .map((c) => {
       const sortCls = finSort.col === c.k ? (finSort.dir === 1 ? "asc" : "desc") : "";
-      return `<th data-col="${c.k}" onclick="sortFin('${c.k}')" class="${sortCls}">
+      return `<th data-col="${c.k}" data-finance-surface-action="sort-col" data-col-key="${c.k}" class="${sortCls}">
         <span>${c.l}</span><span class="sa"></span>
-        <span class="fin-col-resizer" onclick="event.stopPropagation()" onmousedown="startFinColResize(event,'${c.k}')"></span>
+        <span class="fin-col-resizer" data-finance-surface-mousedown="resize-col" data-col="${c.k}"></span>
       </th>`;
     })
     .join("");
@@ -578,22 +595,22 @@ function _renderFinanceRow(t) {
   const warns = checkDeps(t);
   return `<tr data-ti="${t.ti}">
     <td>${t.n}</td>
-    <td class="fin-cell-link" onclick="finOpenTask(${t.ti})">${t.name}${warns.length ? ` <span title="${warns.join("\n")}" class="fin-warn-ic">⚠</span>` : ""}</td>
-    <td class="fin-cell-link" onclick="finOpenTask(${t.ti})"><span class="fin-cat-dot" style="background:${CC(t.cat)}"></span>${CN(t.cat)}</td>
+    <td class="fin-cell-link" data-finance-surface-action="open-task" data-task-index="${t.ti}">${t.name}${warns.length ? ` <span title="${warns.join("\n")}" class="fin-warn-ic">⚠</span>` : ""}</td>
+    <td class="fin-cell-link" data-finance-surface-action="open-task" data-task-index="${t.ti}"><span class="fin-cat-dot" style="background:${CC(t.cat)}"></span>${CN(t.cat)}</td>
     <td>${t.dur}</td>
-    <td class="fin-cell-link" onclick="finOpenCost(${t.ti})">${fmtM(t.budget)}</td>
-    <td class="fin-cell-link" onclick="finOpenCost(${t.ti})">${fmtM(t.spent)}</td>
-    <td>${_finProgressBar(t.pct, "money", "finShowOverview()")}</td>
-    <td class="fin-cell-link" onclick="finOpenCost(${t.ti})" style="color:${t.rest < 0 ? "var(--err)" : ""}">${fmtM(t.rest)}</td>
+    <td class="fin-cell-link" data-finance-surface-action="open-cost" data-task-index="${t.ti}">${fmtM(t.budget)}</td>
+    <td class="fin-cell-link" data-finance-surface-action="open-cost" data-task-index="${t.ti}">${fmtM(t.spent)}</td>
+    <td>${_finProgressBar(t.pct, "money", "show-overview", t.ti)}</td>
+    <td class="fin-cell-link" data-finance-surface-action="open-cost" data-task-index="${t.ti}" style="color:${t.rest < 0 ? "var(--err)" : ""}">${fmtM(t.rest)}</td>
     <td>${t.rate > 0 ? fmtM(t.rate) : "—"}</td>
-    <td>${_finProgressBar(t.prog || 0, "work", `finGoToGanttSearch(${t.ti})`)}</td>
+    <td>${_finProgressBar(t.prog || 0, "work", "go-to-gantt-search", t.ti)}</td>
   </tr>`;
 }
 
-function _finProgressBar(pct, type, action) {
+function _finProgressBar(pct, type, action, taskIndex) {
   const p = Math.max(0, Math.min(100, Math.round(+pct || 0)));
   const state = p >= 100 ? "done" : p > 0 ? "active" : "pending";
-  return `<button class="fin-bar fin-bar-${state} fin-bar-${type}" onclick="event.stopPropagation();${action}" title="${p}%">
+  return `<button class="fin-bar fin-bar-${state} fin-bar-${type}" data-finance-surface-action="${action}" data-task-index="${taskIndex}" title="${p}%">
     <span class="fin-bar-fill" style="width:${p}%"></span>
     <span class="fin-bar-label">${p}%</span>
   </button>`;

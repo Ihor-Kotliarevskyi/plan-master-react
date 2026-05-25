@@ -631,14 +631,13 @@ function checkOverdue(forceShow = false) {
         hasMore
           ? `
         <div class="ob-list" id="ob-list-hidden" style="display:none">${hiddenHTML}</div>
-        <button class="ob-show-more" id="ob-show-more-btn"
-                onclick="toggleOverdueExpand()">
+        <button class="ob-show-more" id="ob-show-more-btn" data-overdue-action="toggle-expand">
           ${APP_UI.overdueShowMoreLabel(overdue.length - PREVIEW)}
         </button>`
           : ""
       }
     </div>
-    <span class="ob-close" onclick="closeOverdueBanner()" title="${APP_UI.overdueCloseTitle}"><i data-lucide="x"></i></span>`;
+    <span class="ob-close" data-overdue-action="close-banner" title="${APP_UI.overdueCloseTitle}"><i data-lucide="x"></i></span>`;
 
   banner.classList.add("show");
   lucide.createIcons({ nodes: [banner] });
