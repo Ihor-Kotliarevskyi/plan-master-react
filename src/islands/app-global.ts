@@ -18,6 +18,7 @@ type AppGlobalRuntime = Window & {
   saveCats?: () => Promise<void> | void;
   applyChartEdit?: () => Promise<void> | void;
   saveContractorEntry?: () => Promise<void> | void;
+  deferredPrompt?: Event | null;
 };
 
 const runtime = window as AppGlobalRuntime;
@@ -68,6 +69,13 @@ function initAppGlobalIsland(): void {
   });
 
   window.addEventListener("load", registerServiceWorker, { once: true });
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    runtime.deferredPrompt = event;
+  });
+  window.addEventListener("appinstalled", () => {
+    runtime.deferredPrompt = null;
+  });
 }
 
 if (document.readyState === "loading") {

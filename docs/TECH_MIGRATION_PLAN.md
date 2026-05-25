@@ -24,7 +24,7 @@ What is true now:
 - Supabase schema, RLS, and sharing flows already support that model
 - audit logging foundation already exists
 - a first TypeScript and generated-helper bridge already exists
-- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, project settings, project manager, app shell, app global orchestration, overdue banner, gantt surface, print dialog shell, print preview surface, print chart picker, chart edit dialog, chart surface, task modal shell, cost editor, notes modal, dependency list modal, contractor entry modal, contractor detail and register surface, contractor dialog flows, payment register modal, contractor tools menu, contractor import/review shell, finance chart controls, and finance surface; the remaining finance logic is now mostly domain/helper-based rather than shell-bound
+- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, project settings, project manager, app shell, app global orchestration, multi-filter controls, overdue banner, gantt surface, print dialog shell, print preview surface, print chart picker, chart edit dialog, chart surface, task modal shell, cost editor, notes modal, dependency list modal, contractor entry modal, contractor detail and register surface, contractor dialog flows, payment register modal, contractor tools menu, contractor import/review shell, finance chart controls, and finance surface; the remaining finance logic is now mostly domain/helper-based rather than shell-bound
 
 What is still legacy:
 
@@ -186,6 +186,7 @@ Good candidates for the next module-based UI islands:
 - any remaining cost-editor persistence or lifecycle glue outside the island
 - any remaining print/chart export listeners outside the current shells
 - any remaining app-level install prompt or import/export glue outside the global island
+- any remaining fallback-only inline markup in the legacy reserve API path
 
 Bad candidates for the first UI island:
 
