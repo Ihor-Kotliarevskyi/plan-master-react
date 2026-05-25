@@ -14,7 +14,6 @@ const PRINT_PAPER_MM = {
 };
 
 let _printPreviewTimer = null;
-let _printPreviewBound = false;
 let _printPreviewPage = 0;
 const PRINT_UI = typeof buildRuntimePrintUiModel === "function"
   ? buildRuntimePrintUiModel()
@@ -84,7 +83,6 @@ function openPrintDialog() {
     : `<div class="print-no-charts">${PRINT_UI.noChartsText}</div>`;
 
   document.getElementById("print-modal").style.display = "flex";
-  _bindPrintPreviewEvents();
   _schedulePrintPreview();
 }
 
@@ -515,14 +513,6 @@ function _buildSCurvePrintData() {
       },
     ],
   };
-}
-
-function _bindPrintPreviewEvents() {
-  const modal = document.getElementById("print-modal");
-  if (!modal || _printPreviewBound) return;
-  modal.addEventListener("change", _schedulePrintPreview);
-  modal.addEventListener("input", _schedulePrintPreview);
-  _printPreviewBound = true;
 }
 
 function _schedulePrintPreview() {
