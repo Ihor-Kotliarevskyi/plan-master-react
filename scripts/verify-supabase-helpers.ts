@@ -74,13 +74,19 @@ import {
 } from "../src/domain/charts";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
 import {
+  applyFinanceDeletion,
+  applyFinanceResizeDrag,
+  buildFinanceDeletionHtml,
+  buildFinanceGanttNavigationPlan,
   buildFinanceRows,
   buildFinanceSearchText,
+  buildFinanceResizeSession,
   calculateFinanceOverview,
   financeItemTotal,
   financeScopedCostItems,
   financeTaskScope,
   hasFinanceFilters,
+  resolveFinanceDeletionScope,
   summarizeFinanceDeletion,
 } from "../src/domain/finance";
 import { buildPrintUiModel } from "../src/domain/print-ui";
@@ -108,13 +114,19 @@ import {
 } from "../src/domain/charts";
 import { buildFinanceUiModel } from "../src/domain/finance-ui";
 import {
+  applyFinanceDeletion,
+  applyFinanceResizeDrag,
+  buildFinanceDeletionHtml,
+  buildFinanceGanttNavigationPlan,
   buildFinanceRows,
   buildFinanceSearchText,
+  buildFinanceResizeSession,
   calculateFinanceOverview,
   financeItemTotal,
   financeScopedCostItems,
   financeTaskScope,
   hasFinanceFilters,
+  resolveFinanceDeletionScope,
   summarizeFinanceDeletion,
 } from "../src/domain/finance";
 import { buildPrintUiModel } from "../src/domain/print-ui";
@@ -1257,6 +1269,18 @@ const financeSummary = summarizeFinanceDeletion([0], [financeTask], getTaskItems
 assert.equal(financeSummary.tasks, 1);
 assert.equal(financeSummary.items, 2);
 assert.equal(financeSummary.payments, 2);
+assert.equal(
+  resolveFinanceDeletionScope(true, "", {
+    filteredScopeLabel: "filtered",
+    fullScopeLabel: "full",
+  }),
+  "filtered",
+);
+assert.equal(
+  buildFinanceDeletionHtml(financeSummary, "filtered", (value) => `${value} грн`).includes("filtered"),
+  true,
+);
+assert.equal(applyFinanceDeletion([financeTask, { ...financeTask, n: 2 }], [1]).length, 1);
 
 const overview = calculateFinanceOverview([financeTask]);
 assert.equal(overview.budget, 1000);
@@ -1273,6 +1297,16 @@ const financeRows = buildFinanceRows(
 assert.equal(financeRows[0]?.budget, 1000);
 assert.equal(financeRows[0]?.ti, 0);
 assert.equal(financeRows[0]?.rate, 200);
+
+const financeResize = buildFinanceResizeSession({ budget: 120 }, { budget: 100 }, "budget", 50);
+const financeResizeApplied = applyFinanceResizeDrag(financeResize, 90);
+assert.equal(financeResizeApplied.nextWidth, 160);
+assert.equal(financeResizeApplied.widths.budget, 160);
+
+const financeNav = buildFinanceGanttNavigationPlan(3, "Finance Task", false);
+assert.equal(financeNav.shouldActivateGantt, true);
+assert.equal(financeNav.targetRowId, "tr3");
+assert.equal(financeNav.searchQuery, "finance task");
 
 const printUi = buildPrintUiModel();
 assert.equal(printUi.noChartsText, "Немає побудованих графіків");

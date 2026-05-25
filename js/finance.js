@@ -307,9 +307,18 @@ async function deleteVisibleFinanceTasks() {
         return acc;
       }, { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 });
 
-  const scope = _hasFinanceFilters() || finFilters.q
-    ? FINANCE_UI.deleteDialogs.filteredScopeLabel
-    : FINANCE_UI.deleteDialogs.fullScopeLabel;
+  const scope = typeof buildRuntimeResolveFinanceDeletionScope === "function"
+    ? buildRuntimeResolveFinanceDeletionScope(
+        _hasFinanceFilters(),
+        finFilters.q,
+        {
+          filteredScopeLabel: FINANCE_UI.deleteDialogs.filteredScopeLabel,
+          fullScopeLabel: FINANCE_UI.deleteDialogs.fullScopeLabel,
+        },
+      )
+    : (_hasFinanceFilters() || finFilters.q
+        ? FINANCE_UI.deleteDialogs.filteredScopeLabel
+        : FINANCE_UI.deleteDialogs.fullScopeLabel);
   const confirmOne = await Swal.fire({
     icon: "warning",
     title: FINANCE_UI.deleteDialogs.confirmTitle,
@@ -349,7 +358,9 @@ async function deleteVisibleFinanceTasks() {
   });
   if (!confirmTwo.isConfirmed) return;
 
-  indexes.forEach((ti) => tasks.splice(ti, 1));
+  tasks = typeof buildRuntimeApplyFinanceDeletion === "function"
+    ? buildRuntimeApplyFinanceDeletion(tasks, indexes)
+    : tasks.filter((_, index) => !indexes.includes(index));
   saveAll();
   render();
   renderFinFilters();
@@ -629,18 +640,28 @@ function startFinColResize(event, col) {
   event.preventDefault();
   event.stopPropagation();
   const widths = _getFinColWidths();
-  _finResize = { col, startX: event.clientX, startW: widths[col] || FIN_COL_DEFAULTS[col] || 100, widths };
+  _finResize = typeof buildRuntimeBuildFinanceResizeSession === "function"
+    ? buildRuntimeBuildFinanceResizeSession(widths, FIN_COL_DEFAULTS, col, event.clientX)
+    : { col, startX: event.clientX, startW: widths[col] || FIN_COL_DEFAULTS[col] || 100, widths };
   document.addEventListener("mousemove", _onFinColResize);
   document.addEventListener("mouseup", _stopFinColResize);
 }
 
 function _onFinColResize(event) {
   if (!_finResize) return;
-  const next = Math.max(42, _finResize.startW + event.clientX - _finResize.startX);
-  _finResize.widths[_finResize.col] = next;
+  const nextState = typeof buildRuntimeApplyFinanceResizeDrag === "function"
+    ? buildRuntimeApplyFinanceResizeDrag(_finResize, event.clientX)
+    : {
+        nextWidth: Math.max(42, _finResize.startW + event.clientX - _finResize.startX),
+        widths: {
+          ..._finResize.widths,
+          [_finResize.col]: Math.max(42, _finResize.startW + event.clientX - _finResize.startX),
+        },
+      };
+  _finResize.widths = nextState.widths;
   const idx = _getFinColumns().findIndex((c) => c.k === _finResize.col) + 1;
   document.querySelectorAll(`#fin-tbl col:nth-child(${idx})`).forEach((col) => {
-    col.style.width = `${next}px`;
+    col.style.width = `${nextState.nextWidth}px`;
   });
 }
 
@@ -667,15 +688,29 @@ function finShowOverview() {
 function finGoToGanttSearch(ti) {
   const t = tasks[ti];
   if (!t) return;
-  const tab = [...document.querySelectorAll(".tab")].find((el) => el.getAttribute("onclick")?.includes("'gantt'"));
-  tab?.click();
-  taskSearch = t.name.toLowerCase();
+  const navPlan = typeof buildRuntimeBuildFinanceGanttNavigationPlan === "function"
+    ? buildRuntimeBuildFinanceGanttNavigationPlan(
+        ti,
+        t.name,
+        !!document.getElementById("pane-gantt")?.classList.contains("active"),
+      )
+    : {
+        shouldActivateGantt: !document.getElementById("pane-gantt")?.classList.contains("active"),
+        targetRowId: `tr${ti}`,
+        taskIndex: ti,
+        searchQuery: t.name.toLowerCase(),
+        searchDisplayName: t.name,
+      };
+  if (navPlan.shouldActivateGantt) {
+    document.querySelector('.tab[data-app-shell-action="switch-tab"][data-tab-id="gantt"]')?.click();
+  }
+  taskSearch = navPlan.searchQuery;
   renderTable();
   setTimeout(() => {
     const inp = document.getElementById("task-search-inp");
-    if (inp) inp.value = t.name;
-    onTaskSearch(t.name);
-    document.getElementById(`tr${ti}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (inp) inp.value = navPlan.searchDisplayName;
+    onTaskSearch(navPlan.searchDisplayName);
+    document.getElementById(navPlan.targetRowId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, 50);
 }
 

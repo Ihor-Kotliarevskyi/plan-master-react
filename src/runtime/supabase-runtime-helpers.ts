@@ -75,13 +75,19 @@ import {
 } from "../domain/charts";
 import { buildFinanceUiModel } from "../domain/finance-ui";
 import {
+  applyFinanceDeletion,
+  applyFinanceResizeDrag,
+  buildFinanceDeletionHtml,
+  buildFinanceGanttNavigationPlan,
   buildFinanceRows,
   buildFinanceSearchText,
+  buildFinanceResizeSession,
   calculateFinanceOverview,
   financeItemTotal,
   financeScopedCostItems,
   financeTaskScope,
   hasFinanceFilters,
+  resolveFinanceDeletionScope,
   summarizeFinanceDeletion,
 } from "../domain/finance";
 import { buildPrintUiModel } from "../domain/print-ui";
@@ -550,8 +556,14 @@ const runtimeHelpers = {
   buildRuntimeFinanceTaskScope: financeTaskScope,
   buildRuntimeFinanceSearchText: buildFinanceSearchText,
   buildRuntimeSummarizeFinanceDeletion: summarizeFinanceDeletion,
+  buildRuntimeResolveFinanceDeletionScope: resolveFinanceDeletionScope,
+  buildRuntimeBuildFinanceDeletionHtml: buildFinanceDeletionHtml,
+  buildRuntimeApplyFinanceDeletion: applyFinanceDeletion,
   buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
   buildRuntimeBuildFinanceRows: buildFinanceRows,
+  buildRuntimeBuildFinanceResizeSession: buildFinanceResizeSession,
+  buildRuntimeApplyFinanceResizeDrag: applyFinanceResizeDrag,
+  buildRuntimeBuildFinanceGanttNavigationPlan: buildFinanceGanttNavigationPlan,
   buildRuntimePrintUiModel: buildPrintUiModel,
   buildRuntimeResolvePrintSections: resolvePrintSections,
   buildRuntimeResolvePrintSettings: resolvePrintSettings,

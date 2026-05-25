@@ -994,6 +994,52 @@
       { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 }
     );
   }
+  function resolveFinanceDeletionScope(hasScopedFilters, searchQuery, labels) {
+    return hasScopedFilters || !!String(searchQuery || "").trim() ? labels.filteredScopeLabel : labels.fullScopeLabel;
+  }
+  function buildFinanceDeletionHtml(summary, scope, formatMoney) {
+    return `
+      <div style="text-align:left">
+        Буде видалено: <b>${summary.tasks}</b> робіт.<br>
+        Позицій кошторису: <b>${summary.items}</b><br>
+        Платежів: <b>${summary.payments}</b><br>
+        Актів: <b>${summary.acts}</b><br>
+        Бюджет: <b>${formatMoney(Math.round(summary.budget))}</b><br>
+        Витрачено: <b>${formatMoney(Math.round(summary.spent))}</b><br><br>
+        Сценарій: <b>${scope}</b>
+      </div>`;
+  }
+  function applyFinanceDeletion(tasks, indexes) {
+    const deleteSet = new Set(indexes);
+    return tasks.filter((_, index) => !deleteSet.has(index));
+  }
+  function buildFinanceResizeSession(widths, defaults, col, startX) {
+    return {
+      col,
+      startX,
+      startW: widths[col] || defaults[col] || 100,
+      widths: { ...widths }
+    };
+  }
+  function applyFinanceResizeDrag(session, clientX) {
+    const nextWidth = Math.max(42, session.startW + clientX - session.startX);
+    return {
+      nextWidth,
+      widths: {
+        ...session.widths,
+        [session.col]: nextWidth
+      }
+    };
+  }
+  function buildFinanceGanttNavigationPlan(taskIndex, taskName, isGanttActive) {
+    return {
+      shouldActivateGantt: !isGanttActive,
+      targetRowId: `tr${taskIndex}`,
+      taskIndex,
+      searchQuery: String(taskName || "").toLowerCase(),
+      searchDisplayName: String(taskName || "")
+    };
+  }
   function calculateFinanceOverview(tasks) {
     const budget = tasks.reduce((sum, task) => sum + (+task.budget || 0), 0);
     const spent = tasks.reduce((sum, task) => sum + (+task.spent || 0), 0);
@@ -4108,8 +4154,14 @@
     buildRuntimeFinanceTaskScope: financeTaskScope,
     buildRuntimeFinanceSearchText: buildFinanceSearchText,
     buildRuntimeSummarizeFinanceDeletion: summarizeFinanceDeletion,
+    buildRuntimeResolveFinanceDeletionScope: resolveFinanceDeletionScope,
+    buildRuntimeBuildFinanceDeletionHtml: buildFinanceDeletionHtml,
+    buildRuntimeApplyFinanceDeletion: applyFinanceDeletion,
     buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
     buildRuntimeBuildFinanceRows: buildFinanceRows,
+    buildRuntimeBuildFinanceResizeSession: buildFinanceResizeSession,
+    buildRuntimeApplyFinanceResizeDrag: applyFinanceResizeDrag,
+    buildRuntimeBuildFinanceGanttNavigationPlan: buildFinanceGanttNavigationPlan,
     buildRuntimePrintUiModel: buildPrintUiModel,
     buildRuntimeResolvePrintSections: resolvePrintSections,
     buildRuntimeResolvePrintSettings: resolvePrintSettings,
