@@ -801,7 +801,7 @@ function _updateReadOnlyUI() {
     ganttTable.title = uiState.ganttTitle;
   }
 
-  const addBtn = document.querySelector(".btn-acc[onclick='openAdd()']");
+  const addBtn = document.querySelector("[data-gantt-action='open-add-task']");
   if (addBtn) addBtn.style.display = uiState.addButtonVisible ? "" : "none";
 
   const shareBtn = document.getElementById("share-btn");
@@ -951,10 +951,10 @@ async function openShareModal() {
         ? shareListItems.map((item) => `
             <div class="share-row">
               <span>${item.displayLabel}</span>
-              <select class="cost-sel" onchange="handleShareRoleChange('${item.id}',this.value)">
+              <select class="cost-sel" data-share-action="change-role" data-share-id="${item.id}">
                 ${item.roleOptionsHtml}
               </select>
-              <button class="cost-act-btn del" onclick="handleShareRemoval('${item.id}')">?</button>
+              <button class="cost-act-btn del" data-share-action="remove-share" data-share-id="${item.id}">?</button>
             </div>`).join("")
         : `<div class="share-empty">${shareDialog.emptyText}</div>`);
 

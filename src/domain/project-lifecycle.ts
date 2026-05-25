@@ -16,6 +16,14 @@ export interface ProjectSettingsUpdateResult {
   shiftedTasks: boolean;
 }
 
+export interface ProjectSettingsFormState {
+  name: string;
+  sm: number;
+  sy: number;
+  nm: number;
+  canManage: boolean;
+}
+
 export interface CreateEmptyProjectSnapshotInput {
   name: string;
   defaults: Pick<ProjectSettings, "sm" | "sy" | "nm">;
@@ -110,6 +118,19 @@ export function applyProjectSettingsUpdate(
     },
     shift,
     shiftedTasks,
+  };
+}
+
+export function buildProjectSettingsFormState(params: {
+  project: ProjectSettings;
+  canManage: boolean;
+}): ProjectSettingsFormState {
+  return {
+    name: params.project.name,
+    sm: params.project.sm,
+    sy: params.project.sy,
+    nm: params.project.nm,
+    canManage: params.canManage,
   };
 }
 

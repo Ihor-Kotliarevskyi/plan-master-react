@@ -24,7 +24,7 @@ What is true now:
 - Supabase schema, RLS, and sharing flows already support that model
 - audit logging foundation already exists
 - a first TypeScript and generated-helper bridge already exists
-- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, project settings, project manager, print dialog shell, print chart picker, chart edit dialog, task modal shell, notes modal, dependency list modal, contractor entry modal, payment register modal, contractor tools menu, contractor import/review shell, and finance chart controls
+- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, fallback auth modal, project settings, project manager, app shell, app global orchestration, multi-filter controls, overdue banner, gantt surface, print dialog shell, print preview surface, print chart picker, chart edit dialog, chart surface, task modal shell, cost editor, notes modal, dependency list modal, contractor entry modal, contractor detail and register surface, contractor dialog flows, payment register modal, contractor tools menu, contractor import/review shell, finance chart controls, and finance surface; the remaining finance logic is now mostly domain/helper-based rather than shell-bound
 
 What is still legacy:
 
@@ -182,9 +182,11 @@ Best next targets:
 
 Good candidates for the next module-based UI islands:
 
-- advanced finance controls around non-chart finance tooling
-- remaining print dialog orchestration outside the shell
-- finance chart modal/editor shells if that area is expanded
+- any last contractor dialog-specific listeners that are not yet under the island
+- any remaining cost-editor persistence or lifecycle glue outside the island
+- any remaining print/chart export listeners outside the current shells
+- any remaining app-level install prompt or import/export glue outside the global island
+- any remaining fallback-only reserve-path cleanup that does not affect the active Supabase runtime
 
 Bad candidates for the first UI island:
 

@@ -222,7 +222,7 @@ function restoreActiveTab() {
   try {
     activeTab = JSON.parse(localStorage.getItem(UI_SK) || "{}").activeTab || "gantt";
   } catch (_) {}
-  const tab = [...document.querySelectorAll(".tab")].find((el) => el.getAttribute("onclick")?.includes(`'${activeTab}'`));
+  const tab = document.querySelector(`.tab[data-app-shell-action="switch-tab"][data-tab-id="${activeTab}"]`);
   if (tab) switchTab(activeTab, tab);
 }
 
@@ -330,10 +330,6 @@ function toggleContractorToolsMenu() {
 function closeContractorToolsMenu() {
   document.getElementById("contractor-tools-dropdown")?.classList.remove("open");
 }
-document.addEventListener("click", (e) => {
-  if (!e.target.closest("#tools-menu")) closeToolsMenu();
-  if (!e.target.closest("#contractor-tools-menu")) closeContractorToolsMenu();
-});
 
 function toggleCat(i, e) {
   if (e?.shiftKey) {
@@ -529,35 +525,6 @@ function importJSON(e) {
   e.target.value = "";
 }
 
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    [
-      closeModal,
-      closeProjModal,
-      closeCatModal,
-      closeProjMgr,
-      closeChartEdit,
-      closeUserModal,
-      closePhaseModal,
-      closePrintDialog,
-      closeNotesModal,
-      closeCostModal,
-      typeof closeContractorEntryModal === "function" ? closeContractorEntryModal : null,
-      typeof closeAuthModal === "function" ? closeAuthModal : null,
-    ].forEach((fn) => fn && fn());
-  }
-  if (e.key === "Enter" && e.ctrlKey) {
-    if (document.getElementById("modal").style.display !== "none") saveTask();
-    if (document.getElementById("proj-modal").style.display !== "none")
-      saveProjSettings();
-    if (document.getElementById("cat-modal").style.display !== "none")
-      saveCats();
-    if (document.getElementById("chart-edit-modal").style.display !== "none")
-      applyChartEdit();
-    if (document.getElementById("contractor-entry-modal")?.style.display !== "none")
-      saveContractorEntry();
-  }
-});
 
 loadAll();
 render();
@@ -631,14 +598,13 @@ function checkOverdue(forceShow = false) {
         hasMore
           ? `
         <div class="ob-list" id="ob-list-hidden" style="display:none">${hiddenHTML}</div>
-        <button class="ob-show-more" id="ob-show-more-btn"
-                onclick="toggleOverdueExpand()">
+        <button class="ob-show-more" id="ob-show-more-btn" data-overdue-action="toggle-expand">
           ${APP_UI.overdueShowMoreLabel(overdue.length - PREVIEW)}
         </button>`
           : ""
       }
     </div>
-    <span class="ob-close" onclick="closeOverdueBanner()" title="${APP_UI.overdueCloseTitle}"><i data-lucide="x"></i></span>`;
+    <span class="ob-close" data-overdue-action="close-banner" title="${APP_UI.overdueCloseTitle}"><i data-lucide="x"></i></span>`;
 
   banner.classList.add("show");
   lucide.createIcons({ nodes: [banner] });
@@ -665,17 +631,4 @@ function closeOverdueBanner() {
   if (reopenBtn) reopenBtn.style.display = "";
 }
 
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(() => {});
-  });
-}
-
-let deferredPrompt;
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-});
-window.addEventListener("appinstalled", () => {
-  deferredPrompt = null;
-});
+window.deferredPrompt = window.deferredPrompt || null;

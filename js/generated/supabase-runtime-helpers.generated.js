@@ -994,6 +994,52 @@
       { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 }
     );
   }
+  function resolveFinanceDeletionScope(hasScopedFilters, searchQuery, labels) {
+    return hasScopedFilters || !!String(searchQuery || "").trim() ? labels.filteredScopeLabel : labels.fullScopeLabel;
+  }
+  function buildFinanceDeletionHtml(summary, scope, formatMoney) {
+    return `
+      <div style="text-align:left">
+        Буде видалено: <b>${summary.tasks}</b> робіт.<br>
+        Позицій кошторису: <b>${summary.items}</b><br>
+        Платежів: <b>${summary.payments}</b><br>
+        Актів: <b>${summary.acts}</b><br>
+        Бюджет: <b>${formatMoney(Math.round(summary.budget))}</b><br>
+        Витрачено: <b>${formatMoney(Math.round(summary.spent))}</b><br><br>
+        Сценарій: <b>${scope}</b>
+      </div>`;
+  }
+  function applyFinanceDeletion(tasks, indexes) {
+    const deleteSet = new Set(indexes);
+    return tasks.filter((_, index) => !deleteSet.has(index));
+  }
+  function buildFinanceResizeSession(widths, defaults, col, startX) {
+    return {
+      col,
+      startX,
+      startW: widths[col] || defaults[col] || 100,
+      widths: { ...widths }
+    };
+  }
+  function applyFinanceResizeDrag(session, clientX) {
+    const nextWidth = Math.max(42, session.startW + clientX - session.startX);
+    return {
+      nextWidth,
+      widths: {
+        ...session.widths,
+        [session.col]: nextWidth
+      }
+    };
+  }
+  function buildFinanceGanttNavigationPlan(taskIndex, taskName, isGanttActive) {
+    return {
+      shouldActivateGantt: !isGanttActive,
+      targetRowId: `tr${taskIndex}`,
+      taskIndex,
+      searchQuery: String(taskName || "").toLowerCase(),
+      searchDisplayName: String(taskName || "")
+    };
+  }
   function calculateFinanceOverview(tasks) {
     const budget = tasks.reduce((sum, task) => sum + (+task.budget || 0), 0);
     const spent = tasks.reduce((sum, task) => sum + (+task.spent || 0), 0);
@@ -2091,6 +2137,111 @@
       rows
     };
   }
+  function buildDependencyListOpenSession() {
+    return {
+      filter: "all",
+      visible: true
+    };
+  }
+  function applyDependencyListFilter(currentFilter, nextFilter) {
+    if (nextFilter === "FS" || nextFilter === "SS" || nextFilter === "FF" || nextFilter === "all") {
+      return nextFilter;
+    }
+    return currentFilter;
+  }
+  function buildDependencyNavigationPlan(taskIndex, ganttIsActive) {
+    return {
+      shouldActivateGantt: !ganttIsActive,
+      targetRowId: `tr${taskIndex}`,
+      taskIndex
+    };
+  }
+
+  // src/domain/modal-state.ts
+  function addModalPhase(phases, projectMonths) {
+    const nextPhases = (phases || []).map((phase) => ({ ...phase }));
+    const last = nextPhases[nextPhases.length - 1] || { me: 0 };
+    const newMs = Math.min(projectMonths - 1, (last.me || 0) + 1);
+    nextPhases.push({ ms: newMs, ws: 0, me: Math.min(projectMonths - 1, newMs + 1), we: 3, prog: 0 });
+    return nextPhases;
+  }
+  function removeModalPhase(phases, index) {
+    if ((phases || []).length <= 1) return (phases || []).map((phase) => ({ ...phase }));
+    return (phases || []).filter((_, phaseIndex) => phaseIndex !== index).map((phase) => ({ ...phase }));
+  }
+  function updateModalPhaseProgress(phases, index, value, getWeightedProgress2) {
+    const nextPhases = (phases || []).map((phase) => ({ ...phase }));
+    if (!nextPhases[index]) return { phases: nextPhases, totalProgress: getWeightedProgress2(nextPhases) };
+    nextPhases[index].prog = value;
+    if (value < 100) {
+      nextPhases.forEach((phase, phaseIndex) => {
+        if (phaseIndex > index) phase.prog = 0;
+      });
+    }
+    return {
+      phases: nextPhases,
+      totalProgress: getWeightedProgress2(nextPhases)
+    };
+  }
+  function buildDependencyDropdownState(params) {
+    const added = new Set((params.modalDeps || []).map((dep) => dep.id));
+    const needle = String(params.query || "").trim().toLowerCase();
+    const items = (params.tasks || []).filter((task, index) => index !== params.editIdx && !added.has(task.id)).filter((task) => !needle || `${task.n} ${task.name}`.toLowerCase().includes(needle)).map((task) => ({
+      id: task.id,
+      taskNumber: task.n,
+      name: task.name
+    }));
+    return {
+      items,
+      visible: items.length > 0
+    };
+  }
+  function addModalDependency(deps, id) {
+    if ((deps || []).some((dep) => dep.id === id)) {
+      return { deps: (deps || []).map((dep) => ({ ...dep })), editingDepId: id, didAdd: false };
+    }
+    return {
+      deps: [...(deps || []).map((dep) => ({ ...dep })), { id, type: "FS", threshold: 0 }],
+      editingDepId: id,
+      didAdd: true
+    };
+  }
+  function removeModalDependency(deps, id, editingDepId) {
+    return {
+      deps: (deps || []).filter((dep) => dep.id !== id).map((dep) => ({ ...dep })),
+      editingDepId: editingDepId === id ? null : editingDepId
+    };
+  }
+  function toggleModalDependencyEditor(editingDepId, id) {
+    return editingDepId === id ? null : id;
+  }
+  function buildModalDependencyEditorState(params) {
+    if (!params.editingDepId) {
+      return { visible: false, dependency: null, taskNumber: "?", taskName: "" };
+    }
+    const dependency = (params.deps || []).find((dep) => dep.id === params.editingDepId) || null;
+    if (!dependency) {
+      return { visible: false, dependency: null, taskNumber: "?", taskName: "" };
+    }
+    const task = (params.tasks || []).find((candidate) => candidate.id === dependency.id);
+    return {
+      visible: true,
+      dependency,
+      taskNumber: task?.n ?? "?",
+      taskName: task?.name || ""
+    };
+  }
+  function updateModalDependencyType(deps, id, type) {
+    return (deps || []).map(
+      (dep) => dep.id === id ? { ...dep, type, threshold: type !== "SS" ? 0 : dep.threshold || 25 } : { ...dep }
+    );
+  }
+  function updateModalDependencyThreshold(deps, id, value) {
+    const threshold = Math.min(99, Math.max(1, Math.round(value)));
+    return (deps || []).map(
+      (dep) => dep.id === id ? { ...dep, threshold } : { ...dep }
+    );
+  }
 
   // src/domain/modal-state.ts
   function addModalPhase(phases, projectMonths) {
@@ -2238,6 +2389,58 @@
       focusField: "name"
     };
   }
+  function buildTaskModalCreateUiState(params) {
+    return {
+      editIdx: params.createState.editIdx,
+      editingDepId: params.createState.editingDepId,
+      modalDeps: params.createState.modalDeps,
+      modalPhases: params.createState.modalPhases,
+      costTi: params.createState.costTi,
+      costItems: params.createState.costItems,
+      expandedIds: params.createState.expandedIds,
+      title: params.createState.title,
+      nameValue: "",
+      budgetValue: params.createState.budgetValue,
+      spentValue: params.createState.spentValue,
+      contractsOverrideBudget: params.createState.contractsOverrideBudget,
+      calcInfoText: params.createState.calcInfoText,
+      showDependencyWarning: params.createState.showDependencyWarning,
+      dependencyWarningHtml: "",
+      showDependencyEditor: params.createState.showDependencyEditor,
+      hasItems: params.createState.hasItems,
+      autoBudget: false,
+      selectedCategory: params.selectedCategory ?? 0,
+      focusField: params.createState.focusField,
+      activeTab: "general"
+    };
+  }
+  function buildTaskModalEditUiState(params) {
+    const taskBudget = +params.task?.budget || 0;
+    const autoBudget = params.editState.hasItems && (!!params.editState.contractsOverrideBudget || taskBudget <= 0);
+    return {
+      editIdx: params.editIdx,
+      editingDepId: null,
+      modalDeps: params.editState.modalDeps,
+      modalPhases: params.editState.modalPhases,
+      costTi: params.editIdx,
+      costItems: params.editState.costItems,
+      expandedIds: /* @__PURE__ */ new Set(),
+      title: params.editState.title,
+      nameValue: params.task?.name || "",
+      budgetValue: params.editState.budgetValue,
+      spentValue: params.editState.spentValue,
+      contractsOverrideBudget: params.editState.contractsOverrideBudget,
+      calcInfoText: "",
+      showDependencyWarning: params.dependencyWarnings.length > 0,
+      dependencyWarningHtml: params.dependencyWarnings.length ? "⚠ " + params.dependencyWarnings.join("<br>") : "",
+      showDependencyEditor: false,
+      hasItems: params.editState.hasItems,
+      autoBudget,
+      selectedCategory: params.task?.cat ?? 0,
+      focusField: null,
+      activeTab: "general"
+    };
+  }
   function buildTaskModalSaveModel(params) {
     const phases = (params.phases || []).map((phase) => ({ ...phase }));
     const first = phases[0] || { ms: 0, ws: 0 };
@@ -2284,7 +2487,8 @@
         tasks: nextTasks,
         nextN: params.nextN,
         savedTask: nextTasks[params.editIdx],
-        isEdit: true
+        isEdit: true,
+        changed: true
       };
     }
     const savedTask = {
@@ -2297,14 +2501,32 @@
       tasks: [...params.tasks, savedTask],
       nextN: params.nextN + 1,
       savedTask,
-      isEdit: false
+      isEdit: false,
+      changed: true
     };
   }
   function removeTaskAt(tasks, index) {
-    if (index < 0 || index >= tasks.length) return { tasks: [...tasks], removedTask: null };
+    if (index < 0 || index >= tasks.length) {
+      return { tasks: [...tasks], removedTask: null, changed: false };
+    }
     return {
       tasks: tasks.filter((_, taskIndex) => taskIndex !== index),
-      removedTask: tasks[index] || null
+      removedTask: tasks[index] || null,
+      changed: true
+    };
+  }
+  function clearTaskPhasesAt(tasks, index) {
+    if (index < 0 || index >= tasks.length || !tasks[index]) {
+      return {
+        tasks: [...tasks],
+        changed: false
+      };
+    }
+    return {
+      tasks: tasks.map(
+        (task, taskIndex) => taskIndex === index ? { ...task, phases: null } : task
+      ),
+      changed: true
     };
   }
 
@@ -2320,7 +2542,8 @@
       taskIndex: null,
       title: String(task?.name || ""),
       notes: cloneTaskNotes(task?.notes || []),
-      exists: !!task
+      exists: !!task,
+      visible: !!task
     };
   }
   function buildTaskNotesOpenState(params) {
@@ -2329,7 +2552,17 @@
       taskIndex: params.taskIndex,
       title: String(task?.name || ""),
       notes: cloneTaskNotes(task?.notes || []),
-      exists: !!task
+      exists: !!task,
+      visible: !!task
+    };
+  }
+  function closeTaskNotesSession() {
+    return {
+      taskIndex: null,
+      title: "",
+      notes: [],
+      exists: false,
+      visible: false
     };
   }
   function getTaskNotesByIndex(tasks, taskIndex) {
@@ -2411,6 +2644,20 @@
   function buildCategoryEditorState(categories) {
     return {
       categories: cloneCategoryDrafts(categories)
+    };
+  }
+  function updateCategoryDraftAt(categories, index, patch) {
+    if (index < 0 || index >= (categories || []).length) {
+      return {
+        categories: cloneCategoryDrafts(categories),
+        changed: false
+      };
+    }
+    return {
+      categories: cloneCategoryDrafts(categories).map(
+        (category, categoryIndex) => categoryIndex === index ? { ...category, ...patch } : category
+      ),
+      changed: true
     };
   }
   function applyCategoryNamesFromValues(categories, values) {
@@ -2668,6 +2915,15 @@
       },
       shift,
       shiftedTasks
+    };
+  }
+  function buildProjectSettingsFormState(params) {
+    return {
+      name: params.project.name,
+      sm: params.project.sm,
+      sy: params.project.sy,
+      nm: params.project.nm,
+      canManage: params.canManage
     };
   }
   function createEmptyProjectSnapshot(input) {
@@ -3933,6 +4189,7 @@
     buildRuntimeInitialProjectSnapshotMeta: buildInitialProjectSnapshotMeta,
     buildRuntimeStorageBufferPayload: buildStorageBufferPayload,
     buildRuntimeStorageUiModel: buildStorageUiModel,
+    buildRuntimeProjectSettingsFormState: buildProjectSettingsFormState,
     buildRuntimeProjectSettingsUpdate: applyProjectSettingsUpdate,
     buildRuntimeAddProjectToCollection: addProjectToCollection,
     buildRuntimeRenameProjectInCollection: renameProjectInCollection,
@@ -3983,8 +4240,14 @@
     buildRuntimeFinanceTaskScope: financeTaskScope,
     buildRuntimeFinanceSearchText: buildFinanceSearchText,
     buildRuntimeSummarizeFinanceDeletion: summarizeFinanceDeletion,
+    buildRuntimeResolveFinanceDeletionScope: resolveFinanceDeletionScope,
+    buildRuntimeBuildFinanceDeletionHtml: buildFinanceDeletionHtml,
+    buildRuntimeApplyFinanceDeletion: applyFinanceDeletion,
     buildRuntimeCalculateFinanceOverview: calculateFinanceOverview,
     buildRuntimeBuildFinanceRows: buildFinanceRows,
+    buildRuntimeBuildFinanceResizeSession: buildFinanceResizeSession,
+    buildRuntimeApplyFinanceResizeDrag: applyFinanceResizeDrag,
+    buildRuntimeBuildFinanceGanttNavigationPlan: buildFinanceGanttNavigationPlan,
     buildRuntimePrintUiModel: buildPrintUiModel,
     buildRuntimeResolvePrintSections: resolvePrintSections,
     buildRuntimeResolvePrintSettings: resolvePrintSettings,
@@ -4063,6 +4326,9 @@
     buildRuntimeActivePhaseIndex: getActivePhaseIndex,
     buildRuntimeRemWeeks: remWeeks,
     buildRuntimeTaskCalcModel: buildTaskCalcModel,
+    buildRuntimeDependencyListOpenSession: buildDependencyListOpenSession,
+    buildRuntimeApplyDependencyListFilter: applyDependencyListFilter,
+    buildRuntimeDependencyNavigationPlan: buildDependencyNavigationPlan,
     buildRuntimeDependencyListState: buildDependencyListState,
     buildRuntimeAddModalPhase: addModalPhase,
     buildRuntimeRemoveModalPhase: removeModalPhase,
@@ -4077,13 +4343,17 @@
     buildRuntimeCloneModalCostItems: cloneModalCostItems,
     buildRuntimeCloneModalPhasesFromTask: cloneModalPhasesFromTask,
     buildRuntimeTaskModalCreateState: buildTaskModalCreateState,
+    buildRuntimeTaskModalCreateUiState: buildTaskModalCreateUiState,
     buildRuntimeTaskModalEditState: buildTaskModalEditState,
+    buildRuntimeTaskModalEditUiState: buildTaskModalEditUiState,
     buildRuntimeTaskModalSaveModel: buildTaskModalSaveModel,
     buildRuntimeApplyTaskSave: applyTaskSave,
     buildRuntimeRemoveTaskAt: removeTaskAt,
+    buildRuntimeClearTaskPhasesAt: clearTaskPhasesAt,
     buildRuntimeCloneTaskNotes: cloneTaskNotes,
     buildRuntimeTaskNotesSession: buildTaskNotesSession,
     buildRuntimeTaskNotesOpenState: buildTaskNotesOpenState,
+    buildRuntimeCloseTaskNotesSession: closeTaskNotesSession,
     buildRuntimeAddTaskNote: addTaskNote,
     buildRuntimeEditTaskNote: editTaskNote,
     buildRuntimeDeleteTaskNote: deleteTaskNote,
@@ -4093,6 +4363,7 @@
     buildRuntimeNotesCellState: buildNotesCellState,
     buildRuntimeCloneCategoryDrafts: cloneCategoryDrafts,
     buildRuntimeCategoryEditorState: buildCategoryEditorState,
+    buildRuntimeUpdateCategoryDraftAt: updateCategoryDraftAt,
     buildRuntimeApplyCategoryNamesFromValues: applyCategoryNamesFromValues,
     buildRuntimeRemoveCategoryDraftAt: removeCategoryDraftAt,
     buildRuntimeCreateNextCategoryDraft: createNextCategoryDraft,

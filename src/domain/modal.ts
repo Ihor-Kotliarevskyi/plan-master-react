@@ -58,6 +58,17 @@ export interface ModalDependencyListState {
   rows: ModalDependencyListRow[];
 }
 
+export interface ModalDependencyListSession {
+  filter: "all" | "FS" | "SS" | "FF";
+  visible: boolean;
+}
+
+export interface ModalDependencyNavigationPlan {
+  shouldActivateGantt: boolean;
+  targetRowId: string;
+  taskIndex: number;
+}
+
 export function snapToHalfWeek(dateStr: string): string {
   if (!dateStr) return dateStr;
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -186,5 +197,33 @@ export function buildDependencyListState(input: {
     filteredCount: rows.length,
     counts,
     rows,
+  };
+}
+
+export function buildDependencyListOpenSession(): ModalDependencyListSession {
+  return {
+    filter: "all",
+    visible: true,
+  };
+}
+
+export function applyDependencyListFilter(
+  currentFilter: "all" | "FS" | "SS" | "FF",
+  nextFilter: string,
+): "all" | "FS" | "SS" | "FF" {
+  if (nextFilter === "FS" || nextFilter === "SS" || nextFilter === "FF" || nextFilter === "all") {
+    return nextFilter;
+  }
+  return currentFilter;
+}
+
+export function buildDependencyNavigationPlan(
+  taskIndex: number,
+  ganttIsActive: boolean,
+): ModalDependencyNavigationPlan {
+  return {
+    shouldActivateGantt: !ganttIsActive,
+    targetRowId: `tr${taskIndex}`,
+    taskIndex,
   };
 }

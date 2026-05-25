@@ -24,6 +24,22 @@ export interface FinanceOverviewMetrics {
   vac: number | null;
 }
 
+export interface FinanceDeletionSummary {
+  tasks: number;
+  budget: number;
+  spent: number;
+  items: number;
+  acts: number;
+  payments: number;
+}
+
+export interface FinanceResizeSession {
+  col: string;
+  startX: number;
+  startW: number;
+  widths: Record<string, number>;
+}
+
 export function financeItemTotal(item: AnyRecord): number {
   const qty = item?.qty == null ? 1 : (+item.qty || 0);
   return qty * (+item?.unitPrice || 0);
@@ -123,7 +139,7 @@ export function summarizeFinanceDeletion(
   indexes: number[],
   tasks: AnyRecord[],
   getTaskCostItems: (task: AnyRecord) => AnyRecord[],
-) {
+): FinanceDeletionSummary {
   return indexes.reduce(
     (acc, index) => {
       const task = tasks[index];
@@ -140,6 +156,77 @@ export function summarizeFinanceDeletion(
     },
     { tasks: 0, budget: 0, spent: 0, items: 0, acts: 0, payments: 0 },
   );
+}
+
+export function resolveFinanceDeletionScope(
+  hasScopedFilters: boolean,
+  searchQuery: string,
+  labels: { filteredScopeLabel: string; fullScopeLabel: string },
+): string {
+  return hasScopedFilters || !!String(searchQuery || "").trim()
+    ? labels.filteredScopeLabel
+    : labels.fullScopeLabel;
+}
+
+export function buildFinanceDeletionHtml(
+  summary: FinanceDeletionSummary,
+  scope: string,
+  formatMoney: (value: number) => string,
+): string {
+  return `
+      <div style="text-align:left">
+        Буде видалено: <b>${summary.tasks}</b> робіт.<br>
+        Позицій кошторису: <b>${summary.items}</b><br>
+        Платежів: <b>${summary.payments}</b><br>
+        Актів: <b>${summary.acts}</b><br>
+        Бюджет: <b>${formatMoney(Math.round(summary.budget))}</b><br>
+        Витрачено: <b>${formatMoney(Math.round(summary.spent))}</b><br><br>
+        Сценарій: <b>${scope}</b>
+      </div>`;
+}
+
+export function applyFinanceDeletion(tasks: AnyRecord[], indexes: number[]) {
+  const deleteSet = new Set(indexes);
+  return tasks.filter((_, index) => !deleteSet.has(index));
+}
+
+export function buildFinanceResizeSession(
+  widths: Record<string, number>,
+  defaults: Record<string, number>,
+  col: string,
+  startX: number,
+): FinanceResizeSession {
+  return {
+    col,
+    startX,
+    startW: widths[col] || defaults[col] || 100,
+    widths: { ...widths },
+  };
+}
+
+export function applyFinanceResizeDrag(session: FinanceResizeSession, clientX: number) {
+  const nextWidth = Math.max(42, session.startW + clientX - session.startX);
+  return {
+    nextWidth,
+    widths: {
+      ...session.widths,
+      [session.col]: nextWidth,
+    },
+  };
+}
+
+export function buildFinanceGanttNavigationPlan(
+  taskIndex: number,
+  taskName: string,
+  isGanttActive: boolean,
+) {
+  return {
+    shouldActivateGantt: !isGanttActive,
+    targetRowId: `tr${taskIndex}`,
+    taskIndex,
+    searchQuery: String(taskName || "").toLowerCase(),
+    searchDisplayName: String(taskName || ""),
+  };
 }
 
 export function calculateFinanceOverview(tasks: AnyRecord[]): FinanceOverviewMetrics {

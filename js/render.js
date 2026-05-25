@@ -51,10 +51,10 @@ function renderLegend() {
     ? buildRuntimeLegendItems(cats, filterCat, hiddenCats)
     : { hasFilter: false, items: [] };
   const chips = legend.items
-    .map((item) => `<button class="${item.className}" onclick="toggleCat(${item.index},event)" style="--chip-color:${item.color}" title="Клік - тільки одна | Shift+клік - декілька"><span class="chip-dot"></span>${item.name}</button>`)
+    .map((item) => `<button class="${item.className}" data-gantt-action="toggle-category" data-category-index="${item.index}" style="--chip-color:${item.color}" title="Клік - тільки одна | Shift+клік - декілька"><span class="chip-dot"></span>${item.name}</button>`)
     .join("");
   const reset = legend.hasFilter
-    ? `<button class="cat-chip-reset" onclick="resetCatFilter()">Г— Всі</button>`
+    ? `<button class="cat-chip-reset" data-gantt-action="reset-category-filter">Г— Всі</button>`
     : "";
   document.getElementById("legend").innerHTML = chips + reset;
 }
@@ -111,46 +111,45 @@ function renderGanttToolbar() {
       <input type="text" id="task-search-inp" class="gantt-nm-search-inp"
              placeholder="${toolbarLabels.searchPlaceholder}"
              value="${taskSearch.replace(/"/g, '&quot;')}"
-             oninput="onTaskSearch(this.value)"
-             onkeydown="if(event.key==='Escape'){this.value='';onTaskSearch('');}">
+             data-gantt-input="task-search">
       <button type="button" id="task-search-clear" class="gantt-nm-search-clear${taskSearch ? " show" : ""}"
-              onclick="clearTaskSearch()" title="${toolbarLabels.clearSearchTitle}">
+              data-gantt-action="clear-task-search" title="${toolbarLabels.clearSearchTitle}">
         <i data-lucide="x"></i>
       </button>
     </div>
     <div class="gantt-filter-group">
       ${renderMultiFilter("ganttFilters.contractor", toolbarLabels.contractorLabel, toolbarLabels.allContractorsLabel, contractorOptions, "renderTable", "gantt-multi mf-wide")}
       ${renderMultiFilter("ganttFilters.pay", toolbarLabels.paymentLabel, toolbarLabels.allPaymentsLabel, payOptions, "renderTable", "gantt-multi")}
-      ${hasGanttFilters ? `<button class="btn btn-sm" onclick="resetGanttFilters()" title="${toolbarLabels.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
+      ${hasGanttFilters ? `<button class="btn btn-sm" data-gantt-action="reset-gantt-filters" title="${toolbarLabels.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>` : ""}
     </div>
     <div class="toolbar-notes-gap"></div>
     <button id="btn-critical" class="btn btn-sm btn-tog${showCritical ? " on" : ""}"
-            onclick="toggleCriticalPath()"><i data-lucide="activity"></i> ${toolbarLabels.criticalPathLabel}</button>
+            data-gantt-action="toggle-critical-path"><i data-lucide="activity"></i> ${toolbarLabels.criticalPathLabel}</button>
     <button id="btn-dep-arrows" class="btn btn-sm btn-tog${showDepArrows ? " on" : ""}"
-            onclick="toggleDepArrows()" title="${toolbarLabels.dependencyArrowsTitle}">
+            data-gantt-action="toggle-dependency-arrows" title="${toolbarLabels.dependencyArrowsTitle}">
       <i data-lucide="share-2"></i> ${toolbarLabels.dependencyArrowsLabel}</button>
-    <button class="btn btn-sm btn-tog" onclick="openDepList()" title="${toolbarLabels.dependencyListTitle}">
+    <button class="btn btn-sm btn-tog" data-gantt-action="open-dependency-list" title="${toolbarLabels.dependencyListTitle}">
       <i data-lucide="list"></i> ${toolbarLabels.dependencyListLabel}</button>
     <div class="sep"></div>
     <button class="btn btn-sm btn-tog${groupBy === "cat" ? " on" : ""}"
-            onclick="toggleGroupBy()" title="${toolbarLabels.groupByCategoryTitle}">
+            data-gantt-action="toggle-group-by" title="${toolbarLabels.groupByCategoryTitle}">
       <i data-lucide="layout-list"></i> ${toolbarLabels.groupByCategoryLabel}
     </button>
     <div class="sep"></div>
     <button class="btn btn-sm btn-tog" id="btn-overdue-reopen"
-             onclick="checkOverdue(true)"
+             data-gantt-action="reopen-overdue"
              style="display:${prevReopenVisible ? "" : "none"}"><i data-lucide="triangle-alert"></i> ${toolbarLabels.overdueLabel}</button>
     <div class="zoom-ctrl">
-      <button class="btn btn-sm btn-icon" onclick="zoomOut()" title="${toolbarLabels.zoomOutTitle}"><i data-lucide="zoom-out"></i></button>
+      <button class="btn btn-sm btn-icon" data-gantt-action="zoom-out" title="${toolbarLabels.zoomOutTitle}"><i data-lucide="zoom-out"></i></button>
       <span class="zoom-label">${zoomLevel === 25 ? "100%" : zoomLevel === 15 ? "60%" : "40%"}</span>
-      <button class="btn btn-sm btn-icon" onclick="zoomIn()" title="${toolbarLabels.zoomInTitle}"><i data-lucide="zoom-in"></i></button>
+      <button class="btn btn-sm btn-icon" data-gantt-action="zoom-in" title="${toolbarLabels.zoomInTitle}"><i data-lucide="zoom-in"></i></button>
       <span class="zoom-sep"></span>
       <button class="btn btn-sm btn-icon btn-tog${monoBarColor ? " on" : ""}"
-              onclick="toggleMonoBar()" title="${toolbarLabels.monoBarTitle}">
+              data-gantt-action="toggle-mono-bar" title="${toolbarLabels.monoBarTitle}">
         <i data-lucide="droplets"></i>
       </button>
       ${monoBarColor ? `<input type="color" id="mono-color-inp" class="mono-color-inp"
-             value="${monoBarColor}" oninput="setMonoColor(this.value)" title="${toolbarLabels.monoBarColorTitle}">` : ''}
+             value="${monoBarColor}" data-gantt-input="mono-bar-color" title="${toolbarLabels.monoBarColorTitle}">` : ''}
     </div>`;
   lucide.createIcons({ nodes: [tb] });
 }
@@ -236,7 +235,7 @@ function renderTable() {
 
   let h = `<table class="gt" id="gtbl"><thead><tr>
     <th class="th-n" rowspan="3" title="${tableLabels.reorderTitle}">#</th>
-    <th class="th-nm" rowspan="3"><div class="th-nm-head"><span>${tableLabels.workTypeHeader}</span>${canAdd ? `<button class="btn-add-task" onclick="openAdd()" title="${tableLabels.addTaskTitle}">${tableLabels.addTaskLabel}</button>` : ""}</div></th>
+    <th class="th-nm" rowspan="3"><div class="th-nm-head"><span>${tableLabels.workTypeHeader}</span>${canAdd ? `<button class="btn-add-task" data-gantt-action="open-add-task" title="${tableLabels.addTaskTitle}">${tableLabels.addTaskLabel}</button>` : ""}</div></th>
     <th class="th-notes" rowspan="3" title="${tableLabels.notesTitle}"><i data-lucide="message-square"></i></th>`;
   yearGroups.forEach(({ year, cols }) => {
     h += `<th colspan="${cols}" class="th-yr">${year}</th>`;
@@ -248,7 +247,7 @@ function renderTable() {
     const mi = visMonthStart + i;
     const isCur = mi === curMonthIdx;
     const pastBtn = isCur
-      ? `<button class="btn-hidepast${hidePast ? " on" : ""}" onclick="toggleHidePast()" title="${hidePast ? tableLabels.hidePastShowTitle : tableLabels.hidePastHideTitle}"><i data-lucide="chevron-left"></i></button>`
+      ? `<button class="btn-hidepast${hidePast ? " on" : ""}" data-gantt-action="toggle-hide-past" title="${hidePast ? tableLabels.hidePastShowTitle : tableLabels.hidePastHideTitle}"><i data-lucide="chevron-left"></i></button>`
       : "";
     h += `<th colspan="4" class="th-mo${isCur ? " cur-mo" : ""}"><span class="mo-text">${m.name}</span>${pastBtn}</th>`;
   });
@@ -278,7 +277,7 @@ function renderTable() {
             totalBudget: groupTasks.reduce((sum, task) => sum + (+task.budget || 0), 0),
           };
 
-      h += `<tr class="group-header-row" onclick="toggleGroup(${catIdx})">
+      h += `<tr class="group-header-row" data-gantt-action="toggle-group" data-category-index="${catIdx}">
         <td class="td-h" style="background:${cat.color}20"></td>
         <td class="td-n" style="background:${cat.color}20"></td>
         <td class="td-nm group-header-cell" style="background:${cat.color}18;border-right:3px solid ${cat.color}">
@@ -356,17 +355,17 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
 
   let h = `<tr id="tr${ti}"${taskWindow.searchClass ? ` class="${taskWindow.searchClass}"` : ""}>
     <td class="td-n td-drag" data-ti="${ti}" title="${tableLabels.reorderTitle}">${t.n}</td>
-    <td class="td-nm" onclick="openEdit(${ti})" title="${t.name}${taskWindow.warningsTitleSuffix}">
+    <td class="td-nm" data-gantt-action="open-edit-task" data-task-index="${ti}" title="${t.name}${taskWindow.warningsTitleSuffix}">
       <div class="nm-inner">
         ${taskWindow.isCritical ? `<span class="crit-ic"></span>` : ""}
         ${warns.length ? `<span class="dep-ic" title="${warns.join("\n")}"><i data-lucide="triangle-alert"></i></span>` : ""}
         ${t.phases && t.phases.length > 1 ? `<span class="phase-badge" title="${tableLabels.phaseCountTitle(t.phases.length)}">${t.prog}%</span>` : ""}
         <span class="nm-text">${t.name}</span>
-        <span class="copy-btn" onclick="event.stopPropagation();copyTask(${ti})" title="${tableLabels.copyTaskTitle}"><i data-lucide="copy"></i></span>
-        <span class="del-btn" onclick="event.stopPropagation();delTask(${ti})"><i data-lucide="x"></i></span>
+        <span class="copy-btn" data-gantt-action="copy-task" data-task-index="${ti}" title="${tableLabels.copyTaskTitle}"><i data-lucide="copy"></i></span>
+        <span class="del-btn" data-gantt-action="delete-task" data-task-index="${ti}"><i data-lucide="x"></i></span>
       </div>
     </td>
-    <td class="${taskWindow.notesCellClass}" onclick="event.stopPropagation();openNotesModal(${ti})"
+    <td class="${taskWindow.notesCellClass}" data-gantt-action="open-notes-modal" data-task-index="${ti}"
         title="${taskWindow.notesCount > 0 ? tableLabels.notesCountLabel(taskWindow.notesCount) : tableLabels.notesDefaultLabel}">${notesIcon}</td>`;
 
   for (let ci = vs; ci < TW(); ci++) {
@@ -397,7 +396,7 @@ function _renderTaskRow(t, tw, vs, isCritFn) {
       });
     } else if (taskWindow.bar && ci === taskWindow.bar.start) {
       h += `<div class="bar${taskWindow.isCritical ? " critical" : ""}${taskWindow.bar.isPartial ? " bar-partial" : ""}" id="bar${ti}" data-ti="${ti}"
-             onclick="handleBarClick(event,${ti})"
+             data-gantt-action="handle-bar-click" data-task-index="${ti}"
              style="left:0;width:${taskWindow.bar.width}px;background:${col};cursor:pointer">
         ${taskWindow.bar.showFull ? `<div class="bh" data-ti="${ti}" data-side="L">${hndl}</div>` : ""}
         ${t.prog > 0 ? `<div class="prog-fill" style="width:${taskWindow.bar.progressWidth}px"></div>` : ""}

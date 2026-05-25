@@ -124,7 +124,7 @@ function _renderCostRow(it) {
   const mainRow = `
     <tr class="cost-row" id="cr${id}">
       <td class="cost-td">
-        <select class="cost-sel" onchange="setCostField(${id},'type',this.value);_recalcRow(${id})">
+        <select class="cost-sel" data-cost-editor-input="item-type" data-item-id="${id}">
           ${Object.entries(COST_TYPES)
             .map(([k, v]) => `<option value="${k}"${it.type === k ? " selected" : ""}>${v.icon} ${v.label}</option>`)
             .join("")}
@@ -133,32 +133,32 @@ function _renderCostRow(it) {
       <td class="cost-td">
         <input class="cost-inp" id="cn${id}" placeholder="Договір №"
                value="${_esc(it.contractNo || it.name || "")}"
-               onblur="setCostContractNo(${id},this.value)">
+               data-cost-editor-input="contract-no" data-item-id="${id}">
       </td>
       <td class="cost-td">
         <input class="cost-inp" id="cs${id}" placeholder="Контрагент"
                value="${_esc(it.supplier || "")}"
-               onblur="setCostField(${id},'supplier',this.value)">
+               data-cost-editor-input="supplier" data-item-id="${id}">
       </td>
       <td class="cost-td cost-num-td">
         <input class="cost-inp cost-num-inp" id="cp${id}" type="number" min="0" step="1"
                value="${it.unitPrice != null ? it.unitPrice : ""}" placeholder="0"
-               onblur="setCostField(${id},'unitPrice',+this.value);_recalcRow(${id})">
+               data-cost-editor-input="unit-price" data-item-id="${id}">
       </td>
       <td class="cost-td">
         <input class="cost-inp" id="cnote${id}" placeholder="Примітки"
                value="${_esc(it.contractNote || it.note || "")}"
-               onblur="setCostField(${id},'contractNote',this.value)">
+               data-cost-editor-input="contract-note" data-item-id="${id}">
       </td>
       <td class="cost-td cost-total-td">
         <span id="ctotal${id}" class="cost-total-cell">${fmtM(total)}</span>
         ${paid > 0 ? `<span class="cost-paid-cell">/ ${fmtM(paid)}</span>` : ""}
         <button class="cost-act-btn${isOpen ? " active" : ""}" style="margin-top:2px;display:block;width:100%"
-                onclick="toggleCostPayments(${id})">
+                data-cost-editor-action="toggle-payments" data-item-id="${id}" type="button">
           ${isOpen ? "▲" : "▼"} ${it.payments?.length || 0} плат.
         </button>
         <button class="cost-act-btn del" style="display:block;width:100%;margin-top:2px"
-                onclick="deleteCostItem(${id})"><i data-lucide="x"></i></button>
+                data-cost-editor-action="delete-item" data-item-id="${id}" type="button"><i data-lucide="x"></i></button>
       </td>
     </tr>`;
 
@@ -168,7 +168,7 @@ function _renderCostRow(it) {
       <td colspan="6" class="cost-pay-td">
         <div class="cost-pay-wrap">
           ${(it.payments || []).map((p, pi) => _renderPaymentRow(id, p, pi)).join("")}
-          <button class="btn btn-sm cost-add-pay-btn" onclick="addPayment(${id})">+ Платіж</button>
+          <button class="btn btn-sm cost-add-pay-btn" data-cost-editor-action="add-payment" data-item-id="${id}" type="button">+ Платіж</button>
         </div>
       </td>
     </tr>`
@@ -180,19 +180,19 @@ function _renderCostRow(it) {
 function _renderPaymentRow(itemId, p, pi) {
   return `<div class="pay-row" data-iid="${itemId}" data-pi="${pi}">
     <input type="date" class="cost-inp pay-date" value="${p.date || ""}"
-           onchange="setPayField(${itemId},${pi},'date',this.value)">
-    <select class="cost-sel pay-type-sel" onchange="setPayField(${itemId},${pi},'type',this.value)">
+           data-cost-editor-input="payment-date" data-item-id="${itemId}" data-payment-index="${pi}">
+    <select class="cost-sel pay-type-sel" data-cost-editor-input="payment-type" data-item-id="${itemId}" data-payment-index="${pi}">
       ${Object.entries(PAYMENT_TYPES)
         .map(([k, v]) => `<option value="${k}"${p.type === k ? " selected" : ""}>${v}</option>`)
         .join("")}
     </select>
     <input type="number" class="cost-inp pay-amount" min="0" step="100"
            value="${p.amount || ""}" placeholder="Сума (грн)"
-           onblur="setPayField(${itemId},${pi},'amount',+this.value);_refreshTotals()">
+           data-cost-editor-input="payment-amount" data-item-id="${itemId}" data-payment-index="${pi}">
     <input class="cost-inp pay-note" value="${_esc(p.note || "")}"
            placeholder="Примітка (акт №, аванс тощо)"
-           onblur="setPayField(${itemId},${pi},'note',this.value)">
-    <button class="cost-act-btn del" onclick="deletePayment(${itemId},${pi})"><i data-lucide="x"></i></button>
+           data-cost-editor-input="payment-note" data-item-id="${itemId}" data-payment-index="${pi}">
+    <button class="cost-act-btn del" data-cost-editor-action="delete-payment" data-item-id="${itemId}" data-payment-index="${pi}" type="button"><i data-lucide="x"></i></button>
   </div>`;
 }
 

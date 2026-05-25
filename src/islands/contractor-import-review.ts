@@ -1,20 +1,21 @@
 type ContractorImportReviewEntry = Record<string, unknown>;
+type ContractorImportRow = { row?: Record<string, unknown> };
 
 type ContractorImportRuntime = Window & {
-  __contractorImportRows?: Array<{ row?: Record<string, unknown> }> | null;
-  __contractorImportReviewEntries?: ContractorImportReviewEntry[] | null;
-  _ctColumnExamples?: (rows: Array<{ row?: Record<string, unknown> }>, column: string) => string[];
+  _ctColumnExamples?: (rows: ContractorImportRow[], column: string) => string[];
   _ctImportEntryMatchesFilter?: (entry: ContractorImportReviewEntry, filter: string) => boolean;
 };
 
 const contractorImportRuntime = window as ContractorImportRuntime;
+let importRowsState: ContractorImportRow[] = [];
+let importReviewEntriesState: ContractorImportReviewEntry[] = [];
 
 function syncImportMappingExamples(select: HTMLSelectElement): void {
   const field = select.dataset.field || "";
   const cell = document.querySelector<HTMLElement>(`.contractor-import-map-examples[data-field="${field}"]`);
   if (!cell) return;
 
-  const rows = contractorImportRuntime.__contractorImportRows || [];
+  const rows = importRowsState;
   const examples = select.value && contractorImportRuntime._ctColumnExamples
     ? contractorImportRuntime._ctColumnExamples(rows, select.value)
     : [];
@@ -28,7 +29,7 @@ function syncImportMappingExamples(select: HTMLSelectElement): void {
 }
 
 function applyImportReviewFilter(filter: string): void {
-  const entries = contractorImportRuntime.__contractorImportReviewEntries || [];
+  const entries = importReviewEntriesState;
 
   document.querySelectorAll<HTMLElement>("[data-import-filter]").forEach((card) => {
     card.classList.toggle("is-active", card.getAttribute("data-import-filter") === filter);
@@ -61,6 +62,24 @@ function initContractorImportReviewIsland(): void {
   document.addEventListener("contractor-import-review-open", (event: Event) => {
     const customEvent = event as CustomEvent<{ filter?: string }>;
     applyImportReviewFilter(customEvent.detail?.filter || "all");
+  });
+
+  document.addEventListener("contractor-import-mapping-open", (event: Event) => {
+    const customEvent = event as CustomEvent<{ rows?: ContractorImportRow[] }>;
+    importRowsState = Array.isArray(customEvent.detail?.rows) ? customEvent.detail.rows : [];
+  });
+
+  document.addEventListener("contractor-import-mapping-close", () => {
+    importRowsState = [];
+  });
+
+  document.addEventListener("contractor-import-review-state", (event: Event) => {
+    const customEvent = event as CustomEvent<{ entries?: ContractorImportReviewEntry[] }>;
+    importReviewEntriesState = Array.isArray(customEvent.detail?.entries) ? customEvent.detail.entries : [];
+  });
+
+  document.addEventListener("contractor-import-review-close", () => {
+    importReviewEntriesState = [];
   });
 }
 

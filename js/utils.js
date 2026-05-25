@@ -124,14 +124,14 @@ function renderMultiFilter(path, label, allLabel, options, renderFnName, extraCl
   const summary = selectedLabels.length ? selectedLabels.join(", ") : allLabel;
   const count = selectedLabels.length ? `<span class="mf-count">${selectedLabels.length}</span>` : "";
   const isOpen = _openMultiFilterPath === String(path || "");
-  return `<details class="multi-filter ${extraClass}" ${isOpen ? "open" : ""} onclick="event.stopPropagation()">
-    <summary title="${htmlEsc(summary)}" onclick="openMultiFilter('${htmlEsc(path)}', this, event)"><span>${htmlEsc(label)}</span><b>${htmlEsc(summary)}</b>${count}</summary>
+  return `<details class="multi-filter ${extraClass}" data-multi-filter-root data-filter-path="${htmlEsc(path)}" ${isOpen ? "open" : ""}>
+    <summary title="${htmlEsc(summary)}" data-multi-filter-action="toggle" data-filter-path="${htmlEsc(path)}"><span>${htmlEsc(label)}</span><b>${htmlEsc(summary)}</b>${count}</summary>
     <div class="multi-filter-menu">
-      <button type="button" class="multi-filter-clear" onclick="resetMultiFilter('${htmlEsc(path)}','${htmlEsc(renderFnName)}')">${htmlEsc(allLabel)}</button>
+      <button type="button" class="multi-filter-clear" data-multi-filter-action="reset" data-filter-path="${htmlEsc(path)}" data-render-fn="${htmlEsc(renderFnName)}">${htmlEsc(allLabel)}</button>
       ${cleanOptions.map((item) => `
         <label class="multi-filter-option">
           <input type="checkbox" value="${htmlEsc(item.value)}"${selectedSet.has(String(item.value)) ? " checked" : ""}
-                 onchange="setMultiFilter('${htmlEsc(path)}','${htmlEsc(item.value)}',this.checked,'${htmlEsc(renderFnName)}')">
+                 data-multi-filter-action="set-option" data-filter-path="${htmlEsc(path)}" data-filter-option="${htmlEsc(item.value)}" data-render-fn="${htmlEsc(renderFnName)}">
           <span>${htmlEsc(item.label)}</span>
         </label>`).join("")}
     </div>

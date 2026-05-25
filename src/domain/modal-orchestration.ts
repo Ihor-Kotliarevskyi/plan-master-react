@@ -31,6 +31,14 @@ export interface TaskModalSaveModel {
   taskPatch: TaskModalDraft;
 }
 
+export interface TaskModalPersistResult {
+  tasks: AnyRecord[];
+  nextN: number;
+  savedTask: AnyRecord | null;
+  isEdit: boolean;
+  changed: boolean;
+}
+
 export interface TaskModalEditState {
   modalPhases: AnyRecord[];
   modalDeps: AnyRecord[];
@@ -59,6 +67,41 @@ export interface TaskModalCreateState {
   showDependencyEditor: boolean;
   hasItems: boolean;
   focusField: "name";
+}
+
+export interface TaskModalUiState {
+  editIdx: number | null;
+  editingDepId: string | null;
+  modalDeps: AnyRecord[];
+  modalPhases: AnyRecord[];
+  costTi: number | null;
+  costItems: AnyRecord[];
+  expandedIds: Set<string>;
+  title: string;
+  nameValue: string;
+  budgetValue: number | string;
+  spentValue: number | string;
+  contractsOverrideBudget: boolean;
+  calcInfoText: string;
+  showDependencyWarning: boolean;
+  dependencyWarningHtml: string;
+  showDependencyEditor: boolean;
+  hasItems: boolean;
+  autoBudget: boolean;
+  selectedCategory: number;
+  focusField: "name" | null;
+  activeTab: "general" | "costs";
+}
+
+export interface TaskModalDeleteResult {
+  tasks: AnyRecord[];
+  removedTask: AnyRecord | null;
+  changed: boolean;
+}
+
+export interface TaskPhaseClearResult {
+  tasks: AnyRecord[];
+  changed: boolean;
 }
 
 export function cloneModalCostItems(items: AnyRecord[] | null | undefined): AnyRecord[] {
@@ -134,6 +177,72 @@ export function buildTaskModalCreateState(params: {
   };
 }
 
+export function buildTaskModalCreateUiState(params: {
+  createState: TaskModalCreateState;
+  selectedCategory?: number;
+}): TaskModalUiState {
+  return {
+    editIdx: params.createState.editIdx,
+    editingDepId: params.createState.editingDepId,
+    modalDeps: params.createState.modalDeps,
+    modalPhases: params.createState.modalPhases,
+    costTi: params.createState.costTi,
+    costItems: params.createState.costItems,
+    expandedIds: params.createState.expandedIds,
+    title: params.createState.title,
+    nameValue: "",
+    budgetValue: params.createState.budgetValue,
+    spentValue: params.createState.spentValue,
+    contractsOverrideBudget: params.createState.contractsOverrideBudget,
+    calcInfoText: params.createState.calcInfoText,
+    showDependencyWarning: params.createState.showDependencyWarning,
+    dependencyWarningHtml: "",
+    showDependencyEditor: params.createState.showDependencyEditor,
+    hasItems: params.createState.hasItems,
+    autoBudget: false,
+    selectedCategory: params.selectedCategory ?? 0,
+    focusField: params.createState.focusField,
+    activeTab: "general",
+  };
+}
+
+export function buildTaskModalEditUiState(params: {
+  task: AnyRecord;
+  editIdx: number;
+  editState: TaskModalEditState;
+  dependencyWarnings: string[];
+}): TaskModalUiState {
+  const taskBudget = +params.task?.budget || 0;
+  const autoBudget = params.editState.hasItems
+    && (!!params.editState.contractsOverrideBudget || taskBudget <= 0);
+
+  return {
+    editIdx: params.editIdx,
+    editingDepId: null,
+    modalDeps: params.editState.modalDeps,
+    modalPhases: params.editState.modalPhases,
+    costTi: params.editIdx,
+    costItems: params.editState.costItems,
+    expandedIds: new Set<string>(),
+    title: params.editState.title,
+    nameValue: params.task?.name || "",
+    budgetValue: params.editState.budgetValue,
+    spentValue: params.editState.spentValue,
+    contractsOverrideBudget: params.editState.contractsOverrideBudget,
+    calcInfoText: "",
+    showDependencyWarning: params.dependencyWarnings.length > 0,
+    dependencyWarningHtml: params.dependencyWarnings.length
+      ? "⚠ " + params.dependencyWarnings.join("<br>")
+      : "",
+    showDependencyEditor: false,
+    hasItems: params.editState.hasItems,
+    autoBudget,
+    selectedCategory: params.task?.cat ?? 0,
+    focusField: null,
+    activeTab: "general",
+  };
+}
+
 export function buildTaskModalSaveModel(params: {
   name: string;
   cat: number;
@@ -191,7 +300,7 @@ export function applyTaskSave(params: {
   nextN: number;
   taskPatch: TaskModalDraft;
   newTaskId: string;
-}): { tasks: AnyRecord[]; nextN: number; savedTask: AnyRecord; isEdit: boolean } {
+}): TaskModalPersistResult {
   const isEdit = params.editIdx !== null;
   if (isEdit) {
     const nextTasks = params.tasks.map((task, index) =>
@@ -204,6 +313,7 @@ export function applyTaskSave(params: {
       nextN: params.nextN,
       savedTask: nextTasks[params.editIdx as number],
       isEdit: true,
+      changed: true,
     };
   }
 
@@ -218,13 +328,35 @@ export function applyTaskSave(params: {
     nextN: params.nextN + 1,
     savedTask,
     isEdit: false,
+    changed: true,
   };
 }
 
-export function removeTaskAt(tasks: AnyRecord[], index: number): { tasks: AnyRecord[]; removedTask: AnyRecord | null } {
-  if (index < 0 || index >= tasks.length) return { tasks: [...tasks], removedTask: null };
+export function removeTaskAt(tasks: AnyRecord[], index: number): TaskModalDeleteResult {
+  if (index < 0 || index >= tasks.length) {
+    return { tasks: [...tasks], removedTask: null, changed: false };
+  }
   return {
     tasks: tasks.filter((_, taskIndex) => taskIndex !== index),
     removedTask: tasks[index] || null,
+    changed: true,
+  };
+}
+
+export function clearTaskPhasesAt(tasks: AnyRecord[], index: number): TaskPhaseClearResult {
+  if (index < 0 || index >= tasks.length || !tasks[index]) {
+    return {
+      tasks: [...tasks],
+      changed: false,
+    };
+  }
+
+  return {
+    tasks: tasks.map((task, taskIndex) =>
+      taskIndex === index
+        ? { ...task, phases: null }
+        : task,
+    ),
+    changed: true,
   };
 }

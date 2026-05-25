@@ -38,7 +38,7 @@
   <!-- APP HEADER -->
   <div class="app-head">
     <div class="proj-block">
-      <select class="proj-sel" id="proj-sel" onchange="switchProject(this.value)"></select>
+      <select class="proj-sel" id="proj-sel" data-app-shell-input="project-select"></select>
       <button class="btn btn-icon" data-project-manager-action="open-manager" title="Управління проєктами">
         <i data-lucide="folder"></i>
       </button>
@@ -47,12 +47,12 @@
       </button>
       <span class="proj-dates" id="head-dates"></span>
     </div>
-    <button id="theme-toggle" class="theme-toggle" onclick="toggleTheme()" title="Змінити тему">
+    <button id="theme-toggle" class="theme-toggle" data-app-shell-action="toggle-theme" title="Змінити тему">
       <span class="theme-icon"><i data-lucide="moon"></i></span>
       <span class="theme-label">Темна</span>
     </button>
     <div class="tools-menu" id="tools-menu">
-      <button class="btn btn-icon tools-trigger" onclick="toggleToolsMenu()" title="Друк та експорт">
+      <button class="btn btn-icon tools-trigger" data-app-shell-action="toggle-tools-menu" title="Друк та експорт">
         <i data-lucide="more-horizontal"></i>
       </button>
       <div class="tools-dropdown" id="tools-dropdown">
@@ -60,15 +60,15 @@
           <i data-lucide="printer"></i> Друк / PDF
         </button>
         <div class="tools-sep"></div>
-        <button class="tools-item" onclick="exportXLSX();closeToolsMenu()">
+        <button class="tools-item" data-app-shell-action="export-xlsx">
           <i data-lucide="table-2"></i> Експорт Excel
         </button>
-        <button class="tools-item" onclick="exportJSON();closeToolsMenu()">
+        <button class="tools-item" data-app-shell-action="export-json">
           <i data-lucide="file-json"></i> Експорт JSON
         </button>
         <label class="tools-item">
           <i data-lucide="file-input"></i> Імпорт JSON
-          <input type="file" accept=".json" style="display:none" onchange="importJSON(event);closeToolsMenu()" />
+          <input type="file" accept=".json" style="display:none" data-app-shell-input="import-json" />
         </label>
       </div>
     </div>
@@ -86,10 +86,10 @@
 
   <!-- TABS -->
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('gantt', this)"><i data-lucide="gantt-chart"></i> Графік</div>
-    <div class="tab" onclick="switchTab('finance', this)"><i data-lucide="wallet"></i> Фінанси</div>
-    <div class="tab" onclick="switchTab('contractors', this)"><i data-lucide="users-round"></i> Контрагенти</div>
-    <div class="tab" onclick="switchTab('charts', this)"><i data-lucide="bar-chart-2"></i> Аналітика</div>
+    <div class="tab active" data-app-shell-action="switch-tab" data-tab-id="gantt"><i data-lucide="gantt-chart"></i> Графік</div>
+    <div class="tab" data-app-shell-action="switch-tab" data-tab-id="finance"><i data-lucide="wallet"></i> Фінанси</div>
+    <div class="tab" data-app-shell-action="switch-tab" data-tab-id="contractors"><i data-lucide="users-round"></i> Контрагенти</div>
+    <div class="tab" data-app-shell-action="switch-tab" data-tab-id="charts"><i data-lucide="bar-chart-2"></i> Аналітика</div>
   </div>
 
   <!-- LEGEND / CATEGORY FILTER BAR -->
@@ -157,9 +157,9 @@
         <div class="contractor-search-wrap">
           <i data-lucide="search"></i>
           <input id="contractor-search" type="text" placeholder="Пошук контрагента, роботи, платежу..."
-            oninput="onContractorSearch(this.value)" onkeydown="if(event.key==='Escape'){clearContractorSearch()}" />
+            data-contractor-surface-input="search" />
           <button type="button" id="contractor-search-clear" class="contractor-search-clear"
-            onclick="clearContractorSearch()" title="Очистити пошук">
+            data-contractor-surface-action="clear-search" title="Очистити пошук">
             <i data-lucide="x"></i>
           </button>
         </div>
@@ -809,18 +809,30 @@
   <script type="module" src="/src/islands/auth-cabinet.ts"></script>
   <script type="module" src="/src/islands/audit-viewer.ts"></script>
   <script type="module" src="/src/islands/share-modal.ts"></script>
+  <script type="module" src="/src/islands/fallback-auth-modal.ts"></script>
   <script type="module" src="/src/islands/project-settings.ts"></script>
   <script type="module" src="/src/islands/project-manager.ts"></script>
+  <script type="module" src="/src/islands/app-shell.ts"></script>
+  <script type="module" src="/src/islands/app-global.ts"></script>
+  <script type="module" src="/src/islands/multi-filter.ts"></script>
+  <script type="module" src="/src/islands/overdue-banner.ts"></script>
+  <script type="module" src="/src/islands/gantt-surface.ts"></script>
   <script type="module" src="/src/islands/print-dialog.ts"></script>
+  <script type="module" src="/src/islands/print-surface.ts"></script>
   <script type="module" src="/src/islands/chart-edit.ts"></script>
+  <script type="module" src="/src/islands/chart-surface.ts"></script>
   <script type="module" src="/src/islands/task-modal.ts"></script>
+  <script type="module" src="/src/islands/cost-editor.ts"></script>
   <script type="module" src="/src/islands/notes-modal.ts"></script>
   <script type="module" src="/src/islands/dependency-list.ts"></script>
   <script type="module" src="/src/islands/contractor-entry.ts"></script>
   <script type="module" src="/src/islands/payment-register.ts"></script>
+  <script type="module" src="/src/islands/contractor-surface.ts"></script>
+  <script type="module" src="/src/islands/contractor-dialogs.ts"></script>
   <script type="module" src="/src/islands/contractor-tools.ts"></script>
   <script type="module" src="/src/islands/contractor-import-review.ts"></script>
   <script type="module" src="/src/islands/finance-chart-controls.ts"></script>
+  <script type="module" src="/src/islands/finance-surface.ts"></script>
   <script type="module" src="/src/islands/print-chart-picker.ts"></script>
   <script>lucide.createIcons();</script>
 </body>

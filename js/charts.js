@@ -186,8 +186,8 @@ function renderCustomChart(chart) {
   card.innerHTML = `<h4><span>${chart.title}</span>
     <div class="chart-actions">
       <button class="chart-act-btn" data-chart-action="open-edit" data-chart-id="${chart.id}" title="${CHARTS_UI.actionLabels.editTitle}"><i data-lucide="pencil"></i></button>
-      <button class="chart-act-btn" onclick="printChart('${chart.id}')" title="${CHARTS_UI.actionLabels.printTitle}"><i data-lucide="printer"></i></button>
-      <button class="chart-act-btn del" onclick="removeChart('${chart.id}')" title="${CHARTS_UI.actionLabels.deleteTitle}"><i data-lucide="x"></i></button>
+      <button class="chart-act-btn" data-chart-surface-action="print-chart" data-chart-id="${chart.id}" title="${CHARTS_UI.actionLabels.printTitle}"><i data-lucide="printer"></i></button>
+      <button class="chart-act-btn del" data-chart-surface-action="remove-chart" data-chart-id="${chart.id}" title="${CHARTS_UI.actionLabels.deleteTitle}"><i data-lucide="x"></i></button>
     </div>
   </h4><canvas height="200"></canvas>`;
   lucide.createIcons({ nodes: [card] });
@@ -358,8 +358,8 @@ function renderAutoCharts() {
     card.innerHTML = `<h4><span>${chart.title}</span>
       <div class="chart-actions">
         <button class="chart-act-btn" data-chart-action="open-edit" data-chart-id="${chart.id}" title="${CHARTS_UI.actionLabels.editTitle}"><i data-lucide="pencil"></i></button>
-        <button class="chart-act-btn" onclick="printChart('${chart.id}')" title="${CHARTS_UI.actionLabels.printTitle}"><i data-lucide="printer"></i></button>
-        <button class="chart-act-btn del" onclick="removeAutoChart('${chart.id}')" title="${CHARTS_UI.actionLabels.deleteTitle}"><i data-lucide="x"></i></button>
+        <button class="chart-act-btn" data-chart-surface-action="print-chart" data-chart-id="${chart.id}" title="${CHARTS_UI.actionLabels.printTitle}"><i data-lucide="printer"></i></button>
+        <button class="chart-act-btn del" data-chart-surface-action="remove-auto-chart" data-chart-id="${chart.id}" title="${CHARTS_UI.actionLabels.deleteTitle}"><i data-lucide="x"></i></button>
       </div>
     </h4><canvas height="200"></canvas>`;
     lucide.createIcons({ nodes: [card] });

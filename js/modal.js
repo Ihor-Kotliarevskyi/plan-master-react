@@ -1,7 +1,9 @@
 ﻿let _modalPhases = [];
 let _modalDeps = [];
 let _editingDepId = null;
-let _notesTi = null;
+let _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
+  ? buildRuntimeCloseTaskNotesSession()
+  : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
 
 function _getTaskRangeWarningModel() {
   if (typeof buildRuntimeTaskRangeWarningModel === "function") return buildRuntimeTaskRangeWarningModel();
@@ -356,7 +358,8 @@ function buildChips(sel) {
   document.getElementById("cat-chips").innerHTML = cats
     .map(
       (c, i) =>
-        `<button class="cat-chip${i === sel ? " active" : ""}" style="--chip-color:${c.color}" onclick="pickCat(${i})" type="button"><span class="chip-dot"></span>${c.name}</button>`,
+        `<button class="cat-chip${i === sel ? " active" : ""}" style="--chip-color:${c.color}"
+          data-task-modal-action="pick-category" data-category-index="${i}" type="button"><span class="chip-dot"></span>${c.name}</button>`,
     )
     .join("");
 }
@@ -883,6 +886,43 @@ function updCalc() {
     `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(calc.remainder)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${calc.weeks}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${calc.weeks > 0 ? fmtM(calc.weeklyRate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
 }
 
+function _applyTaskModalUiState(state) {
+  editIdx = state.editIdx;
+  _editingDepId = state.editingDepId;
+  _modalDeps = state.modalDeps;
+  _modalPhases = state.modalPhases;
+  _costTi = state.costTi;
+  _costItems = state.costItems;
+  _expandedIds = state.expandedIds;
+
+  document.getElementById("m-title").textContent = state.title;
+  document.getElementById("f-name").value = state.nameValue;
+  document.getElementById("f-budget").value = state.budgetValue;
+  document.getElementById("f-spent").value = state.spentValue;
+  document.getElementById("f-contracts-override-budget").checked = state.contractsOverrideBudget;
+  document.getElementById("calc-info").textContent = state.calcInfoText || "";
+
+  const warnBox = document.getElementById("dep-warn");
+  warnBox.innerHTML = state.dependencyWarningHtml || "";
+  warnBox.classList.toggle("show", !!state.showDependencyWarning);
+  document.getElementById("dep-type-editor").style.display = state.showDependencyEditor ? "" : "none";
+
+  _updateAutoBadges(state.hasItems, state.autoBudget);
+  buildChips(state.selectedCategory);
+  renderModalPhases();
+  renderDepTags();
+  renderDepTypeEditor();
+  renderCostTable();
+  document.getElementById("dep-dropdown").style.display = "none";
+  switchTaskTab(state.activeTab || "general");
+  document.getElementById("modal").style.display = "flex";
+  _applyTaskModalPermissions();
+
+  if (_canMutateTaskModal() && state.focusField === "name") {
+    setTimeout(() => document.getElementById("f-name").focus(), 50);
+  }
+}
+
 function openAdd() {
   const taskFormPanel = _getTaskFormPanelModel();
   const createState = typeof buildRuntimeTaskModalCreateState === "function"
@@ -908,33 +948,17 @@ function openAdd() {
         hasItems: false,
         focusField: "name",
       };
-  editIdx = createState.editIdx;
-  _editingDepId = createState.editingDepId;
-  _modalDeps = createState.modalDeps;
-  _modalPhases = createState.modalPhases;
-  _costTi = createState.costTi;
-  _costItems = createState.costItems;
-  _expandedIds = createState.expandedIds;
-
-  document.getElementById("m-title").textContent = createState.title;
-  document.getElementById("f-name").value = "";
-  document.getElementById("f-budget").value = createState.budgetValue;
-  document.getElementById("f-spent").value = createState.spentValue;
-  document.getElementById("f-contracts-override-budget").checked = createState.contractsOverrideBudget;
-  document.getElementById("calc-info").textContent = createState.calcInfoText;
-  document.getElementById("dep-warn").classList.toggle("show", createState.showDependencyWarning);
-  document.getElementById("dep-type-editor").style.display = createState.showDependencyEditor ? "" : "none";
-  _updateAutoBadges(createState.hasItems);
-
-  buildChips(0);
-  renderModalPhases();
-  renderDepTags();
-  renderCostTable();
-  document.getElementById("dep-dropdown").style.display = "none";
-  switchTaskTab("general");
-  document.getElementById("modal").style.display = "flex";
-  _applyTaskModalPermissions();
-  if (_canMutateTaskModal() && createState.focusField === "name") setTimeout(() => document.getElementById("f-name").focus(), 50);
+  const uiState = typeof buildRuntimeTaskModalCreateUiState === "function"
+    ? buildRuntimeTaskModalCreateUiState({ createState, selectedCategory: 0 })
+    : null;
+  _applyTaskModalUiState(uiState || {
+    ...createState,
+    nameValue: "",
+    dependencyWarningHtml: "",
+    autoBudget: false,
+    selectedCategory: 0,
+    activeTab: "general",
+  });
 }
 
 function openEdit(ti) {
@@ -968,41 +992,30 @@ function openEdit(ti) {
         spentValue: t.spent || "",
         contractsOverrideBudget: !!t.contractsOverrideBudget,
       };
-
-  _modalPhases = editState.modalPhases;
-  _modalDeps = editState.modalDeps;
-  _costTi = ti;
-  _expandedIds = new Set();
-  _costItems = editState.costItems;
-
-  const hasItems = editState.hasItems;
-
-  document.getElementById("m-title").textContent = editState.title;
-  document.getElementById("f-name").value = t.name;
-  document.getElementById("f-contracts-override-budget").checked = editState.contractsOverrideBudget;
-  document.getElementById("f-budget").value = editState.budgetValue;
-  document.getElementById("f-spent").value = editState.spentValue;
-  _updateAutoBadges(hasItems, hasItems && (!!editState.contractsOverrideBudget || (+t.budget || 0) <= 0));
-
-  buildChips(t.cat);
-  renderModalPhases();
-  renderDepTags();
-  renderDepTypeEditor();
-  renderCostTable();
-  updCalc();
-
   const warns = checkDeps(t);
-  const wb = document.getElementById("dep-warn");
-  if (warns.length) {
-    wb.innerHTML = "⚠ " + warns.join("<br>");
-    wb.classList.add("show");
-  } else {
-    wb.classList.remove("show");
-  }
-
-  switchTaskTab("general");
-  document.getElementById("modal").style.display = "flex";
-  _applyTaskModalPermissions();
+  const uiState = typeof buildRuntimeTaskModalEditUiState === "function"
+    ? buildRuntimeTaskModalEditUiState({
+        task: t,
+        editIdx: ti,
+        editState,
+        dependencyWarnings: warns,
+      })
+    : null;
+  _applyTaskModalUiState(uiState || {
+    ...editState,
+    editIdx: ti,
+    editingDepId: null,
+    costTi: ti,
+    expandedIds: new Set(),
+    nameValue: t.name,
+    dependencyWarningHtml: warns.length ? "⚠ " + warns.join("<br>") : "",
+    showDependencyWarning: warns.length > 0,
+    autoBudget: editState.hasItems && (!!editState.contractsOverrideBudget || (+t.budget || 0) <= 0),
+    selectedCategory: t.cat,
+    focusField: null,
+    activeTab: "general",
+  });
+  updCalc();
 }
 
 function closeModal() {
@@ -1099,7 +1112,7 @@ async function saveTask() {
       })
     : null;
   const isEdit = applied ? applied.isEdit : editIdx !== null;
-  if (applied) {
+  if (applied?.changed) {
     tasks = applied.tasks;
     nextN = applied.nextN;
   } else if (isEdit) {
@@ -1145,7 +1158,7 @@ async function delTask(ti) {
   const removed = typeof buildRuntimeRemoveTaskAt === "function"
     ? buildRuntimeRemoveTaskAt(tasks, ti)
     : null;
-  tasks = removed ? removed.tasks : tasks.filter((_, index) => index !== ti);
+  tasks = removed?.changed ? removed.tasks : tasks.filter((_, index) => index !== ti);
   saveAll();
   render();
   await logTaskActivity(AUDIT_EVENT_TYPES.TASK_DELETED, removed?.removedTask || task);
@@ -1161,18 +1174,21 @@ function openNotesModal(ti) {
           ? buildRuntimeCloneTaskNotes(tasks?.[ti]?.notes || [])
           : (tasks?.[ti]?.notes || []),
         exists: !!tasks?.[ti],
+        visible: !!tasks?.[ti],
       };
   if (!session.exists) return;
-  _notesTi = session.taskIndex;
+  _notesSession = session;
   document.getElementById("notes-modal-title").textContent = session.title;
   renderNotes(session.notes);
-  document.getElementById("notes-modal").style.display = "flex";
+  document.getElementById("notes-modal").style.display = session.visible ? "flex" : "none";
   _applyNotesModalPermissions();
 }
 
 function closeNotesModal() {
   document.getElementById("notes-modal").style.display = "none";
-  _notesTi = null;
+  _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
+    ? buildRuntimeCloseTaskNotesSession()
+    : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
 }
 
 function renderNotes(notes) {
@@ -1226,26 +1242,26 @@ function renderNotes(notes) {
 
 function _getNotes() {
   return typeof buildRuntimeGetTaskNotesByIndex === "function"
-    ? buildRuntimeGetTaskNotesByIndex(tasks, _notesTi)
-    : (_notesTi !== null ? tasks?.[_notesTi]?.notes || [] : []);
+    ? buildRuntimeGetTaskNotesByIndex(tasks, _notesSession.taskIndex)
+    : (_notesSession.taskIndex !== null ? tasks?.[_notesSession.taskIndex]?.notes || [] : []);
 }
 function _setNotes(n) {
   const nextState = typeof buildRuntimeApplyTaskNotesToTasks === "function"
     ? buildRuntimeApplyTaskNotesToTasks({
         tasks,
-        taskIndex: _notesTi,
+        taskIndex: _notesSession.taskIndex,
         notes: n,
       })
     : {
-        tasks: _notesTi !== null
-          ? tasks.map((task, index) => index === _notesTi ? { ...task, notes: n } : task)
+        tasks: _notesSession.taskIndex !== null
+          ? tasks.map((task, index) => index === _notesSession.taskIndex ? { ...task, notes: n } : task)
           : tasks,
-        changed: _notesTi !== null,
+        changed: _notesSession.taskIndex !== null,
       };
   if (!nextState.changed) return;
   tasks = nextState.tasks;
   saveAll();
-  _syncNotesCell(_notesTi);
+  _syncNotesCell(_notesSession.taskIndex);
 }
 
 function _syncNotesCell(ti) {
@@ -1450,12 +1466,19 @@ function _buildColorDropdownHTML(catIdx) {
 }
 
 function setCatDraftName(catIdx, value) {
-  if (!tempCats[catIdx]) return;
-  tempCats[catIdx].name = value;
+  const updated = typeof buildRuntimeUpdateCategoryDraftAt === "function"
+    ? buildRuntimeUpdateCategoryDraftAt(tempCats, catIdx, { name: value })
+    : { categories: tempCats.map((cat, index) => index === catIdx ? { ...cat, name: value } : cat), changed: !!tempCats[catIdx] };
+  if (!updated.changed) return;
+  tempCats = updated.categories;
 }
 
 function pickCatColor(catIdx, hex, dotEl) {
-  tempCats[catIdx].color = hex;
+  const updated = typeof buildRuntimeUpdateCategoryDraftAt === "function"
+    ? buildRuntimeUpdateCategoryDraftAt(tempCats, catIdx, { color: hex })
+    : { categories: tempCats.map((cat, index) => index === catIdx ? { ...cat, color: hex } : cat), changed: !!tempCats[catIdx] };
+  if (!updated.changed) return;
+  tempCats = updated.categories;
   const rows = document.querySelectorAll("#cat-editor-list .cat-row");
   rows[catIdx]?.querySelector(".cat-swatch")?.style.setProperty("background", hex);
   rows[catIdx]
@@ -1558,9 +1581,12 @@ function closeCatModal() {
 let _dlFilter = "all"; // 'all' | 'FS' | 'SS' | 'FF'
 
 function openDepList() {
-  _dlFilter = "all";
+  const session = typeof buildRuntimeDependencyListOpenSession === "function"
+    ? buildRuntimeDependencyListOpenSession()
+    : { filter: "all", visible: true };
+  _dlFilter = session.filter;
   _renderDepList();
-  document.getElementById("dep-list-modal").style.display = "flex";
+  document.getElementById("dep-list-modal").style.display = session.visible ? "flex" : "none";
 }
 
 function closeDepList() {
@@ -1568,7 +1594,9 @@ function closeDepList() {
 }
 
 function setDepListFilter(f) {
-  _dlFilter = f;
+  _dlFilter = typeof buildRuntimeApplyDependencyListFilter === "function"
+    ? buildRuntimeApplyDependencyListFilter(_dlFilter, f)
+    : f;
   document.querySelectorAll(".dl-filter-btn").forEach(b =>
     b.classList.toggle("on", b.dataset.f === f));
   _renderDepList();
@@ -1642,47 +1670,62 @@ function _renderDepList() {
 
 function depListGo(fromTi) {
   closeDepList();
-  // Переключаємось на вкладку Графік якщо потрібно
   const ganttPane = document.getElementById("pane-gantt");
-  if (ganttPane && !ganttPane.classList.contains("active")) {
+  const navPlan = typeof buildRuntimeDependencyNavigationPlan === "function"
+    ? buildRuntimeDependencyNavigationPlan(fromTi, !!ganttPane?.classList.contains("active"))
+    : {
+        shouldActivateGantt: !!ganttPane && !ganttPane.classList.contains("active"),
+        targetRowId: `tr${fromTi}`,
+        taskIndex: fromTi,
+      };
+  if (navPlan.shouldActivateGantt) {
     document.querySelector('.tab[onclick*="gantt"]')?.click();
   }
   requestAnimationFrame(() => {
-    highlightDepChain(fromTi);
-    document.getElementById(`tr${fromTi}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    highlightDepChain(navPlan.taskIndex);
+    document.getElementById(navPlan.targetRowId)?.scrollIntoView({ behavior: "smooth", block: "center" });
   });
 }
 
 function openProj() {
   const canManage = typeof canManageProject === "function" ? canManageProject() : true;
+  const formState = typeof buildRuntimeProjectSettingsFormState === "function"
+    ? buildRuntimeProjectSettingsFormState({ project: proj, canManage })
+    : {
+        name: proj.name,
+        sm: proj.sm,
+        sy: proj.sy,
+        nm: proj.nm,
+        canManage,
+      };
   const sel = document.getElementById("p-sm");
   sel.innerHTML = MN.map((m, i) => `<option value="${i}">${m}</option>`).join("");
-  sel.value = String(proj.sm);
+  sel.value = String(formState.sm);
   const nameInput = document.getElementById("p-name");
   const yearInput = document.getElementById("p-sy");
   const durationInput = document.getElementById("p-nm");
   const modal = document.getElementById("proj-modal");
 
-  nameInput.value = proj.name;
-  yearInput.value = proj.sy;
-  durationInput.value = proj.nm;
+  nameInput.value = formState.name;
+  yearInput.value = formState.sy;
+  durationInput.value = formState.nm;
 
   [nameInput, sel, yearInput, durationInput].forEach((el) => {
     if (!el) return;
-    el.disabled = !canManage;
-    el.readOnly = !canManage;
+    el.disabled = !formState.canManage;
+    el.readOnly = !formState.canManage;
   });
 
   modal.querySelectorAll(".num-btn").forEach((btn) => {
-    btn.disabled = !canManage;
-    btn.style.display = canManage ? "" : "none";
+    btn.disabled = !formState.canManage;
+    btn.style.display = formState.canManage ? "" : "none";
   });
 
   const catsBtn = modal.querySelector(".proj-modal-cats .btn");
-  if (catsBtn) catsBtn.style.display = canManage ? "" : "none";
+  if (catsBtn) catsBtn.style.display = formState.canManage ? "" : "none";
 
   const saveBtn = modal.querySelector(".m-btns .btn-acc");
-  if (saveBtn) saveBtn.style.display = canManage ? "" : "none";
+  if (saveBtn) saveBtn.style.display = formState.canManage ? "" : "none";
 
   modal.style.display = "flex";
 }
@@ -1903,5 +1946,16 @@ function openPhaseEditor(ti) { openEdit(ti); }
 function closePhaseModal() {}
 function savePhases() {}
 function clearPhases(ti) {
-  if (tasks[ti]) { tasks[ti].phases = null; saveAll(); render(); }
+  const nextState = typeof buildRuntimeClearTaskPhasesAt === "function"
+    ? buildRuntimeClearTaskPhasesAt(tasks, ti)
+    : {
+        tasks: tasks[ti]
+          ? tasks.map((task, index) => index === ti ? { ...task, phases: null } : task)
+          : tasks,
+        changed: !!tasks[ti],
+      };
+  if (!nextState.changed) return;
+  tasks = nextState.tasks;
+  saveAll();
+  render();
 }
