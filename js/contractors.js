@@ -2506,10 +2506,12 @@ async function _confirmContractorImportMapping(rows) {
     confirmButtonText: CONTRACTOR_UI.importContinueLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
-      window.__contractorImportRows = rows;
+      document.dispatchEvent(new CustomEvent("contractor-import-mapping-open", {
+        detail: { rows },
+      }));
     },
     willClose: () => {
-      window.__contractorImportRows = null;
+      document.dispatchEvent(new CustomEvent("contractor-import-mapping-close"));
     },
     preConfirm: () => {
       const next = {};
@@ -2921,13 +2923,15 @@ async function _confirmContractorImport(preview) {
     confirmButtonText: hasImportableRows ? CONTRACTOR_UI.importLabel : CONTRACTOR_UI.importOkLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
     didOpen: () => {
-      window.__contractorImportReviewEntries = reviewEntries;
+      document.dispatchEvent(new CustomEvent("contractor-import-review-state", {
+        detail: { entries: reviewEntries },
+      }));
       document.dispatchEvent(new CustomEvent("contractor-import-review-open", {
         detail: { filter: "all" },
       }));
     },
     willClose: () => {
-      window.__contractorImportReviewEntries = null;
+      document.dispatchEvent(new CustomEvent("contractor-import-review-close"));
     },
     preConfirm: () => {
       const updatedEntries = (preview.entries || []).map((entry) => ({ ...entry }));
