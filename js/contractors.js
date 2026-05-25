@@ -223,12 +223,12 @@ function renderContractors() {
 
   const head = visibleCols
     .map(([key, label]) => {
-      const resize = `<span class="contractor-col-resizer" onclick="event.stopPropagation()" onmousedown="startContractorColResize(event,'${key}')"></span>`;
+      const resize = `<span class="contractor-col-resizer" data-contractor-surface-mousedown="resize-main-col" data-col="${key}"></span>`;
       const drag = `draggable="true" ondragstart="startContractorColDrag(event,'${key}')" ondragover="event.preventDefault()" ondrop="dropContractorCol(event,'${key}')" ondragend="endContractorColDrag()"`;
-      if (key === "select") return `<th data-col="${key}" class="contractor-select-cell" ${drag}>${contractorSelectionMode ? `<input type="checkbox" id="contractor-select-all" onclick="event.stopPropagation();toggleAllVisibleContractors(this.checked)" title="${CONTRACTOR_FILTER_UI.chooseVisibleTitle}">` : ""}${resize}</th>`;
+      if (key === "select") return `<th data-col="${key}" class="contractor-select-cell" ${drag}>${contractorSelectionMode ? `<input type="checkbox" id="contractor-select-all" data-contractor-surface-input="toggle-select-all" title="${CONTRACTOR_FILTER_UI.chooseVisibleTitle}">` : ""}${resize}</th>`;
       if (key === "actions") return `<th data-col="${key}" ${drag}>${label}${resize}</th>`;
       const cls = contractorSort.col === key ? (contractorSort.dir === 1 ? "asc" : "desc") : "";
-      return `<th data-col="${key}" class="${cls}" onclick="if(!_contractorSuppressHeaderClick)sortContractors('${key}')" ${drag}><span>${label}</span>${resize}</th>`;
+      return `<th data-col="${key}" class="${cls}" data-contractor-surface-action="sort-main-col" data-col-key="${key}" ${drag}><span>${label}</span>${resize}</th>`;
     })
     .join("");
 
@@ -404,7 +404,7 @@ function _syncContractorControls() {
   const reset = document.getElementById("contractor-reset-filter");
   if (reset) {
     reset.innerHTML = _hasContractorFilters()
-      ? `<button class="btn btn-sm" onclick="resetContractorFilters()" title="${CONTRACTOR_FILTER_UI.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>`
+      ? `<button class="btn btn-sm" data-contractor-surface-action="reset-filters" title="${CONTRACTOR_FILTER_UI.resetFiltersTitle}"><i data-lucide="rotate-ccw"></i></button>`
       : "";
   }
 
@@ -412,12 +412,12 @@ function _syncContractorControls() {
   if (selection) {
     const selectedCount = _selectedContractorKeys().length;
     selection.innerHTML = `
-        <button class="btn btn-sm" onclick="toggleContractorSelectionMode()">${contractorSelectionMode ? CONTRACTOR_SELECTION_UI.hideSelectionLabel : CONTRACTOR_SELECTION_UI.showSelectionLabel}</button>
+        <button class="btn btn-sm" data-contractor-surface-action="toggle-selection-mode">${contractorSelectionMode ? CONTRACTOR_SELECTION_UI.hideSelectionLabel : CONTRACTOR_SELECTION_UI.showSelectionLabel}</button>
         ${selectedCount
         ? `
         <span class="contractor-selection-chip">${CONTRACTOR_SELECTION_UI.selectedLabel}: <b>${selectedCount}</b></span>
-        <button class="btn btn-sm" onclick="clearContractorSelection()">${CONTRACTOR_SELECTION_UI.clearSelectionLabel}</button>
-        <button class="btn btn-sm danger" onclick="deleteSelectedContractors()">${CONTRACTOR_SELECTION_UI.deleteSelectedLabel}</button>`
+        <button class="btn btn-sm" data-contractor-surface-action="clear-selection">${CONTRACTOR_SELECTION_UI.clearSelectionLabel}</button>
+        <button class="btn btn-sm danger" data-contractor-surface-action="delete-selected">${CONTRACTOR_SELECTION_UI.deleteSelectedLabel}</button>`
         : ""}`;
   }
 
@@ -493,21 +493,21 @@ function _renderContractorRow(row, colspan) {
     ? `<span class="contractor-muted">Перегляд</span>`
     : row.isForecast
     ? `<span class="contractor-muted">—</span>`
-    : `<button class="btn btn-sm contractor-row-action" onclick="editContractor('${encodeURIComponent(row.key)}')" title="Редагувати контрагента">
+    : `<button class="btn btn-sm contractor-row-action" data-contractor-surface-action="edit-contractor" data-row-key="${encodeURIComponent(row.key)}" title="Редагувати контрагента">
           <i data-lucide="pencil"></i>
         </button>
-        <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractor('${encodeURIComponent(row.key)}')" title="Видалити контрагента">
+        <button class="btn btn-sm contractor-row-action danger" data-contractor-surface-action="delete-contractor" data-row-key="${encodeURIComponent(row.key)}" title="Видалити контрагента">
           <i data-lucide="trash-2"></i>
         </button>`;
   return `
     <tr class="contractor-main-row${special ? " contractor-special-row" : ""}${selected ? " contractor-selected" : ""}">
       <td class="contractor-select-cell">
-        ${selectable ? `<input type="checkbox" ${selected ? "checked" : ""} onclick="event.stopPropagation();toggleContractorSelection('${encodeURIComponent(row.key)}', this.checked)" title="Вибрати контрагента">` : ""}
+        ${selectable ? `<input type="checkbox" ${selected ? "checked" : ""} data-contractor-surface-input="toggle-selection" data-row-key="${encodeURIComponent(row.key)}" title="Вибрати контрагента">` : ""}
       </td>
       <td class="contractor-num contractor-row-no">${row.rowNo || ""}</td>
       <td class="contractor-name-cell">
         <div class="contractor-name-wrap">
-          <button class="contractor-expand-btn" onclick="toggleContractorDetails('${encodeURIComponent(row.key)}')" title="${open ? "Згорнути" : "Розгорнути"}">
+          <button class="contractor-expand-btn" data-contractor-surface-action="toggle-details" data-row-key="${encodeURIComponent(row.key)}" title="${open ? "Згорнути" : "Розгорнути"}">
             <i data-lucide="${open ? "chevron-down" : "chevron-right"}"></i>
           </button>
           <span class="contractor-title">
@@ -550,14 +550,14 @@ function _renderContractorDetails(row, colspan) {
     ? contracts.map((item) => `
       <tr>
         <td>${_ctEsc(item.itemName || "—")}</td>
-        <td><span class="contractor-link" onclick="openContractorTask(${item.ti})">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>
+        <td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${item.ti}">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>
         <td class="contractor-num">${fmtM(Math.round(item.budget || 0))}</td>
         <td>${_ctEsc(item.note || "")}</td>
         <td class="contractor-pay-actions">
-          <button class="btn btn-sm contractor-row-action" onclick="openContractorActModal('', '${_ctAttr(item.path)}')" title="Додати акт">
+          <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="open-act-modal" data-contract-path="${_ctAttr(item.path)}" title="Додати акт">
             <i data-lucide="file-text"></i>
           </button>
-          <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('${_ctAttr(item.path)}')" title="Додати платіж">
+          <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="open-payment-modal" data-contract-path="${_ctAttr(item.path)}" title="Додати платіж">
             <i data-lucide="credit-card"></i>
           </button>
         </td>
@@ -572,16 +572,16 @@ function _renderContractorDetails(row, colspan) {
         <td>${_ctEsc(act.name || "—")}</td>
         <td class="contractor-num">${fmtM(Math.round(act.amount || 0))}</td>
         <td>${_ctEsc(act.contractNo || "—")}<br><small>${fmtM(Math.round(act.contractAmount || 0))} грн</small></td>
-        <td><span class="contractor-link" onclick="openContractorTask(${act.ti})">#${act.taskNo} ${_ctEsc(act.taskName)}</span></td>
+        <td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${act.ti}">#${act.taskNo} ${_ctEsc(act.taskName)}</span></td>
         <td>${_ctEsc(act.note || "")}</td>
         <td class="contractor-pay-actions">
-          <button class="btn btn-sm contractor-row-action" onclick="editContractorAct('${_ctAttr(act.path)}')" title="Редагувати акт">
+          <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="edit-act" data-act-path="${_ctAttr(act.path)}" title="Редагувати акт">
             <i data-lucide="pencil"></i>
           </button>
-          <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('', '${_ctAttr(act.path)}')" title="Додати платіж">
+          <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="open-payment-modal" data-act-path="${_ctAttr(act.path)}" title="Додати платіж">
             <i data-lucide="credit-card"></i>
           </button>
-          <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorAct('${_ctAttr(act.path)}')" title="Видалити акт">
+          <button class="btn btn-sm contractor-row-action danger" data-contractor-surface-action="delete-act" data-act-path="${_ctAttr(act.path)}" title="Видалити акт">
             <i data-lucide="trash-2"></i>
           </button>
         </td>
@@ -597,14 +597,14 @@ function _renderContractorDetails(row, colspan) {
         <td class="contractor-num">${fmtM(Math.round(p.amount || 0))}</td>
         <td>${_ctEsc(p.contractNo || "—")}<br><small>${fmtM(Math.round(p.contractAmount || 0))} грн</small></td>
         <td>${_ctEsc(p.actNo || "—")}</td>
-        <td><span class="contractor-link" onclick="openContractorTask(${p.ti})">#${p.taskNo} ${_ctEsc(p.taskName)}</span></td>
+        <td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${p.ti}">#${p.taskNo} ${_ctEsc(p.taskName)}</span></td>
         <td>${_ctEsc(p.itemName)}</td>
         <td>${_ctEsc(p.note || "")}</td>
         <td class="contractor-pay-actions">
-          <button class="btn btn-sm contractor-row-action" onclick="editContractorPayment('${_ctAttr(p.path)}')" title="Редагувати платіж">
+          <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="edit-payment" data-payment-path="${_ctAttr(p.path)}" title="Редагувати платіж">
             <i data-lucide="pencil"></i>
           </button>
-          <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorPayment('${_ctAttr(p.path)}')" title="Видалити платіж">
+          <button class="btn btn-sm contractor-row-action danger" data-contractor-surface-action="delete-payment" data-payment-path="${_ctAttr(p.path)}" title="Видалити платіж">
             <i data-lucide="trash-2"></i>
           </button>
         </td>
@@ -672,7 +672,7 @@ function _renderContractorForecastDetails(row, colspan) {
       const rest = (item.budget || 0) - (item.paid || 0);
       return `
         <tr>
-          <td><span class="contractor-link" onclick="openContractorTask(${item.ti})">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>
+          <td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${item.ti}">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>
           <td>${_ctEsc(item.itemName)}</td>
           <td class="contractor-num">${fmtM(Math.round(item.budget || 0))}</td>
           <td class="contractor-num">${fmtM(Math.round(item.paid || 0))}</td>
@@ -705,7 +705,7 @@ function _renderContractorForecastDetails(row, colspan) {
 function _renderContractorDetailTh(group, col, label, style) {
   const sort = contractorDetailSort[group] || { col: "", dir: 1 };
   const cls = sort.col === col ? (sort.dir === 1 ? "asc" : "desc") : "";
-  return `<th class="${cls}" style="${style}" onclick="sortContractorDetails('${group}','${col}')">${label}</th>`;
+  return `<th class="${cls}" style="${style}" data-contractor-surface-action="sort-detail-col" data-detail-group="${group}" data-col-key="${col}">${label}</th>`;
 }
 
 function _sortContractorDetailRows(rows, group) {
@@ -2108,10 +2108,10 @@ function renderPaymentRegisterModal() {
             <small>${_ctEsc(register.filtersLabel || "")}</small>
           </div>
           <div class="payment-register-row-actions">
-            <button class="btn btn-sm" onclick="printPaymentRegister('${_ctAttr(register.id)}')"><i data-lucide="printer"></i></button>
-            <button class="btn btn-sm" onclick="exportPaymentRegister('${_ctAttr(register.id)}','xlsx')">XLSX</button>
-            <button class="btn btn-sm" onclick="exportPaymentRegister('${_ctAttr(register.id)}','csv')">CSV</button>
-            <button class="btn btn-sm btn-danger" onclick="deletePaymentRegister('${_ctAttr(register.id)}')"><i data-lucide="trash-2"></i></button>
+            <button class="btn btn-sm" data-contractor-surface-action="print-register" data-register-id="${_ctAttr(register.id)}"><i data-lucide="printer"></i></button>
+            <button class="btn btn-sm" data-contractor-surface-action="export-register" data-register-id="${_ctAttr(register.id)}" data-export-type="xlsx">XLSX</button>
+            <button class="btn btn-sm" data-contractor-surface-action="export-register" data-register-id="${_ctAttr(register.id)}" data-export-type="csv">CSV</button>
+            <button class="btn btn-sm btn-danger" data-contractor-surface-action="delete-register" data-register-id="${_ctAttr(register.id)}"><i data-lucide="trash-2"></i></button>
           </div>
         </div>`)
       .join("");
@@ -3850,14 +3850,14 @@ function _renderContractorMainCell(row, key, ctx) {
   if (key === "select") {
     if (!contractorSelectionMode) return "";
     return `<td class="contractor-select-cell">
-      ${ctx.selectable ? `<input type="checkbox" ${ctx.selected ? "checked" : ""} onclick="event.stopPropagation();toggleContractorSelection('${encodeURIComponent(row.key)}', this.checked)" title="Вибрати контрагента">` : ""}
+      ${ctx.selectable ? `<input type="checkbox" ${ctx.selected ? "checked" : ""} data-contractor-surface-input="toggle-selection" data-row-key="${encodeURIComponent(row.key)}" title="Вибрати контрагента">` : ""}
     </td>`;
   }
   if (key === "rowNo") return `<td class="contractor-num contractor-row-no">${row.rowNo || ""}</td>`;
   if (key === "supplier") {
     return `<td class="contractor-name-cell">
       <div class="contractor-name-wrap">
-        <button class="contractor-expand-btn" onclick="toggleContractorDetails('${encodeURIComponent(row.key)}')" title="${ctx.open ? "Згорнути" : "Розгорнути"}">
+        <button class="contractor-expand-btn" data-contractor-surface-action="toggle-details" data-row-key="${encodeURIComponent(row.key)}" title="${ctx.open ? "Згорнути" : "Розгорнути"}">
           <i data-lucide="${ctx.open ? "chevron-down" : "chevron-right"}"></i>
         </button>
         <span class="contractor-title">
@@ -3893,10 +3893,10 @@ _renderContractorRow = function _renderContractorRowResponsive(row, visibleCols)
     : "";
   const action = row.isForecast
     ? `<span class="contractor-muted">—</span>`
-    : `<button class="btn btn-sm contractor-row-action" onclick="editContractor('${encodeURIComponent(row.key)}')" title="Редагувати контрагента">
+    : `<button class="btn btn-sm contractor-row-action" data-contractor-surface-action="edit-contractor" data-row-key="${encodeURIComponent(row.key)}" title="Редагувати контрагента">
           <i data-lucide="pencil"></i>
         </button>
-        <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractor('${encodeURIComponent(row.key)}')" title="Видалити контрагента">
+        <button class="btn btn-sm contractor-row-action danger" data-contractor-surface-action="delete-contractor" data-row-key="${encodeURIComponent(row.key)}" title="Видалити контрагента">
           <i data-lucide="trash-2"></i>
         </button>`;
   const ctx = { open, status, selectable, selected, action };
@@ -3991,11 +3991,11 @@ function _saveContractorDetailColumnOrder(group, cols) {
 function _renderContractorDetailHead(group, cols) {
   const sort = contractorDetailSort[group] || { col: "", dir: 1 };
   return cols.map(([key, label]) => {
-    const resize = `<span class="contractor-col-resizer" onclick="event.stopPropagation()" onmousedown="startContractorDetailColResize(event,'${group}','${key}')"></span>`;
+    const resize = `<span class="contractor-col-resizer" data-contractor-surface-mousedown="resize-detail-col" data-detail-group="${group}" data-col="${key}"></span>`;
     const drag = `draggable="true" ondragstart="startContractorDetailColDrag(event,'${group}','${key}')" ondragover="event.preventDefault()" ondrop="dropContractorDetailCol(event,'${group}','${key}')" ondragend="endContractorDetailColDrag()"`;
     if (key === "actions") return `<th data-col="${key}" ${drag}>${label}${resize}</th>`;
     const cls = sort.col === key ? (sort.dir === 1 ? "asc" : "desc") : "";
-    return `<th data-col="${key}" class="${cls}" onclick="if(!_contractorSuppressHeaderClick)sortContractorDetails('${group}','${key}')" ${drag}>${label}${resize}</th>`;
+    return `<th data-col="${key}" class="${cls}" data-contractor-surface-action="sort-detail-col" data-detail-group="${group}" data-col-key="${key}" ${drag}>${label}${resize}</th>`;
   }).join("");
 }
 
@@ -4019,13 +4019,13 @@ function _renderContractorDetailTable(group, rows, emptyText, cellRenderer) {
 function _renderContractorContractCell(item, key) {
   if (key === "contractNo") return `<td>${_ctEsc(item.contractNo || item.itemName || CONTRACTOR_UI.emDash)}</td>`;
   if (key === "itemName") return `<td>${_ctEsc(item.itemName || CONTRACTOR_UI.emDash)}</td>`;
-  if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${item.ti})">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>`;
+  if (key === "taskName") return `<td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${item.ti}">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>`;
   if (key === "total") return `<td class="contractor-num">${fmtM(Math.round(item.total || item.budget || 0))}</td>`;
   if (key === "budget") return `<td class="contractor-num">${fmtM(Math.round(item.budget || 0))}</td>`;
   if (key === "note") return `<td>${_ctEsc(item.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="openContractorActModal('', '${_ctAttr(item.path)}')" title="${CONTRACTOR_UI.addActTitle}"><i data-lucide="file-text"></i></button>
-    <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('${_ctAttr(item.path)}')" title="${CONTRACTOR_UI.addPaymentTitle}"><i data-lucide="credit-card"></i></button>
+    <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="open-act-modal" data-contract-path="${_ctAttr(item.path)}" title="${CONTRACTOR_UI.addActTitle}"><i data-lucide="file-text"></i></button>
+    <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="open-payment-modal" data-contract-path="${_ctAttr(item.path)}" title="${CONTRACTOR_UI.addPaymentTitle}"><i data-lucide="credit-card"></i></button>
   </td>`;
   return `<td></td>`;
 }
@@ -4037,12 +4037,12 @@ function _renderContractorActCell(act, key) {
   if (key === "amount") return `<td class="contractor-num">${fmtM(Math.round(act.amount || 0))}</td>`;
   if (key === "contractNo") return `<td>${_ctEsc(act.contractNo || CONTRACTOR_UI.emDash)}<br><small>${fmtM(Math.round(act.contractAmount || 0))} ${CONTRACTOR_SUMMARY_UI.currencyUnit}</small></td>`;
   if (key === "itemName") return `<td>${_ctEsc(act.itemName || CONTRACTOR_UI.emDash)}</td>`;
-  if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${act.ti})">#${act.taskNo} ${_ctEsc(act.taskName)}</span></td>`;
+  if (key === "taskName") return `<td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${act.ti}">#${act.taskNo} ${_ctEsc(act.taskName)}</span></td>`;
   if (key === "note") return `<td>${_ctEsc(act.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="editContractorAct('${_ctAttr(act.path)}')" title="${CONTRACTOR_UI.editActTitle}"><i data-lucide="pencil"></i></button>
-    <button class="btn btn-sm contractor-row-action" onclick="openContractorPaymentModal('', '${_ctAttr(act.path)}')" title="${CONTRACTOR_UI.addPaymentTitle}"><i data-lucide="credit-card"></i></button>
-    <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorAct('${_ctAttr(act.path)}')" title="${CONTRACTOR_UI.deleteActTitle}"><i data-lucide="trash-2"></i></button>
+    <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="edit-act" data-act-path="${_ctAttr(act.path)}" title="${CONTRACTOR_UI.editActTitle}"><i data-lucide="pencil"></i></button>
+    <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="open-payment-modal" data-act-path="${_ctAttr(act.path)}" title="${CONTRACTOR_UI.addPaymentTitle}"><i data-lucide="credit-card"></i></button>
+    <button class="btn btn-sm contractor-row-action danger" data-contractor-surface-action="delete-act" data-act-path="${_ctAttr(act.path)}" title="${CONTRACTOR_UI.deleteActTitle}"><i data-lucide="trash-2"></i></button>
   </td>`;
   return `<td></td>`;
 }
@@ -4052,19 +4052,19 @@ function _renderContractorPaymentCell(p, key) {
   if (key === "amount") return `<td class="contractor-num">${fmtM(Math.round(p.amount || 0))}</td>`;
   if (key === "contractNo") return `<td>${_ctEsc(p.contractNo || CONTRACTOR_UI.emDash)}<br><small>${fmtM(Math.round(p.contractAmount || 0))} ${CONTRACTOR_SUMMARY_UI.currencyUnit}</small></td>`;
   if (key === "actNo") return `<td>${_ctEsc(p.actNo || CONTRACTOR_UI.emDash)}</td>`;
-  if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${p.ti})">#${p.taskNo} ${_ctEsc(p.taskName)}</span></td>`;
+  if (key === "taskName") return `<td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${p.ti}">#${p.taskNo} ${_ctEsc(p.taskName)}</span></td>`;
   if (key === "itemName") return `<td>${_ctEsc(p.itemName)}</td>`;
   if (key === "note") return `<td>${_ctEsc(p.note || "")}</td>`;
   if (key === "actions") return `<td class="contractor-pay-actions">
-    <button class="btn btn-sm contractor-row-action" onclick="editContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.editPaymentActionTitle}"><i data-lucide="pencil"></i></button>
-    <button class="btn btn-sm contractor-row-action danger" onclick="deleteContractorPayment('${_ctAttr(p.path)}')" title="${CONTRACTOR_UI.deletePaymentTitle}"><i data-lucide="trash-2"></i></button>
+    <button class="btn btn-sm contractor-row-action" data-contractor-surface-action="edit-payment" data-payment-path="${_ctAttr(p.path)}" title="${CONTRACTOR_UI.editPaymentActionTitle}"><i data-lucide="pencil"></i></button>
+    <button class="btn btn-sm contractor-row-action danger" data-contractor-surface-action="delete-payment" data-payment-path="${_ctAttr(p.path)}" title="${CONTRACTOR_UI.deletePaymentTitle}"><i data-lucide="trash-2"></i></button>
   </td>`;
   return `<td></td>`;
 }
 
 function _renderContractorForecastCell(item, key) {
   const rest = (item.budget || 0) - (item.paid || 0);
-  if (key === "taskName") return `<td><span class="contractor-link" onclick="openContractorTask(${item.ti})">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>`;
+  if (key === "taskName") return `<td><span class="contractor-link" data-contractor-surface-action="open-task" data-task-index="${item.ti}">#${item.taskNo} ${_ctEsc(item.taskName)}</span></td>`;
   if (key === "itemName") return `<td>${_ctEsc(item.itemName)}</td>`;
   if (key === "budget") return `<td class="contractor-num">${fmtM(Math.round(item.budget || 0))}</td>`;
   if (key === "paid") return `<td class="contractor-num">${fmtM(Math.round(item.paid || 0))}</td>`;

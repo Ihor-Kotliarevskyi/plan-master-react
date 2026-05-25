@@ -157,9 +157,9 @@
         <div class="contractor-search-wrap">
           <i data-lucide="search"></i>
           <input id="contractor-search" type="text" placeholder="Пошук контрагента, роботи, платежу..."
-            oninput="onContractorSearch(this.value)" onkeydown="if(event.key==='Escape'){clearContractorSearch()}" />
+            data-contractor-surface-input="search" />
           <button type="button" id="contractor-search-clear" class="contractor-search-clear"
-            onclick="clearContractorSearch()" title="Очистити пошук">
+            data-contractor-surface-action="clear-search" title="Очистити пошук">
             <i data-lucide="x"></i>
           </button>
         </div>
@@ -820,6 +820,7 @@
   <script type="module" src="/src/islands/dependency-list.ts"></script>
   <script type="module" src="/src/islands/contractor-entry.ts"></script>
   <script type="module" src="/src/islands/payment-register.ts"></script>
+  <script type="module" src="/src/islands/contractor-surface.ts"></script>
   <script type="module" src="/src/islands/contractor-tools.ts"></script>
   <script type="module" src="/src/islands/contractor-import-review.ts"></script>
   <script type="module" src="/src/islands/finance-chart-controls.ts"></script>

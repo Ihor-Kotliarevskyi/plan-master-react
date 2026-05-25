@@ -24,7 +24,7 @@ What is true now:
 - Supabase schema, RLS, and sharing flows already support that model
 - audit logging foundation already exists
 - a first TypeScript and generated-helper bridge already exists
-- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, project settings, project manager, app shell, gantt surface, print dialog shell, print chart picker, chart edit dialog, task modal shell, notes modal, dependency list modal, contractor entry modal, payment register modal, contractor tools menu, contractor import/review shell, and finance chart controls
+- module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, project settings, project manager, app shell, gantt surface, print dialog shell, print chart picker, chart edit dialog, task modal shell, notes modal, dependency list modal, contractor entry modal, contractor detail and register surface, payment register modal, contractor tools menu, contractor import/review shell, and finance chart controls
 
 What is still legacy:
 
@@ -184,7 +184,7 @@ Good candidates for the next module-based UI islands:
 
 - advanced finance controls around non-chart finance tooling
 - remaining print dialog orchestration outside the shell
-- contractor detail/edit shells beyond the current entry/register/tooling flow
+- contractor edit flows inside Swal-based contractor dialogs
 
 Bad candidates for the first UI island:
 
