@@ -1156,7 +1156,7 @@ function addContractorEditRow() {
     <label>Номер договору<input class="ce-edit-contract-no"></label>
     <label>Дата договору<input class="ce-edit-contract-date" type="date" value="${new Date().toISOString().slice(0, 10)}"></label>
     <label>Сума договору<input class="ce-edit-price" type="number" step="0.01"></label>
-    <button type="button" class="ce-edit-delete-btn" onclick="this.closest('.contractor-edit-row').classList.toggle('marked-delete')" title="Видалити">
+    <button type="button" class="ce-edit-delete-btn" data-contractor-dialog-action="toggle-edit-row-delete" title="Видалити">
       <i data-lucide="x"></i>
     </button>`;
   list.insertBefore(row, list.lastElementChild);
@@ -1250,7 +1250,7 @@ async function editContractorPayment(path) {
     html: `
       <div class="swal-form-grid">
         <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
-          <select id="pay-edit-contract" class="swal2-input contractor-contract-select" onchange="syncPaymentEditActs('${_ctAttr(currentName)}')">${contractOptions}</select>
+          <select id="pay-edit-contract" class="swal2-input contractor-contract-select" data-contractor-dialog-input="sync-payment-edit-acts" data-supplier="${_ctAttr(currentName)}">${contractOptions}</select>
         </label>
         <label>${CONTRACTOR_UI.paymentDateFieldLabel}<input id="pay-edit-date" type="date" class="swal2-input" value="${_ctAttr(payment.date || "")}"></label>
         <label>${CONTRACTOR_UI.paymentAmountFieldLabel}<input id="pay-edit-amount" type="number" min="0" step="100" class="swal2-input" value="${_ctAttr(payment.amount || 0)}"></label>
@@ -1542,8 +1542,8 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
     html: `
       <div class="swal-form-grid">
         <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
-          <select id="act-contract" class="swal2-input">
-            ${contracts.map(({ item }) => `<option value="${_ctAttr(item.id)}"${pathContract && String(pathContract.item.id) === String(item.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(item))}</option>`).join("")}
+          <select id="act-contract" class="swal2-input" data-contractor-dialog-input="sync-act-contract-item">
+            ${contracts.map(({ item }) => `<option value="${_ctAttr(item.id)}" data-item-name="${_ctAttr(item.name || "")}"${pathContract && String(pathContract.item.id) === String(item.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(item))}</option>`).join("")}
           </select>
         </label>
         <label>${CONTRACTOR_UI.actTypeFieldLabel}<select id="act-type" class="swal2-input">
@@ -1558,14 +1558,7 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    didOpen: () => {
-      const contractSelect = document.getElementById("act-contract");
-      const itemNameInput = document.getElementById("act-item-name");
-      contractSelect?.addEventListener("change", () => {
-        const selected = contracts.find(({ item }) => String(item.id) === String(contractSelect.value));
-        if (itemNameInput && selected?.item?.name) itemNameInput.value = selected.item.name;
-      });
-    },
+    didOpen: () => {},
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("act-amount")?.value);
       const name = _ctText(document.getElementById("act-name")?.value);
@@ -1724,7 +1717,7 @@ async function openContractorPaymentModal(contractPath = "", actPath = "") {
     html: `
       <div class="swal-form-grid">
         <label class="swal-span-2">${CONTRACTOR_UI.contractFieldLabel}
-          <select id="pay-add-contract" class="swal2-input contractor-contract-select" onchange="syncPaymentAddActs('${_ctAttr(supplier)}')">
+          <select id="pay-add-contract" class="swal2-input contractor-contract-select" data-contractor-dialog-input="sync-payment-add-acts" data-supplier="${_ctAttr(supplier)}">
             ${contracts.map(({ item }) => `<option value="${_ctAttr(item.id)}"${String(selectedId) === String(item.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(item))}</option>`).join("")}
           </select>
         </label>
@@ -1853,7 +1846,7 @@ function _contractorContractEditRow({ path = "", ti = 0, no = "", date = "", amo
     <label>${CONTRACTOR_UI.dateFieldLabel}<input class="ce-contract-date" type="date" value="${_ctAttr(date)}"></label>
     <label>${CONTRACTOR_UI.amountFieldLabel}<input class="ce-contract-amount" type="number" min="0" step="100" value="${_ctAttr(amount || "")}" placeholder="${CONTRACTOR_UI.amountPlaceholder}"></label>
     <label>${CONTRACTOR_UI.noteFieldLabel}<input class="ce-contract-note" value="${_ctAttr(note)}" placeholder="${CONTRACTOR_UI.contractNotePlaceholder}"></label>
-    <button type="button" class="btn btn-sm contractor-row-action danger" onclick="this.closest('.contractor-contract-row').classList.toggle('marked-delete')" title="${CONTRACTOR_UI.deleteLabel}">
+    <button type="button" class="btn btn-sm contractor-row-action danger" data-contractor-dialog-action="toggle-contract-row-delete" title="${CONTRACTOR_UI.deleteLabel}">
       <i data-lucide="trash-2"></i>
     </button>
   </div>`;
