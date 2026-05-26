@@ -170,29 +170,17 @@ areas are isolated and stable.
 
 ## Recommended Next Engineering Step
 
-The next correct step is not another database redesign. It is continued runtime
-decomposition of the legacy UI layer.
+The next correct step is no longer another migration slice. It is the final
+manual stabilization and testing pass.
 
-Best next targets:
+Execution order:
 
-1. extract one more pure UI/domain slice from `js/modal.js` or `js/user.js`
-2. reduce global coupling in legacy UI state transitions
-3. choose the first area that can move from legacy globals to a module-based UI
-   bootstrap without touching the gantt core
+1. run the checklist in `docs/STABILIZATION_CHECKLIST.md`
+2. capture auth, sync, sharing, role, audit, and offline regressions
+3. fix only confirmed findings from that pass
 
-Good candidates for the next module-based UI islands:
-
-- any last contractor dialog-specific listeners that are not yet under the island
-- any remaining cost-editor persistence or lifecycle glue outside the island
-- any remaining print/chart export listeners outside the current shells
-- any remaining app-level install prompt or import/export glue outside the global island
-- any remaining fallback-only reserve-path cleanup that does not affect the active Supabase runtime
-
-Bad candidates for the first UI island:
-
-- gantt grid
-- drag/resize core
-- print pipeline
+Migration work is now far enough along that another broad refactor would add
+more noise than value before manual verification.
 
 ## What Not To Do
 
@@ -237,7 +225,7 @@ What is already closed enough not to revisit for the current migration scope:
 
 What remains ahead:
 
-- more legacy runtime decomposition
-- a later UI bootstrap shift
-- only after that, any decision about company-level architecture
+- the final manual stabilization pass
+- targeted bug fixes found during that pass
+- only after that, any later UI bootstrap shift or company-level architecture work
 

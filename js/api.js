@@ -385,7 +385,7 @@ function _updateReadOnlyUI() {
     gtbl.style.opacity = readonly ? "0.85" : "";
   }
 
-  const addBtn = document.querySelector(".btn-acc[onclick='openAdd()']");
+  const addBtn = document.querySelector("[data-gantt-action='open-add-task']");
   if (addBtn) addBtn.style.display = readonly ? "none" : "";
 
   const shareBtn = document.getElementById("share-btn");

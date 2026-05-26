@@ -1558,7 +1558,6 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    didOpen: () => {},
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("act-amount")?.value);
       const name = _ctText(document.getElementById("act-name")?.value);
