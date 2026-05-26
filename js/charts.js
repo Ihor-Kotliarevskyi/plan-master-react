@@ -323,7 +323,7 @@ function printChart(id) {
         const done=function(){window.print();};
         if(img && img.complete) setTimeout(done, 60);
         else if(img) img.onload=done;
-        window.onafterprint=function(){window.close();};
+        window.addEventListener('afterprint', function(){window.close();}, { once:true });
       })();
     <\/script></body></html>`,
   );

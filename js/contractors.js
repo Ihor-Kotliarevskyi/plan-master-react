@@ -1558,7 +1558,6 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.saveLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    didOpen: () => {},
     preConfirm: () => {
       const amount = _ctAmount(document.getElementById("act-amount")?.value);
       const name = _ctText(document.getElementById("act-name")?.value);
@@ -2505,14 +2504,8 @@ async function _confirmContractorImportMapping(rows) {
     showCancelButton: true,
     confirmButtonText: CONTRACTOR_UI.importContinueLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    didOpen: () => {
-      document.dispatchEvent(new CustomEvent("contractor-import-mapping-open", {
-        detail: { rows },
-      }));
-    },
-    willClose: () => {
-      document.dispatchEvent(new CustomEvent("contractor-import-mapping-close"));
-    },
+    didOpen: () => _ctOpenImportMappingSession(rows),
+    willClose: _ctCloseImportMappingSession,
     preConfirm: () => {
       const next = {};
       document.querySelectorAll(".contractor-import-map-select").forEach((select) => {
@@ -2530,6 +2523,29 @@ function _ctImportSelectOptions(columns, selected) {
   return `<option value="">${_ctEsc(CONTRACTOR_UI.noImportOptionLabel)}</option>` + columns
     .map((column) => `<option value="${_ctAttr(column)}"${column === selected ? " selected" : ""}>${_ctEsc(column)}</option>`)
     .join("");
+}
+
+function _ctOpenImportMappingSession(rows) {
+  document.dispatchEvent(new CustomEvent("contractor-import-mapping-open", {
+    detail: { rows },
+  }));
+}
+
+function _ctCloseImportMappingSession() {
+  document.dispatchEvent(new CustomEvent("contractor-import-mapping-close"));
+}
+
+function _ctOpenImportReviewSession(entries) {
+  document.dispatchEvent(new CustomEvent("contractor-import-review-state", {
+    detail: { entries },
+  }));
+  document.dispatchEvent(new CustomEvent("contractor-import-review-open", {
+    detail: { filter: "all" },
+  }));
+}
+
+function _ctCloseImportReviewSession() {
+  document.dispatchEvent(new CustomEvent("contractor-import-review-close"));
 }
 
 function _ctImportColumns(rows) {
@@ -2922,17 +2938,8 @@ async function _confirmContractorImport(preview) {
     showCancelButton: hasImportableRows,
     confirmButtonText: hasImportableRows ? CONTRACTOR_UI.importLabel : CONTRACTOR_UI.importOkLabel,
     cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    didOpen: () => {
-      document.dispatchEvent(new CustomEvent("contractor-import-review-state", {
-        detail: { entries: reviewEntries },
-      }));
-      document.dispatchEvent(new CustomEvent("contractor-import-review-open", {
-        detail: { filter: "all" },
-      }));
-    },
-    willClose: () => {
-      document.dispatchEvent(new CustomEvent("contractor-import-review-close"));
-    },
+    didOpen: () => _ctOpenImportReviewSession(reviewEntries),
+    willClose: _ctCloseImportReviewSession,
     preConfirm: () => {
       const updatedEntries = (preview.entries || []).map((entry) => ({ ...entry }));
       document.querySelectorAll("[data-import-decision]").forEach((select) => {

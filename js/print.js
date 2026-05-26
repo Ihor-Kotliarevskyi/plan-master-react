@@ -924,23 +924,27 @@ async function doExportPDF() {
     </div>`,
     allowOutsideClick: false,
     showConfirmButton: false,
-    didOpen: async () => {
-      try {
-        await _generatePDF(sections, settings);
-        Swal.close();
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: PRINT_UI.exportPdfSuccessTitle,
-          showConfirmButton: false,
-          timer: 2500,
-        });
-      } catch (e) {
-        Swal.fire({ icon: "error", title: PRINT_UI.exportPdfErrorTitle, text: e.message });
-      }
+    didOpen: () => {
+      void _runPdfExportFlow(sections, settings);
     },
   });
+}
+
+async function _runPdfExportFlow(sections, settings) {
+  try {
+    await _generatePDF(sections, settings);
+    Swal.close();
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: PRINT_UI.exportPdfSuccessTitle,
+      showConfirmButton: false,
+      timer: 2500,
+    });
+  } catch (e) {
+    Swal.fire({ icon: "error", title: PRINT_UI.exportPdfErrorTitle, text: e.message });
+  }
 }
 
 async function _generatePDF(sections, settings = PRINT_DEFAULTS) {

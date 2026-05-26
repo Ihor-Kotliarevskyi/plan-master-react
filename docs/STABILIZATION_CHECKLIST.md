@@ -1,200 +1,299 @@
-# Plan Master - Stabilization Checklist
+# Plan Master - Чекліст стабілізації
 
-> Статус документа: фінальний технічний checklist для комплексного stabilization/testing pass після завершення поточного циклу permission, sharing та audit foundation.
+> Статус: робочий чекліст для фінального ручного прогону.
 
-## Призначення
+## Як користуватись
 
-Цей документ не описує нову функціональність.
+Проходь блоки по порядку.
 
-Його задача:
+Для кожного блоку:
 
-- зафіксувати, що саме треба перевірити наприкінці поточного циклу
-- зібрати в одному місці auth/sync/runtime ризики, які свідомо не добивалися по одному під час основної реалізації
-- дати порядок фінального прогону перед наступною великою фазою
+- став `[x]`, коли крок пройдено
+- пиши короткі нотатки в секції `Нотатки`
+- якщо знаходиш баг, фіксуй його в секції `Знахідки`
 
-## Коли запускати
+Рекомендований формат запису бага:
 
-Запускати після того, як:
+- `Сценарій:`
+- `Роль:`
+- `Очікувалось:`
+- `Фактично:`
+- `Own/shared:`
+- `Online/offline:`
 
-- `Phase 1` по ролях і sharing доведений до потрібного рівня
-- audit foundation уже пише події
-- технічний cleanup permission/project-context/sync-status уже завершено
+## Передумови
 
-Не запускати посеред великого refactor, інакше частина findings швидко застаріє.
+- [ ] локальний код оновлений до актуального стану
+- [ ] потрібні Supabase migration уже застосовані
+- [ ] локальний застосунок успішно запускається
+- [ ] є тестові акаунти для `owner`, `manager`, `editor`, `viewer`
 
-## Області перевірки
+Нотатки:
 
-### 1. Auth і session lifecycle
+- 
 
-Перевірити:
+Знахідки:
 
-- реєстрацію нового користувача
-- email confirmation flow
-- вхід після підтвердження пошти
-- відновлення сесії після reload
-- logout
-- коректне очищення локального auth/session state
+- 
 
-Ризики:
+## 1. Гостьовий сценарій
 
-- session є, але UI не відображає logged-in state
-- підтверджений користувач виглядає як непідтверджений
-- після logout залишаються чужі локальні дані або stale sync status
+- [ ] відкрити застосунок без логіну
+- [ ] створити локальний проєкт
+- [ ] додати хоча б одну задачу
+- [ ] перевірити, що локальний проєкт лишається після reload
+- [ ] перевірити, що статус синхронізації показує локальний або несинхронізований стан
 
-### 2. Local buffer і sync state
+Нотатки:
 
-Перевірити:
+- 
 
-- створення локального проєкту без логіну
-- появу `_localVersion`, `_serverVersion`, `_localUpdatedAt`
-- перехід статусів `offline -> warn -> syncing -> ok`
-- sync після логіну
-- sync після reload
-- sync після перемикання між проєктами
-- sync після повторного входу в already-confirmed акаунт
+Знахідки:
 
-Ризики:
+- 
 
-- локальні зміни є, але UI показує `ok`
-- локальні зміни губляться після login/load
-- один проєкт синкається у момент, коли користувач вже переключився на інший
+## 2. Auth і життєвий цикл сесії
 
-### 3. Ролі та capability model
+- [ ] зареєструвати нового користувача
+- [ ] перевірити email confirmation flow
+- [ ] увійти після підтвердження пошти
+- [ ] оновити сторінку й перевірити, що сесія відновилась
+- [ ] вийти з акаунта
+- [ ] знову увійти тим самим користувачем
+- [ ] перевірити, що UI кожного разу переходить у logged-in state
 
-Окремо прогнати:
+Нотатки:
 
-- `owner`
-- `manager`
-- `editor`
-- `viewer`
+- 
+
+Знахідки:
+
+- 
+
+## 3. Локальний буфер і sync state
+
+- [ ] створити або змінити проєкт до логіну
+- [ ] увійти й перевірити, що локальні дані не загубились
+- [ ] перевірити, що проєкт синхронізується в хмару
+- [ ] перевірити поведінку `_localVersion` / `_serverVersion` в UI diagnostics
+- [ ] перевірити, що `_localUpdatedAt` показується там, де очікується
+- [ ] перевірити, що sync state адекватно змінюється після редагування і reload
+- [ ] перемкнутись між проєктами і перевірити, що sync diagnostics лишаються послідовними
+
+Нотатки:
+
+- 
+
+Знахідки:
+
+- 
+
+## 4. CRUD по проєктах
+
+- [ ] створити новий порожній проєкт
+- [ ] створити demo-проєкт
+- [ ] перейменувати проєкт
+- [ ] перемикатись між проєктами
+- [ ] видалити проєкт
+- [ ] зробити reload і перевірити, що список проєктів коректний
+
+Нотатки:
+
+- 
+
+Знахідки:
+
+- 
+
+## 5. CRUD по задачах і gantt flow
+
+- [ ] відкрити modal створення задачі
+- [ ] створити задачу
+- [ ] відредагувати задачу
+- [ ] видалити задачу
+- [ ] дублювати задачу
+- [ ] відкрити нотатки з рядка gantt
+- [ ] відкрити список залежностей
+- [ ] перетягнути або розтягнути задачу в gantt
+- [ ] перевірити, що зміни зберігаються після reload
+
+Нотатки:
+
+- 
+
+Знахідки:
+
+- 
+
+## 6. Ролі і capability matrix
+
+Пройти блок окремо для кожної ролі:
+
+- [ ] `owner`
+- [ ] `manager`
+- [ ] `editor`
+- [ ] `viewer`
 
 Для кожної ролі перевірити:
 
-- відкриття проєкту
-- відкриття task modal
-- task save/delete
-- drag/resize
-- dependency editing
-- project settings
-- share modal
-- contractors mutations
-- finance mutations
+- [ ] проєкт відкривається коректно
+- [ ] task modal відкривається коректно
+- [ ] права на save/delete задач коректні
+- [ ] права на drag/resize коректні
+- [ ] права на dependency editing коректні
+- [ ] права на project settings коректні
+- [ ] права на share modal коректні
+- [ ] права в contractors коректні
+- [ ] права у finance коректні
 
-Ризики:
+Нотатки:
 
-- readonly видно лише в UI, але mutating path все одно викликається
-- `manager` і `editor` поводяться однаково там, де повинні відрізнятися
-- old `_role: "admin"` snapshot некоректно проходить нормалізацію
+- 
 
-### 4. Sharing flow
+Знахідки:
 
-Перевірити:
+- 
 
-- grant share
-- change share role
-- revoke share
-- відкриття shared project з іншого акаунта
-- project switching між own/shared snapshots
+## 7. Sharing flow
 
-Ризики:
+- [ ] owner надає доступ іншому користувачу
+- [ ] shared user бачить проєкт
+- [ ] owner змінює роль існуючому користувачу
+- [ ] поведінка shared user оновлюється коректно
+- [ ] owner відкликає доступ
+- [ ] shared project зникає або стає недоступним так, як очікується
+- [ ] групування own/shared проєктів лишається коректним
 
-- share створено в БД, але локальний список/стан не оновився
-- shared user бачить stale role до reload
-- manager не може робити те, що дозволено policy
+Нотатки:
 
-### 5. Audit foundation
+- 
 
-Перевірити, що пишуться:
+Знахідки:
 
-- `task.created`
-- `task.updated`
-- `task.deleted`
-- `project.settings_updated`
-- `project.baseline_saved`
-- `project.baseline_cleared`
-- `share.granted`
-- `share.role_updated`
-- `share.revoked`
+- 
 
-Перевірити:
+## 8. Audit log
 
-- правильний `project_id`
-- правильний `actor_id`
-- `entity_type` / `entity_id`
-- payload shape без випадкового сміття з UI
+- [ ] створити задачу й перевірити появу audit event
+- [ ] оновити задачу й перевірити появу audit event
+- [ ] видалити задачу й перевірити появу audit event
+- [ ] змінити project settings і перевірити появу audit event
+- [ ] зберегти baseline і перевірити появу audit event
+- [ ] очистити baseline і перевірити появу audit event
+- [ ] надати share і перевірити появу audit event
+- [ ] змінити роль share і перевірити появу audit event
+- [ ] відкликати share і перевірити появу audit event
 
-Ризики:
+Нотатки:
 
-- подія в UI відбулась, але в БД не записалась
-- payload shape плаває між різними event families
+- 
 
-### 6. Offline і reconnect
+Знахідки:
 
-Перевірити:
+- 
 
-- редагування без мережі
-- накопичення локальних змін
-- reconnect
-- повторний sync після reconnect
+## 9. Contractors
 
-Ризики:
+- [ ] відкрити contractor surface
+- [ ] створити contractor entry
+- [ ] відредагувати contractor data
+- [ ] додати contract
+- [ ] додати act
+- [ ] додати payment
+- [ ] відкрити payment register
+- [ ] зберегти register
+- [ ] імпортувати contractor data
+- [ ] перевірити readonly-поведінку для обмежених ролей
 
-- offline status не відображається
-- reconnect не тригерить sync
-- reconnect затирає локальні зміни серверним snapshot
+Нотатки:
 
-### 7. Import/export і legacy snapshots
+- 
 
-Перевірити:
+Знахідки:
 
-- імпорт JSON-проєкту
-- імпорт у logged-in режимі
-- імпорт у guest режимі з подальшим login
-- сумісність snapshot, де був старий `_role`
+- 
 
-Ризики:
+## 10. Finance
 
-- імпортований проєкт не отримує коректний `_localUpdatedAt`
-- imported snapshot ламає sync-status або role normalization
+- [ ] відкрити вкладку finance
+- [ ] перемикати finance views або filters
+- [ ] відкрити пов’язаний cost editor
+- [ ] створити або відредагувати cost item
+- [ ] додати payment у cost editor
+- [ ] видалити finance row або cost item
+- [ ] перейти з finance назад у gantt
+- [ ] перевірити readonly-поведінку для обмежених ролей
 
-## Рекомендований порядок фінального прогону
+Нотатки:
 
-1. Guest flow без логіну.
-2. Login/register/confirmation flow.
-3. Local-to-cloud sync flow.
-4. Role matrix `owner/manager/editor/viewer`.
-5. Sharing flow.
-6. Audit DB verification.
-7. Offline/reconnect.
-8. Import/export і legacy snapshot compatibility.
+- 
 
-## Що фіксувати під час прогону
+Знахідки:
 
-Для кожного бага записувати:
+- 
 
-- сценарій відтворення
-- очікувану поведінку
-- фактичну поведінку
-- роль користувача
-- чи був онлайн/офлайн
-- чи це own project або shared project
+## 11. Print і Charts
 
-Це потрібно, щоб не змішувати auth, sync і permission regressions в одну нечітку проблему.
+- [ ] відкрити print dialog
+- [ ] змінити print options і перевірити оновлення preview
+- [ ] перевірити print flow
+- [ ] перевірити PDF export flow
+- [ ] відкрити chart edit dialog
+- [ ] додати custom chart
+- [ ] видалити custom chart
+- [ ] надрукувати chart
 
-## Exit criteria
+Нотатки:
 
-Stabilization pass можна вважати завершеним, якщо:
+- 
 
-- немає blocker-багів у login/sync flow
-- capability model узгоджена між UI, local buffer і Supabase RLS
-- shared project behavior стабільний для всіх ролей MVP
-- audit log consistently пишеться для основних mutation flows
-- offline/reconnect не втрачає дані
+Знахідки:
 
-## Наступний крок після stabilization
+- 
 
-Після цього етапу вже безпечніше:
+## 12. Offline і reconnect
 
-- або переходити до наступної фази audit/read UI
-- або починати окреме рішення щодо company/invite direction
-- або планувати інкрементальну UI migration
+- [ ] перейти в offline
+- [ ] відредагувати дані проєкту в offline
+- [ ] перевірити, що offline state видно в UI
+- [ ] повернутись online
+- [ ] перевірити, що sync відновився
+- [ ] перевірити, що offline-зміни не загубились
+
+Нотатки:
+
+- 
+
+Знахідки:
+
+- 
+
+## 13. Import / Export і legacy snapshots
+
+- [ ] експортувати JSON
+- [ ] імпортувати JSON у logged-in режимі
+- [ ] імпортувати JSON у logged-out режимі, а потім увійти
+- [ ] перевірити, що імпортований проєкт має коректний sync state
+- [ ] перевірити, що імпортований проєкт має коректну role normalization
+
+Нотатки:
+
+- 
+
+Знахідки:
+
+- 
+
+## Критерії завершення
+
+- [ ] немає blocker у auth/session flow
+- [ ] немає blocker у sync flow
+- [ ] role matrix поводиться коректно для MVP
+- [ ] sharing стабільний для own і shared проєктів
+- [ ] audit log стабільно пишеться для основних mutation flow
+- [ ] offline/reconnect не втрачає дані
+- [ ] список findings зафіксований достатньо чітко для точкових виправлень
+
+Фінальні нотатки:
+
+- 
