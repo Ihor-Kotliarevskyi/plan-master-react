@@ -1,299 +1,299 @@
-# Plan Master - Stabilization Checklist
+# Plan Master - Чекліст стабілізації
 
-> Status: working checklist for the final manual verification pass.
+> Статус: робочий чекліст для фінального ручного прогону.
 
-## How To Use
+## Як користуватись
 
-Run the blocks in order.
+Проходь блоки по порядку.
 
-For each block:
+Для кожного блоку:
 
-- mark each step with `[x]` when done
-- write short notes directly under `Notes`
-- if a bug appears, record it in `Findings`
+- став `[x]`, коли крок пройдено
+- пиши короткі нотатки в секції `Нотатки`
+- якщо знаходиш баг, фіксуй його в секції `Знахідки`
 
-Recommended bug note format:
+Рекомендований формат запису бага:
 
-- `Scenario:`
-- `Role:`
-- `Expected:`
-- `Actual:`
+- `Сценарій:`
+- `Роль:`
+- `Очікувалось:`
+- `Фактично:`
 - `Own/shared:`
 - `Online/offline:`
 
-## Preconditions
+## Передумови
 
-- [ ] latest local code is pulled
-- [ ] required Supabase migrations are already applied
-- [ ] local app starts successfully
-- [ ] test accounts exist for `owner`, `manager`, `editor`, `viewer`
+- [ ] локальний код оновлений до актуального стану
+- [ ] потрібні Supabase migration уже застосовані
+- [ ] локальний застосунок успішно запускається
+- [ ] є тестові акаунти для `owner`, `manager`, `editor`, `viewer`
 
-Notes:
-
-- 
-
-Findings:
+Нотатки:
 
 - 
 
-## 1. Guest Flow
-
-- [ ] open app without login
-- [ ] create a local project
-- [ ] add at least one task
-- [ ] confirm local project remains visible after reload
-- [ ] confirm sync status shows local-only or unsynced state
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 1. Гостьовий сценарій
+
+- [ ] відкрити застосунок без логіну
+- [ ] створити локальний проєкт
+- [ ] додати хоча б одну задачу
+- [ ] перевірити, що локальний проєкт лишається після reload
+- [ ] перевірити, що статус синхронізації показує локальний або несинхронізований стан
+
+Нотатки:
 
 - 
 
-## 2. Auth And Session Lifecycle
-
-- [ ] register a new user
-- [ ] confirm email flow works
-- [ ] login after confirmation
-- [ ] reload page and confirm session is restored
-- [ ] logout
-- [ ] login again with the same user
-- [ ] confirm UI switches to logged-in state each time
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 2. Auth і життєвий цикл сесії
+
+- [ ] зареєструвати нового користувача
+- [ ] перевірити email confirmation flow
+- [ ] увійти після підтвердження пошти
+- [ ] оновити сторінку й перевірити, що сесія відновилась
+- [ ] вийти з акаунта
+- [ ] знову увійти тим самим користувачем
+- [ ] перевірити, що UI кожного разу переходить у logged-in state
+
+Нотатки:
 
 - 
 
-## 3. Local Buffer And Sync State
-
-- [ ] create or update a project before login
-- [ ] login and confirm local data is preserved
-- [ ] confirm project syncs to cloud
-- [ ] check `_localVersion` / `_serverVersion` behavior in UI diagnostics
-- [ ] check `_localUpdatedAt` is shown when expected
-- [ ] confirm sync state transitions make sense after edits and reload
-- [ ] switch between projects and confirm sync diagnostics stay coherent
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 3. Локальний буфер і sync state
+
+- [ ] створити або змінити проєкт до логіну
+- [ ] увійти й перевірити, що локальні дані не загубились
+- [ ] перевірити, що проєкт синхронізується в хмару
+- [ ] перевірити поведінку `_localVersion` / `_serverVersion` в UI diagnostics
+- [ ] перевірити, що `_localUpdatedAt` показується там, де очікується
+- [ ] перевірити, що sync state адекватно змінюється після редагування і reload
+- [ ] перемкнутись між проєктами і перевірити, що sync diagnostics лишаються послідовними
+
+Нотатки:
 
 - 
 
-## 4. Project CRUD
-
-- [ ] create a new empty project
-- [ ] create a demo project
-- [ ] rename a project
-- [ ] switch between projects
-- [ ] delete a project
-- [ ] reload and confirm resulting project list is correct
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 4. CRUD по проєктах
+
+- [ ] створити новий порожній проєкт
+- [ ] створити demo-проєкт
+- [ ] перейменувати проєкт
+- [ ] перемикатись між проєктами
+- [ ] видалити проєкт
+- [ ] зробити reload і перевірити, що список проєктів коректний
+
+Нотатки:
 
 - 
 
-## 5. Task CRUD And Gantt Flow
-
-- [ ] open add-task modal
-- [ ] create a task
-- [ ] edit a task
-- [ ] delete a task
-- [ ] duplicate a task
-- [ ] open notes from gantt row
-- [ ] open dependency list
-- [ ] drag or resize a task in gantt
-- [ ] verify changes persist after reload
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 5. CRUD по задачах і gantt flow
+
+- [ ] відкрити modal створення задачі
+- [ ] створити задачу
+- [ ] відредагувати задачу
+- [ ] видалити задачу
+- [ ] дублювати задачу
+- [ ] відкрити нотатки з рядка gantt
+- [ ] відкрити список залежностей
+- [ ] перетягнути або розтягнути задачу в gantt
+- [ ] перевірити, що зміни зберігаються після reload
+
+Нотатки:
 
 - 
 
-## 6. Roles And Capability Matrix
+Знахідки:
 
-Run this block for each role:
+- 
+
+## 6. Ролі і capability matrix
+
+Пройти блок окремо для кожної ролі:
 
 - [ ] `owner`
 - [ ] `manager`
 - [ ] `editor`
 - [ ] `viewer`
 
-For each role verify:
+Для кожної ролі перевірити:
 
-- [ ] project opens correctly
-- [ ] task modal open is correct
-- [ ] task save/delete permissions are correct
-- [ ] drag/resize permissions are correct
-- [ ] dependency editing permissions are correct
-- [ ] project settings permissions are correct
-- [ ] share modal permissions are correct
-- [ ] contractors permissions are correct
-- [ ] finance permissions are correct
+- [ ] проєкт відкривається коректно
+- [ ] task modal відкривається коректно
+- [ ] права на save/delete задач коректні
+- [ ] права на drag/resize коректні
+- [ ] права на dependency editing коректні
+- [ ] права на project settings коректні
+- [ ] права на share modal коректні
+- [ ] права в contractors коректні
+- [ ] права у finance коректні
 
-Notes:
-
-- 
-
-Findings:
+Нотатки:
 
 - 
 
-## 7. Sharing Flow
-
-- [ ] owner grants access to another user
-- [ ] shared user sees the project
-- [ ] owner changes role for existing user
-- [ ] shared user behavior updates correctly
-- [ ] owner revokes access
-- [ ] shared project disappears or becomes inaccessible as expected
-- [ ] own/shared project grouping remains correct
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 7. Sharing flow
+
+- [ ] owner надає доступ іншому користувачу
+- [ ] shared user бачить проєкт
+- [ ] owner змінює роль існуючому користувачу
+- [ ] поведінка shared user оновлюється коректно
+- [ ] owner відкликає доступ
+- [ ] shared project зникає або стає недоступним так, як очікується
+- [ ] групування own/shared проєктів лишається коректним
+
+Нотатки:
 
 - 
 
-## 8. Audit Log
-
-- [ ] create a task and confirm audit event appears
-- [ ] update a task and confirm audit event appears
-- [ ] delete a task and confirm audit event appears
-- [ ] update project settings and confirm audit event appears
-- [ ] save baseline and confirm audit event appears
-- [ ] clear baseline and confirm audit event appears
-- [ ] grant share and confirm audit event appears
-- [ ] update share role and confirm audit event appears
-- [ ] revoke share and confirm audit event appears
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 8. Audit log
+
+- [ ] створити задачу й перевірити появу audit event
+- [ ] оновити задачу й перевірити появу audit event
+- [ ] видалити задачу й перевірити появу audit event
+- [ ] змінити project settings і перевірити появу audit event
+- [ ] зберегти baseline і перевірити появу audit event
+- [ ] очистити baseline і перевірити появу audit event
+- [ ] надати share і перевірити появу audit event
+- [ ] змінити роль share і перевірити появу audit event
+- [ ] відкликати share і перевірити появу audit event
+
+Нотатки:
+
+- 
+
+Знахідки:
 
 - 
 
 ## 9. Contractors
 
-- [ ] open contractor surface
-- [ ] create contractor entry
-- [ ] edit contractor data
-- [ ] add contract
-- [ ] add act
-- [ ] add payment
-- [ ] open payment register
-- [ ] save register
-- [ ] import contractor data
-- [ ] verify readonly behavior for restricted roles
+- [ ] відкрити contractor surface
+- [ ] створити contractor entry
+- [ ] відредагувати contractor data
+- [ ] додати contract
+- [ ] додати act
+- [ ] додати payment
+- [ ] відкрити payment register
+- [ ] зберегти register
+- [ ] імпортувати contractor data
+- [ ] перевірити readonly-поведінку для обмежених ролей
 
-Notes:
+Нотатки:
 
 - 
 
-Findings:
+Знахідки:
 
 - 
 
 ## 10. Finance
 
-- [ ] open finance tab
-- [ ] switch finance views or filters
-- [ ] open linked cost editor
-- [ ] create or edit cost item
-- [ ] add payment in cost editor
-- [ ] delete finance row or cost item
-- [ ] navigate from finance back to gantt
-- [ ] verify readonly behavior for restricted roles
+- [ ] відкрити вкладку finance
+- [ ] перемикати finance views або filters
+- [ ] відкрити пов’язаний cost editor
+- [ ] створити або відредагувати cost item
+- [ ] додати payment у cost editor
+- [ ] видалити finance row або cost item
+- [ ] перейти з finance назад у gantt
+- [ ] перевірити readonly-поведінку для обмежених ролей
 
-Notes:
-
-- 
-
-Findings:
+Нотатки:
 
 - 
 
-## 11. Print And Charts
-
-- [ ] open print dialog
-- [ ] change print options and confirm preview refreshes
-- [ ] try print flow
-- [ ] try PDF export flow
-- [ ] open chart edit dialog
-- [ ] add custom chart
-- [ ] remove custom chart
-- [ ] print chart
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 11. Print і Charts
+
+- [ ] відкрити print dialog
+- [ ] змінити print options і перевірити оновлення preview
+- [ ] перевірити print flow
+- [ ] перевірити PDF export flow
+- [ ] відкрити chart edit dialog
+- [ ] додати custom chart
+- [ ] видалити custom chart
+- [ ] надрукувати chart
+
+Нотатки:
 
 - 
 
-## 12. Offline And Reconnect
-
-- [ ] go offline
-- [ ] edit project data while offline
-- [ ] confirm offline state is visible
-- [ ] reconnect
-- [ ] confirm sync resumes
-- [ ] confirm offline changes are not lost
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 12. Offline і reconnect
+
+- [ ] перейти в offline
+- [ ] відредагувати дані проєкту в offline
+- [ ] перевірити, що offline state видно в UI
+- [ ] повернутись online
+- [ ] перевірити, що sync відновився
+- [ ] перевірити, що offline-зміни не загубились
+
+Нотатки:
 
 - 
 
-## 13. Import / Export And Legacy Snapshots
-
-- [ ] export JSON
-- [ ] import JSON while logged in
-- [ ] import JSON while logged out, then login
-- [ ] verify imported project still has correct sync state
-- [ ] verify imported project still has correct role normalization
-
-Notes:
+Знахідки:
 
 - 
 
-Findings:
+## 13. Import / Export і legacy snapshots
+
+- [ ] експортувати JSON
+- [ ] імпортувати JSON у logged-in режимі
+- [ ] імпортувати JSON у logged-out режимі, а потім увійти
+- [ ] перевірити, що імпортований проєкт має коректний sync state
+- [ ] перевірити, що імпортований проєкт має коректну role normalization
+
+Нотатки:
 
 - 
 
-## Exit Criteria
+Знахідки:
 
-- [ ] no blocker in auth/session flow
-- [ ] no blocker in sync flow
-- [ ] role matrix behaves correctly for MVP
-- [ ] sharing is stable for own and shared projects
-- [ ] audit log is written consistently for main mutations
-- [ ] offline/reconnect does not lose data
-- [ ] findings list is captured clearly enough for targeted fixes
+- 
 
-Final Notes:
+## Критерії завершення
+
+- [ ] немає blocker у auth/session flow
+- [ ] немає blocker у sync flow
+- [ ] role matrix поводиться коректно для MVP
+- [ ] sharing стабільний для own і shared проєктів
+- [ ] audit log стабільно пишеться для основних mutation flow
+- [ ] offline/reconnect не втрачає дані
+- [ ] список findings зафіксований достатньо чітко для точкових виправлень
+
+Фінальні нотатки:
 
 - 
