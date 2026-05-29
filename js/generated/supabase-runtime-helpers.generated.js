@@ -3497,6 +3497,7 @@
   // src/services/supabase/runtime.ts
   function mergeAccessibleProjectsIntoLocalState(offlineNew, localSynced, accessibleProjects, authUserId) {
     const mergedProjects = { ...offlineNew };
+    const normalizeProjectName = (value) => String(value || "").trim().toLowerCase();
     for (const item of accessibleProjects || []) {
       if (!item?.project_id) continue;
       const normalizedRole = normalizeProjectRole(item.role || (item.source === "own" ? "owner" : "viewer"));
@@ -3516,6 +3517,22 @@
         const [localId, localProject] = localMatch;
         mergedProjects[localId] = {
           ...localProject,
+          _role: normalizedRole,
+          _access: mapAccessibleProjectAccess({
+            ...item,
+            ...fallbackMeta
+          })
+        };
+        continue;
+      }
+      const offlineNameMatch = item.source === "own" ? Object.entries(mergedProjects).find(
+        ([, localProject]) => !localProject?._serverId && normalizeProjectName(localProject?.proj?.name) && normalizeProjectName(localProject?.proj?.name) === normalizeProjectName(item.name)
+      ) : null;
+      if (offlineNameMatch) {
+        const [localId, localProject] = offlineNameMatch;
+        mergedProjects[localId] = {
+          ...localProject,
+          _serverId: item.project_id,
           _role: normalizedRole,
           _access: mapAccessibleProjectAccess({
             ...item,

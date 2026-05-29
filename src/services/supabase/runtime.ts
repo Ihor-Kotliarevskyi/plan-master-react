@@ -23,6 +23,7 @@ export function mergeAccessibleProjectsIntoLocalState(
   authUserId: string,
 ): ProjectMap {
   const mergedProjects: ProjectMap = { ...offlineNew };
+  const normalizeProjectName = (value: unknown) => String(value || "").trim().toLowerCase();
 
   for (const item of accessibleProjects || []) {
     if (!item?.project_id) continue;
@@ -46,6 +47,29 @@ export function mergeAccessibleProjectsIntoLocalState(
       const [localId, localProject] = localMatch;
       mergedProjects[localId] = {
         ...localProject,
+        _role: normalizedRole,
+        _access: mapAccessibleProjectAccess({
+          ...item,
+          ...fallbackMeta,
+        }),
+      };
+      continue;
+    }
+
+    const offlineNameMatch = item.source === "own"
+      ? Object.entries(mergedProjects).find(
+          ([, localProject]) =>
+            !localProject?._serverId &&
+            normalizeProjectName(localProject?.proj?.name) &&
+            normalizeProjectName(localProject?.proj?.name) === normalizeProjectName(item.name),
+        )
+      : null;
+
+    if (offlineNameMatch) {
+      const [localId, localProject] = offlineNameMatch;
+      mergedProjects[localId] = {
+        ...localProject,
+        _serverId: item.project_id,
         _role: normalizedRole,
         _access: mapAccessibleProjectAccess({
           ...item,

@@ -446,7 +446,7 @@ function _renderAuthForm(tab) {
           submitLabel: tab === "login" ? "Sign in" : "Register",
         };
   return `
-    <div class="auth-form">
+    <div class="auth-form auth-form-scroll">
       ${!model.isLogin ? `<div class="fg"><label>${_esc(model.nameLabel)}</label><input id="auth-name" placeholder="${_esc(model.namePlaceholder)}"/></div>` : ""}
       <div class="fg"><label>${_esc(model.emailLabel)}</label><input id="auth-email" type="email" placeholder="${_esc(model.emailPlaceholder)}"/></div>
       <div class="fg"><label>${_esc(model.passwordLabel)}</label><input id="auth-pass" type="password" placeholder="${_esc(model.passwordPlaceholder)}"/></div>
@@ -530,7 +530,18 @@ function _getAuthFlowMessages() {
     projectsBootstrapWarningTitle: "???? ????????, ??? ??????? ?? ?????????????",
     projectsBootstrapWarningText: "????????? ???? ???? ????? ? ????????? ??????? ????????",
     syncEnabledTitle: "???????! ? ????????????? ?????????",
+    emailConfirmationInfoTitle: "Підтвердьте email",
+    emailConfirmationInfoText: "Ми надіслали лист із підтвердженням. Відкрийте посилання з листа, потім поверніться в застосунок і увійдіть.",
   };
+}
+
+function _isEmailConfirmationMessage(message) {
+  const text = String(message || "").toLowerCase();
+  return text.includes("confirm registration")
+    || text.includes("confirm your email")
+    || text.includes("check your email")
+    || text.includes("підтверд")
+    || text.includes("пошту");
 }
 
 function _getProfileFeedbackMessages() {
@@ -658,6 +669,16 @@ async function _submitAuthInCabinet(tab) {
         timer: 2200,
       });
     } else {
+      if (tab !== "login" && !(typeof isLoggedIn === "function" && isLoggedIn())) {
+        await Swal.fire({
+          icon: "info",
+          title: authMessages.emailConfirmationInfoTitle,
+          text: authMessages.emailConfirmationInfoText,
+          confirmButtonText: "Добре",
+        });
+        _switchAuthTab("login");
+        return;
+      }
       _renderUserModal();
     }
 
@@ -716,6 +737,16 @@ async function _submitAuthInCabinet(tab) {
       showConfirmButton: false, timer: 3000,
     });
   } catch (err) {
+    if (tab !== "login" && _isEmailConfirmationMessage(err?.message)) {
+      await Swal.fire({
+        icon: "info",
+        title: authMessages.emailConfirmationInfoTitle,
+        text: authMessages.emailConfirmationInfoText,
+        confirmButtonText: "Добре",
+      });
+      _switchAuthTab("login");
+      return;
+    }
     showErr(err.message || "???????");
   }
 }

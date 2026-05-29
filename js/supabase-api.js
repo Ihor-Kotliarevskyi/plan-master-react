@@ -368,6 +368,7 @@ async function apiLoadProjects() {
           ? bufferCurrentId
           : ((!currentId || !allProjects[currentId]) ? Object.keys(allProjects)[0] : currentId));
 
+    _saveBuffer();
     updateProjSel();
     loadCurrent();
     render();
