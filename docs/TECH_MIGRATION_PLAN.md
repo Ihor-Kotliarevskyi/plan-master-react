@@ -1,6 +1,6 @@
 # Plan Master - Technical Migration Plan
 
-> Status: execution plan updated to match the codebase on `2026-05-20`.
+> Status: migration scope completed on `2026-05-29`.
 
 ## Purpose
 
@@ -26,15 +26,14 @@ What is true now:
 - a first TypeScript and generated-helper bridge already exists
 - module-based UI islands now exist for the user cabinet, auth-only cabinet flows, audit viewer, share modal, fallback auth modal, project settings, project manager, app shell, app global orchestration, multi-filter controls, overdue banner, gantt surface, print dialog shell, print preview surface, print chart picker, chart edit dialog, chart surface, task modal shell, cost editor, notes modal, dependency list modal, contractor entry modal, contractor detail and register surface, contractor dialog flows, payment register modal, contractor tools menu, contractor import/review shell, finance chart controls, and finance surface; the remaining finance logic is now mostly domain/helper-based rather than shell-bound
 
-What is still legacy:
+What is still intentionally deferred:
 
-- runtime bootstrap still depends on classic `<script>` orchestration
-- UI still relies heavily on global state and inline handlers
-- large files like `js/modal.js`, `js/user.js`, and parts of `js/api.js`
-  still mix UI orchestration with domain decisions
+- classic `<script>` bootstrap still exists as compatibility shell
+- `print` and parts of `charts` still need separate product-quality rework
+- a later full React/Zustand UI migration is still outside the current scope
 
-So the main problem is no longer "JavaScript". The main remaining problem is
-legacy runtime composition.
+So the main migration problem is no longer architectural decomposition. The
+remaining work is product polish and targeted follow-up fixes.
 
 ## Target Direction
 
@@ -170,17 +169,17 @@ areas are isolated and stable.
 
 ## Recommended Next Engineering Step
 
-The next correct step is no longer another migration slice. It is the final
-manual stabilization and testing pass.
+The next correct step is no longer another migration slice. It is targeted
+post-migration bug fixing from the completed stabilization pass.
 
 Execution order:
 
-1. run the checklist in `docs/STABILIZATION_CHECKLIST.md`
-2. capture auth, sync, sharing, role, audit, and offline regressions
-3. fix only confirmed findings from that pass
+1. use `docs/STABILIZATION_CHECKLIST.md` as the source of confirmed findings
+2. fix only the recorded runtime issues
+3. defer `print/charts` redesign to a separate focused cycle
 
-Migration work is now far enough along that another broad refactor would add
-more noise than value before manual verification.
+Migration work for the current scope is complete enough that a new broad
+refactor would only create avoidable risk.
 
 ## What Not To Do
 
@@ -225,7 +224,7 @@ What is already closed enough not to revisit for the current migration scope:
 
 What remains ahead:
 
-- the final manual stabilization pass
-- targeted bug fixes found during that pass
+- targeted bug fixes from the completed stabilization pass
+- separate `print/charts` quality pass
 - only after that, any later UI bootstrap shift or company-level architecture work
 
