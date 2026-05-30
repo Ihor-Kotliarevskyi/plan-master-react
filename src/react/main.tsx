@@ -6,6 +6,7 @@ import { DependencyListModal } from "./components/dependency-list-modal";
 import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surface";
 import { NotesModal } from "./components/notes-modal";
 import { ContractorSurface } from "./components/contractor-surface";
+import { ContractorEntryModal } from "./components/contractor-entry-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
@@ -188,6 +189,16 @@ function mountReactHost() {
     createRoot(paymentRegisterModal).render(
       <StrictMode>
         <PaymentRegisterModal />
+      </StrictMode>,
+    );
+  }
+
+  const contractorEntryModal = document.querySelector<HTMLElement>("[data-contractor-entry-root] .modal");
+  if (contractorEntryModal) {
+    document.body.dataset.reactTransitionContractorEntry = "enabled";
+    createRoot(contractorEntryModal).render(
+      <StrictMode>
+        <ContractorEntryModal />
       </StrictMode>,
     );
   }

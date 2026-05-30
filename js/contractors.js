@@ -78,6 +78,10 @@ let _contractorImportMapping = null;
 let _reactPaymentRegisterState = {
   visible: false,
 };
+let _reactContractorEntryState = {
+  visible: false,
+  supplierLocked: false,
+};
 
 function isReactContractorSurfaceEnabled() {
   return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
@@ -93,6 +97,14 @@ function isReactPaymentRegisterEnabled() {
 
 function syncReactPaymentRegisterBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:payment-register-sync"));
+}
+
+function isReactContractorEntryEnabled() {
+  return document.body?.dataset?.reactTransitionContractorEntry === "enabled";
+}
+
+function syncReactContractorEntryBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:contractor-entry-sync"));
 }
 
 function getContractorSurfaceBridgeSnapshot() {
@@ -120,6 +132,24 @@ function getPaymentRegisterBridgeSnapshot() {
       exportXlsxButton: "Поточний XLSX",
       exportCsvButton: "Поточний CSV",
       printButton: "Друк поточного",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function getContractorEntryBridgeSnapshot() {
+  return {
+    visible: _reactContractorEntryState.visible,
+    supplierLocked: _reactContractorEntryState.supplierLocked,
+    supplier: document.getElementById("ce-supplier")?.value || "",
+    contractsHtml: document.getElementById("ce-contract-list")?.innerHTML || "",
+    labels: {
+      title: "Контрагент",
+      supplierLabel: "Контрагент",
+      supplierPlaceholder: "Назва контрагента",
+      addContractButton: "Додати договір",
+      cancelButton: "Скасувати",
+      saveButton: "Зберегти",
     },
     capturedAt: new Date().toISOString(),
   };
@@ -1846,6 +1876,8 @@ function openContractorEntryModal(prefillSupplier = "", lockSupplier = false) {
 
   const modal = document.getElementById("contractor-entry-modal");
   if (!modal) return;
+  _reactContractorEntryState.visible = true;
+  _reactContractorEntryState.supplierLocked = !!lockSupplier;
 
   const supplierEl = document.getElementById("ce-supplier");
   const supplier = prefillSupplier;
@@ -1862,14 +1894,17 @@ function openContractorEntryModal(prefillSupplier = "", lockSupplier = false) {
   renderContractorContractManagerRows();
   modal.style.display = "flex";
   lucide.createIcons({ nodes: [modal] });
+  if (isReactContractorEntryEnabled()) syncReactContractorEntryBridge();
   setTimeout(() => supplierEl?.focus(), 50);
 }
 
 function closeContractorEntryModal() {
   const modal = document.getElementById("contractor-entry-modal");
   if (modal) modal.style.display = "none";
+  _reactContractorEntryState.visible = false;
   _contractorEntryEditPath = null;
   _contractorEntryOriginalKey = "";
+  if (isReactContractorEntryEnabled()) syncReactContractorEntryBridge();
 }
 
 function renderContractorContractManagerRows() {
@@ -1887,6 +1922,7 @@ function renderContractorContractManagerRows() {
   }));
   list.innerHTML = rows.join("") || _contractorContractEditRow({ ti: 0 });
   lucide.createIcons({ nodes: [list] });
+  if (isReactContractorEntryEnabled()) syncReactContractorEntryBridge();
 }
 
 function _contractorContractEditRow({ path = "", ti = 0, no = "", date = "", amount = "", note = "" } = {}) {
@@ -1912,6 +1948,7 @@ function addContractorContractRow() {
   const row = wrapper.firstElementChild;
   list.appendChild(row);
   lucide.createIcons({ nodes: [row] });
+  if (isReactContractorEntryEnabled()) syncReactContractorEntryBridge();
   row.querySelector(".ce-contract-no")?.focus();
 }
 
@@ -2000,6 +2037,7 @@ function saveContractorEntry() {
   saveAll();
   render();
   renderContractors();
+  if (isReactContractorEntryEnabled()) syncReactContractorEntryBridge();
   Swal.fire({
     toast: true,
     position: "top-end",

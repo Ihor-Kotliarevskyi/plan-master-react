@@ -401,6 +401,22 @@ export interface PaymentRegisterSnapshot {
   capturedAt: string;
 }
 
+export interface ContractorEntrySnapshot {
+  visible: boolean;
+  supplierLocked: boolean;
+  supplier: string;
+  contractsHtml: string;
+  labels: {
+    title: string;
+    supplierLabel: string;
+    supplierPlaceholder: string;
+    addContractButton: string;
+    cancelButton: string;
+    saveButton: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{
