@@ -119,6 +119,7 @@ let _reactContractorConfirmState = {
   cancelButtonText: "",
   inputLabel: "",
   inputValue: "",
+  requireNonEmpty: false,
   expectedValue: "",
   errorText: "",
 };
@@ -318,6 +319,7 @@ function getContractorConfirmBridgeSnapshot() {
     cancelButtonText: _reactContractorConfirmState.cancelButtonText,
     inputLabel: _reactContractorConfirmState.inputLabel,
     inputValue: _reactContractorConfirmState.inputValue,
+    requireNonEmpty: _reactContractorConfirmState.requireNonEmpty,
     expectedValue: _reactContractorConfirmState.expectedValue,
     errorText: _reactContractorConfirmState.errorText,
     capturedAt: new Date().toISOString(),
@@ -392,6 +394,7 @@ function closeReactContractorConfirm(result = { confirmed: false }) {
     cancelButtonText: "",
     inputLabel: "",
     inputValue: "",
+    requireNonEmpty: false,
     expectedValue: "",
     errorText: "",
   };
@@ -411,6 +414,7 @@ async function openReactContractorConfirm(config) {
     cancelButtonText: config?.cancelButtonText || CONTRACTOR_UI.cancelLabel,
     inputLabel: config?.inputLabel || "",
     inputValue: config?.inputValue || "",
+    requireNonEmpty: !!config?.requireNonEmpty,
     expectedValue: config?.expectedValue || "",
     errorText: config?.errorText || "",
   };
@@ -422,6 +426,9 @@ async function openReactContractorConfirm(config) {
 
 function submitReactContractorConfirm(payload) {
   const value = String(payload?.inputValue || "").trim();
+  if (_reactContractorConfirmState.requireNonEmpty && !value) {
+    return { ok: false, error: _reactContractorConfirmState.errorText || CONTRACTOR_UI.registerNameValidation };
+  }
   if (_reactContractorConfirmState.expectedValue && value.toUpperCase() !== _reactContractorConfirmState.expectedValue.toUpperCase()) {
     return { ok: false, error: _reactContractorConfirmState.errorText || CONTRACTOR_UI.finalDeleteConfirmLabel };
   }
@@ -2785,22 +2792,38 @@ async function createPaymentRegisterFromFilters() {
     return;
   }
   const suggested = `Реєстр платежів ${new Date().toLocaleDateString("uk-UA")}`;
-  const result = await Swal.fire({
-    icon: "question",
-    title: CONTRACTOR_UI.registerNameTitle,
-    input: "text",
-    inputValue: suggested,
-    showCancelButton: true,
-    confirmButtonText: CONTRACTOR_UI.saveLabel,
-    cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    inputValidator: (value) => (!_ctText(value) ? CONTRACTOR_UI.registerNameValidation : null),
-  });
-  if (!result.isConfirmed) return;
+  let registerName = suggested;
+  if (isReactContractorConfirmEnabled()) {
+    const result = await openReactContractorConfirm({
+      title: CONTRACTOR_UI.registerNameTitle,
+      inputLabel: CONTRACTOR_UI.registerNameTitle,
+      inputValue: suggested,
+      requireNonEmpty: true,
+      errorText: CONTRACTOR_UI.registerNameValidation,
+      confirmButtonText: CONTRACTOR_UI.saveLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    });
+    if (!result?.confirmed) return;
+    registerName = _ctText(result.value) || suggested;
+  } else {
+    const result = await Swal.fire({
+      icon: "question",
+      title: CONTRACTOR_UI.registerNameTitle,
+      input: "text",
+      inputValue: suggested,
+      showCancelButton: true,
+      confirmButtonText: CONTRACTOR_UI.saveLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+      inputValidator: (value) => (!_ctText(value) ? CONTRACTOR_UI.registerNameValidation : null),
+    });
+    if (!result.isConfirmed) return;
+    registerName = _ctText(result.value) || suggested;
+  }
 
   const register = typeof buildRuntimeSavedPaymentRegister === "function"
     ? buildRuntimeSavedPaymentRegister({
         id: typeof genId === "function" ? genId() : `reg_${Date.now()}`,
-        name: _ctText(result.value) || suggested,
+        name: registerName,
         createdAt: new Date().toLocaleString("uk-UA"),
         filters: { ...contractorFilters },
         filtersLabel: _paymentRegisterFiltersLabel(),
@@ -2809,7 +2832,7 @@ async function createPaymentRegisterFromFilters() {
       })
     : {
         id: typeof genId === "function" ? genId() : `reg_${Date.now()}`,
-        name: _ctText(result.value) || suggested,
+        name: registerName,
         createdAt: new Date().toLocaleString("uk-UA"),
         filters: { ...contractorFilters },
         filtersLabel: _paymentRegisterFiltersLabel(),

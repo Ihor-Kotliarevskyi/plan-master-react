@@ -642,6 +642,7 @@ export interface ContractorConfirmSnapshot {
   cancelButtonText: string;
   inputLabel: string;
   inputValue: string;
+  requireNonEmpty: boolean;
   expectedValue: string;
   errorText: string;
   capturedAt: string;
