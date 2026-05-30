@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
+import { ChartEditModal } from "./components/chart-edit-modal";
 import { DependencyListModal } from "./components/dependency-list-modal";
 import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surface";
 import { NotesModal } from "./components/notes-modal";
@@ -102,6 +103,16 @@ function mountReactHost() {
     createRoot(projectManagerModal).render(
       <StrictMode>
         <ProjectManagerModal />
+      </StrictMode>,
+    );
+  }
+
+  const chartEditModal = document.querySelector<HTMLElement>("[data-chart-edit-root] .modal");
+  if (chartEditModal) {
+    document.body.dataset.reactTransitionChartEdit = "enabled";
+    createRoot(chartEditModal).render(
+      <StrictMode>
+        <ChartEditModal />
       </StrictMode>,
     );
   }

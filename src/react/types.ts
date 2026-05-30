@@ -472,6 +472,30 @@ export interface PrintDialogSnapshot {
   capturedAt: string;
 }
 
+export interface ChartEditSnapshot {
+  visible: boolean;
+  chartId: string;
+  form: {
+    type: string;
+    xKey: string;
+    yKey: string;
+    category: string;
+    status: string;
+  };
+  categoryOptionsHtml: string;
+  labels: {
+    title: string;
+    typeLabel: string;
+    xAxisLabel: string;
+    yAxisLabel: string;
+    categoryLabel: string;
+    statusLabel: string;
+    cancelButton: string;
+    applyButton: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

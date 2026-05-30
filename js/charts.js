@@ -36,6 +36,43 @@ const CHARTS_UI = typeof buildRuntimeChartsUiModel === "function"
 
 const Y_LABELS = CHARTS_UI.axisLabels;
 const X_LABELS = { ...CHARTS_UI.axisLabels };
+let _reactChartEditState = {
+  visible: false,
+};
+
+function isReactChartEditEnabled() {
+  return document.body?.dataset?.reactTransitionChartEdit === "enabled";
+}
+
+function syncReactChartEditBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:chart-edit-sync"));
+}
+
+function getChartEditBridgeSnapshot() {
+  return {
+    visible: _reactChartEditState.visible,
+    chartId: document.getElementById("ce-id")?.value || "",
+    form: {
+      type: document.getElementById("ce-type")?.value || "bar",
+      xKey: document.getElementById("ce-x")?.value || "cat",
+      yKey: document.getElementById("ce-y")?.value || "count",
+      category: document.getElementById("ce-fcat")?.value || "",
+      status: document.getElementById("ce-fstat")?.value || "",
+    },
+    categoryOptionsHtml: document.getElementById("ce-fcat")?.innerHTML || '<option value="">Усі</option>',
+    labels: {
+      title: "Редагувати графік",
+      typeLabel: "Тип",
+      xAxisLabel: "Вісь X / групування",
+      yAxisLabel: "Показник Y",
+      categoryLabel: "Категорія",
+      statusLabel: "Статус",
+      cancelButton: "Скасувати",
+      applyButton: "Оновити",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
 
 function updateCbCatFilter() {
   const select = document.getElementById("cb-fcat");
@@ -249,11 +286,15 @@ function openChartEdit(id) {
     document.getElementById("ce-fstat").value = "";
   }
 
+  _reactChartEditState.visible = true;
   document.getElementById("chart-edit-modal").style.display = "flex";
+  if (isReactChartEditEnabled()) syncReactChartEditBridge();
 }
 
 function closeChartEdit() {
+  _reactChartEditState.visible = false;
   document.getElementById("chart-edit-modal").style.display = "none";
+  if (isReactChartEditEnabled()) syncReactChartEditBridge();
 }
 
 function applyChartEdit() {
@@ -291,6 +332,7 @@ function applyChartEdit() {
   if (customIndex >= 0) customCharts[customIndex] = chart;
 
   closeChartEdit();
+  if (isReactChartEditEnabled()) syncReactChartEditBridge();
 }
 
 function printChart(id) {
