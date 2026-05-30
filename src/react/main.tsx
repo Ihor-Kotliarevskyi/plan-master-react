@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
 import { DependencyListModal } from "./components/dependency-list-modal";
+import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surface";
 import { NotesModal } from "./components/notes-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
@@ -132,6 +133,34 @@ function mountReactHost() {
     createRoot(dependencyListModal).render(
       <StrictMode>
         <DependencyListModal />
+      </StrictMode>,
+    );
+  }
+
+  const legend = document.getElementById("legend");
+  if (legend) {
+    document.body.dataset.reactTransitionGanttSurface = "enabled";
+    createRoot(legend).render(
+      <StrictMode>
+        <GanttLegend />
+      </StrictMode>,
+    );
+  }
+
+  const ganttToolbar = document.getElementById("gantt-toolbar");
+  if (ganttToolbar) {
+    createRoot(ganttToolbar).render(
+      <StrictMode>
+        <GanttToolbar />
+      </StrictMode>,
+    );
+  }
+
+  const ganttTable = document.getElementById("gtbl-wrap");
+  if (ganttTable) {
+    createRoot(ganttTable).render(
+      <StrictMode>
+        <GanttTable />
       </StrictMode>,
     );
   }

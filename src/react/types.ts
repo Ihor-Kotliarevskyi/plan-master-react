@@ -368,6 +368,13 @@ export interface DependencyListSnapshot {
   capturedAt: string;
 }
 
+export interface GanttSurfaceSnapshot {
+  legendHtml: string;
+  toolbarHtml: string;
+  tableHtml: string;
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

@@ -60,6 +60,23 @@ function syncReactAppShellBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:app-shell-sync"));
 }
 
+function isReactGanttSurfaceEnabled() {
+  return document.body?.dataset?.reactTransitionGanttSurface === "enabled";
+}
+
+function syncReactGanttSurfaceBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:gantt-surface-sync"));
+}
+
+function getGanttSurfaceBridgeSnapshot() {
+  return {
+    legendHtml: document.getElementById("legend")?.innerHTML || "",
+    toolbarHtml: document.getElementById("gantt-toolbar")?.innerHTML || "",
+    tableHtml: document.getElementById("gtbl-wrap")?.innerHTML || "",
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 function getActiveAppTabId() {
   return document.querySelector(".pane.active")?.id?.replace("pane-", "") || "gantt";
 }
@@ -389,6 +406,7 @@ function toggleMonoBar() {
 function setMonoColor(color) {
   monoBarColor = color;
   document.querySelectorAll('.bar').forEach(b => { b.style.background = color; });
+  if (isReactGanttSurfaceEnabled()) syncReactGanttSurfaceBridge();
 }
 
 function onTaskSearch(q) {
@@ -405,6 +423,7 @@ function onTaskSearch(q) {
     tr.classList.toggle('task-search-match', !!matches);
     tr.classList.toggle('task-search-dim', !!(taskSearch && !matches));
   });
+  if (isReactGanttSurfaceEnabled()) syncReactGanttSurfaceBridge();
 }
 
 function clearTaskSearch() {

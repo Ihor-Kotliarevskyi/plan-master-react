@@ -68,6 +68,7 @@ function renderLegend() {
     ? `<button class="cat-chip-reset" data-gantt-action="reset-category-filter">Г— Всі</button>`
     : "";
   document.getElementById("legend").innerHTML = chips + reset;
+  if (typeof isReactGanttSurfaceEnabled === "function" && isReactGanttSurfaceEnabled()) syncReactGanttSurfaceBridge();
 }
 
 function renderGanttToolbar() {
@@ -163,6 +164,7 @@ function renderGanttToolbar() {
              value="${monoBarColor}" data-gantt-input="mono-bar-color" title="${toolbarLabels.monoBarColorTitle}">` : ''}
     </div>`;
   lucide.createIcons({ nodes: [tb] });
+  if (typeof isReactGanttSurfaceEnabled === "function" && isReactGanttSurfaceEnabled()) syncReactGanttSurfaceBridge();
 }
 
 function setGanttFilter(field, value) {
@@ -320,6 +322,7 @@ function renderTable() {
   lucide.createIcons();
   attachDrag();
   if (showDepArrows) requestAnimationFrame(renderDepArrows);
+  if (typeof isReactGanttSurfaceEnabled === "function" && isReactGanttSurfaceEnabled()) syncReactGanttSurfaceBridge();
 }
 
 function _renderTaskRow(t, tw, vs, isCritFn) {
