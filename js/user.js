@@ -86,6 +86,12 @@ const DEF_USER = {
 
 let userProfile = { ...DEF_USER };
 let _userCabinetAuthTab = "login";
+let _reactAuditModalState = {
+  visible: false,
+  loading: false,
+  error: "",
+  entries: [],
+};
 
 function isReactUserCabinetEnabled() {
   return document.body?.dataset?.reactTransitionUserCabinet === "enabled";
@@ -246,6 +252,96 @@ function getUserCabinetBridgeSnapshot() {
     canViewAuditLog: typeof canViewAuditLog === "function" && canViewAuditLog(),
     capturedAt: new Date().toISOString(),
   };
+}
+
+function getAuditBridgeSnapshot() {
+  const auditModal = _getAuditLogModalModel();
+  const projectName = proj?.name || "Current project";
+  const entries = (_reactAuditModalState.entries || []).map((entry) => {
+    const mappedEntry = {
+      eventType: entry?.event_type,
+      actorName: entry?.actor_name,
+      actorEmail: entry?.actor_email,
+      entityType: entry?.entity_type,
+      entityId: entry?.entity_id,
+      payload: entry?.payload || {},
+    };
+    const viewModel =
+      typeof buildRuntimeAuditEntryViewModel === "function"
+        ? buildRuntimeAuditEntryViewModel(mappedEntry, projectName)
+        : {
+            eventLabel: _formatAuditEventLabel(entry?.event_type),
+            actorLabel: _getAuditActorLabel(entry),
+            subjectLabel: _formatAuditSubject(entry),
+          };
+
+    return {
+      id: entry?.id || `${entry?.created_at || ""}_${entry?.event_type || ""}`,
+      createdAt: entry?.created_at || "",
+      eventLabel: viewModel.eventLabel,
+      actorLabel: viewModel.actorLabel,
+      subjectLabel: viewModel.subjectLabel,
+    };
+  });
+
+  return {
+    visible: _reactAuditModalState.visible,
+    loading: _reactAuditModalState.loading,
+    error: _reactAuditModalState.error,
+    entries,
+    labels: auditModal,
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function closeReactAuditModal() {
+  _reactAuditModalState.visible = false;
+  syncReactUserCabinetBridge();
+}
+
+async function loadReactAuditEntries() {
+  const auditModal = _getAuditLogModalModel();
+  if (typeof canViewAuditLog === "function" && !canViewAuditLog()) {
+    _reactAuditModalState = {
+      visible: true,
+      loading: false,
+      error: auditModal.accessDeniedTitle,
+      entries: [],
+    };
+    syncReactUserCabinetBridge();
+    return;
+  }
+  if (typeof apiGetActivityLog !== "function") return;
+
+  _reactAuditModalState = {
+    visible: true,
+    loading: true,
+    error: "",
+    entries: [],
+  };
+  syncReactUserCabinetBridge();
+
+  try {
+    const events = await apiGetActivityLog(25);
+    _reactAuditModalState = {
+      visible: true,
+      loading: false,
+      error: "",
+      entries: events || [],
+    };
+  } catch (err) {
+    const hint = String(err?.message || "").includes("activity_log")
+      ? auditModal.missingMigrationHint
+      : (err?.message || auditModal.retryHint);
+    _reactAuditModalState = {
+      visible: true,
+      loading: false,
+      error: hint,
+      entries: [],
+    };
+  }
+
+  syncReactUserCabinetBridge();
 }
 
 function loadUser() {
@@ -736,6 +832,10 @@ function _getProfileFeedbackMessages() {
 
 async function openAuditLogModal() {
   const auditModal = _getAuditLogModalModel();
+  if (isReactUserCabinetEnabled()) {
+    await loadReactAuditEntries();
+    return;
+  }
   if (typeof canViewAuditLog === "function" && !canViewAuditLog()) {
     Swal.fire({ icon: "info", title: auditModal.accessDeniedTitle });
     return;
@@ -1025,6 +1125,10 @@ async function logoutUserCabinet() {
 async function openUserCabinetAuditLog() {
   await openAuditLogModal();
   syncReactUserCabinetBridge();
+}
+
+async function reloadReactAuditModal() {
+  await loadReactAuditEntries();
 }
 
 /** Перенаправляє виклики зі старих посилань на openUserModal. */

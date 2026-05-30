@@ -198,3 +198,53 @@
   color: var(--txt2, #64748b);
   font-size: 13px;
 }
+
+.react-audit-overlay {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.44);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 1200;
+}
+
+.react-audit-modal {
+  background: var(--panel, #fff);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+  color: var(--txt, #0f172a);
+  max-height: min(80vh, 760px);
+  overflow: auto;
+  padding: 20px;
+  width: min(760px, 100%);
+}
+
+.react-audit-modal__header {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.react-audit-modal__header h3,
+.react-audit-modal__status,
+.react-audit-modal__error p {
+  margin: 0;
+}
+
+.react-audit-modal__status {
+  color: var(--txt2, #64748b);
+}
+
+.react-audit-modal__error {
+  display: grid;
+  gap: 12px;
+}
+
+.react-audit-list {
+  display: grid;
+  gap: 12px;
+}

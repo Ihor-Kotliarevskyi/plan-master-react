@@ -137,3 +137,30 @@ export interface UserCabinetSnapshot {
   canViewAuditLog: boolean;
   capturedAt: string;
 }
+
+export interface AuditViewerEntry {
+  id: string;
+  createdAt: string;
+  eventLabel: string;
+  actorLabel: string;
+  subjectLabel: string;
+}
+
+export interface AuditViewerSnapshot {
+  visible: boolean;
+  loading: boolean;
+  error: string;
+  entries: AuditViewerEntry[];
+  labels: {
+    accessDeniedTitle: string;
+    loadFailedTitle: string;
+    missingMigrationHint: string;
+    retryHint: string;
+    actorCaption: string;
+    subjectCaption: string;
+    emptyHint: string;
+    modalTitle: string;
+    closeButtonLabel: string;
+  };
+  capturedAt: string;
+}

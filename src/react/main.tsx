@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
+import { AuditViewerModal } from "./components/audit-viewer-modal";
 import { ReactHostShell } from "./components/react-host-shell";
 import { UserCabinetShell } from "./components/user-cabinet-shell";
 import { ReactHostProvider } from "./providers/react-host-provider";
@@ -30,6 +31,15 @@ function mountReactHost() {
       </StrictMode>,
     );
   }
+
+  const auditHost = document.createElement("div");
+  auditHost.id = "react-audit-viewer-root";
+  document.body.appendChild(auditHost);
+  createRoot(auditHost).render(
+    <StrictMode>
+      <AuditViewerModal />
+    </StrictMode>,
+  );
 }
 
 function mountReactRoots() {
