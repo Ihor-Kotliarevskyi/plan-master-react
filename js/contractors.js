@@ -82,6 +82,20 @@ let _reactContractorEntryState = {
   visible: false,
   supplierLocked: false,
 };
+let _reactContractorDialogState = {
+  visible: false,
+  mode: "act-add",
+  supplier: "",
+  selectedContractId: "",
+  selectedActValue: "",
+  actType: "contract",
+  actName: "",
+  date: "",
+  amount: "",
+  itemName: "",
+  note: "",
+  contracts: [],
+};
 
 function isReactContractorSurfaceEnabled() {
   return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
@@ -103,8 +117,16 @@ function isReactContractorEntryEnabled() {
   return document.body?.dataset?.reactTransitionContractorEntry === "enabled";
 }
 
+function isReactContractorDialogEnabled() {
+  return document.body?.dataset?.reactTransitionContractorDialog === "enabled";
+}
+
 function syncReactContractorEntryBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-entry-sync"));
+}
+
+function syncReactContractorDialogBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:contractor-dialog-sync"));
 }
 
 function getContractorSurfaceBridgeSnapshot() {
@@ -153,6 +175,127 @@ function getContractorEntryBridgeSnapshot() {
     },
     capturedAt: new Date().toISOString(),
   };
+}
+
+function getContractorDialogBridgeSnapshot() {
+  return {
+    visible: _reactContractorDialogState.visible,
+    mode: _reactContractorDialogState.mode,
+    supplier: _reactContractorDialogState.supplier,
+    selectedContractId: _reactContractorDialogState.selectedContractId,
+    selectedActValue: _reactContractorDialogState.selectedActValue,
+    actType: _reactContractorDialogState.actType,
+    actName: _reactContractorDialogState.actName,
+    date: _reactContractorDialogState.date,
+    amount: _reactContractorDialogState.amount,
+    itemName: _reactContractorDialogState.itemName,
+    note: _reactContractorDialogState.note,
+    contracts: _reactContractorDialogState.contracts,
+    labels: {
+      actTitle: CONTRACTOR_UI.addActTitleWithSupplier(_ctEsc(_reactContractorDialogState.supplier || "")),
+      paymentTitle: CONTRACTOR_UI.addPaymentTitleWithSupplier(_ctEsc(_reactContractorDialogState.supplier || "")),
+      contractLabel: CONTRACTOR_UI.contractFieldLabel,
+      actTypeLabel: CONTRACTOR_UI.actTypeFieldLabel,
+      actNumberLabel: CONTRACTOR_UI.actNumberFieldLabel,
+      dateLabel: CONTRACTOR_UI.actDateFieldLabel,
+      amountLabel: CONTRACTOR_UI.actAmountFieldLabel,
+      itemNameLabel: CONTRACTOR_UI.actItemNameFieldLabel,
+      paymentDateLabel: CONTRACTOR_UI.paymentDateFieldLabel,
+      paymentAmountLabel: CONTRACTOR_UI.paymentAmountFieldLabel,
+      paymentActLabel: CONTRACTOR_UI.paymentActFieldLabel,
+      noteLabel: CONTRACTOR_UI.paymentOrActNoteFieldLabel,
+      cancelButton: CONTRACTOR_UI.cancelLabel,
+      saveButton: CONTRACTOR_UI.saveLabel,
+      actNameValidation: CONTRACTOR_UI.actNumberValidation,
+      actAmountValidation: CONTRACTOR_UI.actAmountValidation,
+      paymentAmountValidation: CONTRACTOR_UI.paymentAmountValidation,
+    },
+    actTypeOptions: Object.entries(CONTRACTOR_ACT_TYPES).map(([value, label]) => ({ value, label })),
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function _contractorReactDialogContractData(entry) {
+  return {
+    id: String(entry.item.id || ""),
+    label: _contractorContractLabel(entry.item),
+    itemName: entry.item.name || "",
+    acts: (entry.item.acts || []).map((act) => ({
+      value: String(act.id || act.name || ""),
+      label: act.name || "",
+    })),
+  };
+}
+
+function _openReactContractorDialog(nextState) {
+  _reactContractorDialogState = {
+    ..._reactContractorDialogState,
+    ...nextState,
+    visible: true,
+  };
+  syncReactContractorDialogBridge();
+}
+
+function closeReactContractorDialog() {
+  _reactContractorDialogState = {
+    ..._reactContractorDialogState,
+    visible: false,
+  };
+  syncReactContractorDialogBridge();
+}
+
+async function submitReactContractorDialog(payload) {
+  if (_reactContractorDialogState.mode === "act-add") {
+    const amount = _ctAmount(payload?.amount);
+    const name = _ctText(payload?.actName);
+    if (!name) return { ok: false, error: CONTRACTOR_UI.actNumberValidation };
+    if (amount === null || amount <= 0) return { ok: false, error: CONTRACTOR_UI.actAmountValidation };
+
+    const found = _contractorFindContract(payload?.selectedContractId, _reactContractorDialogState.supplier);
+    const item = found?.item;
+    if (!item) return { ok: false, error: CONTRACTOR_UI.noContractsText };
+    if (!Array.isArray(item.acts)) item.acts = [];
+    if (!Array.isArray(item.payments)) item.payments = [];
+    item.acts.push({
+      id: typeof _nextCostId === "function" ? _nextCostId() : Date.now() + Math.floor(Math.random() * 1000),
+      type: payload?.actType || "contract",
+      name,
+      date: _ctDate(payload?.date),
+      amount,
+      itemName: _ctText(payload?.itemName),
+      note: _ctText(payload?.note),
+    });
+    _ctRecalcTaskTotals(found.task);
+    saveAll();
+    render();
+    renderContractors();
+    closeReactContractorDialog();
+    return { ok: true };
+  }
+
+  const amount = _ctAmount(payload?.amount);
+  if (amount === null || amount <= 0) return { ok: false, error: CONTRACTOR_UI.paymentAmountValidation };
+  const target = _contractorFindContract(payload?.selectedContractId, _reactContractorDialogState.supplier);
+  const item = target?.item;
+  if (!item) return { ok: false, error: CONTRACTOR_UI.noContractsText };
+  if (!Array.isArray(item.payments)) item.payments = [];
+  const selected = (item.acts || []).find((act) => String(act.id || act.name) === String(payload?.selectedActValue || ""));
+  item.payments.push({
+    id: typeof _nextCostId === "function" ? _nextCostId() : Date.now() + Math.floor(Math.random() * 1000),
+    date: _ctDate(payload?.date),
+    type: "act",
+    amount,
+    contractId: item.id,
+    actId: selected?.id || "",
+    actNo: selected?.name || "",
+    note: _ctText(payload?.note),
+  });
+  _ctRecalcTaskTotals(target.task);
+  saveAll();
+  render();
+  renderContractors();
+  closeReactContractorDialog();
+  return { ok: true };
 }
 
 const CONTRACTOR_COL_SK = "gantt_contractor_col_widths";
@@ -1607,7 +1750,7 @@ function openContractorTask(ti) {
   openCostModal(ti);
 }
 
-async function openContractorActModal(prefillSupplier = "", contractPath = "") {
+async function _openLegacyContractorActModal(prefillSupplier = "", contractPath = "") {
   if (!_canMutateContractors(true)) return;
   const pathContract = contractPath ? _findContractorItem(contractPath) : null;
   const supplier = pathContract ? _contractorName(pathContract.item.supplier) : decodeURIComponent(prefillSupplier || "");
@@ -1681,6 +1824,35 @@ async function openContractorActModal(prefillSupplier = "", contractPath = "") {
   saveAll();
   render();
   renderContractors();
+}
+
+async function openContractorActModal(prefillSupplier = "", contractPath = "") {
+  if (!_canMutateContractors(true)) return;
+  const pathContract = contractPath ? _findContractorItem(contractPath) : null;
+  const supplier = pathContract ? _contractorName(pathContract.item.supplier) : decodeURIComponent(prefillSupplier || "");
+  const contracts = pathContract ? [{ task: pathContract.task, ti: pathContract.ti, item: pathContract.item }] : _contractorContractsForSupplier(supplier);
+  if (!contracts.length) {
+    Swal.fire({ icon: "info", title: CONTRACTOR_UI.noContractsTitle, text: CONTRACTOR_UI.noContractsText });
+    return;
+  }
+  if (!isReactContractorDialogEnabled()) {
+    return _openLegacyContractorActModal(prefillSupplier, contractPath);
+  }
+  const selectedContractId = String(pathContract?.item?.id || contracts[0]?.item?.id || "");
+  const selectedContract = contracts.find(({ item }) => String(item.id) === selectedContractId)?.item || contracts[0]?.item || null;
+  _openReactContractorDialog({
+    mode: "act-add",
+    supplier,
+    selectedContractId,
+    selectedActValue: "",
+    actType: "contract",
+    actName: "",
+    date: new Date().toISOString().slice(0, 10),
+    amount: "",
+    itemName: selectedContract?.name || "",
+    note: "",
+    contracts: contracts.map(_contractorReactDialogContractData),
+  });
 }
 
 async function editContractorAct(path) {
@@ -1781,7 +1953,7 @@ async function deleteContractorAct(path) {
   renderContractors();
 }
 
-async function openContractorPaymentModal(contractPath = "", actPath = "") {
+async function _openLegacyContractorPaymentModal(contractPath = "", actPath = "") {
   const actEntry = actPath ? _findContractorAct(actPath) : null;
   const contractEntry = actEntry ? { task: actEntry.task, item: actEntry.item, ti: tasks.indexOf(actEntry.task) } : _findContractorItem(contractPath);
   if (!contractEntry?.item) return;
@@ -1845,6 +2017,33 @@ async function openContractorPaymentModal(contractPath = "", actPath = "") {
   saveAll();
   render();
   renderContractors();
+}
+
+async function openContractorPaymentModal(contractPath = "", actPath = "") {
+  const actEntry = actPath ? _findContractorAct(actPath) : null;
+  const contractEntry = actEntry ? { task: actEntry.task, item: actEntry.item, ti: tasks.indexOf(actEntry.task) } : _findContractorItem(contractPath);
+  if (!contractEntry?.item) return;
+  if (!isReactContractorDialogEnabled()) {
+    return _openLegacyContractorPaymentModal(contractPath, actPath);
+  }
+
+  const supplier = _contractorName(contractEntry.item.supplier);
+  const contracts = _contractorContractsForSupplier(supplier);
+  const selectedId = String(contractEntry.item.id || "");
+  const selectedActValue = String(actEntry?.act?.id || actEntry?.act?.name || "");
+  _openReactContractorDialog({
+    mode: "payment-add",
+    supplier,
+    selectedContractId: selectedId,
+    selectedActValue,
+    actType: "contract",
+    actName: "",
+    date: new Date().toISOString().slice(0, 10),
+    amount: "",
+    itemName: "",
+    note: "",
+    contracts: contracts.map(_contractorReactDialogContractData),
+  });
 }
 
 function syncPaymentAddActs(supplier) {

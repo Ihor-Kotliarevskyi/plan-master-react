@@ -9,6 +9,7 @@ import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surfac
 import { NotesModal } from "./components/notes-modal";
 import { ContractorSurface } from "./components/contractor-surface";
 import { ContractorEntryModal } from "./components/contractor-entry-modal";
+import { ContractorDialogModal } from "./components/contractor-dialog-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
 import { FinanceFiltersShell, FinanceSummaryShell, FinanceTableShell } from "./components/finance-surface";
 import { PrintDialogModal } from "./components/print-dialog-modal";
@@ -241,6 +242,16 @@ function mountReactHost() {
       </StrictMode>,
     );
   }
+
+  const contractorDialogHost = document.createElement("div");
+  contractorDialogHost.id = "react-contractor-dialog-root";
+  document.body.appendChild(contractorDialogHost);
+  document.body.dataset.reactTransitionContractorDialog = "enabled";
+  createRoot(contractorDialogHost).render(
+    <StrictMode>
+      <ContractorDialogModal />
+    </StrictMode>,
+  );
 
   const financeFilters = document.getElementById("fin-filters");
   if (financeFilters) {

@@ -518,6 +518,66 @@ export interface ChartSurfaceSnapshot {
   capturedAt: string;
 }
 
+export interface ContractorDialogContractOption {
+  id: string;
+  label: string;
+  itemName: string;
+  acts: Array<{
+    value: string;
+    label: string;
+  }>;
+}
+
+export interface ContractorDialogSubmitPayload {
+  selectedContractId: string;
+  selectedActValue: string;
+  actType: string;
+  actName: string;
+  date: string;
+  amount: string;
+  itemName: string;
+  note: string;
+}
+
+export interface ContractorDialogSnapshot {
+  visible: boolean;
+  mode: "act-add" | "payment-add";
+  supplier: string;
+  selectedContractId: string;
+  selectedActValue: string;
+  actType: string;
+  actName: string;
+  date: string;
+  amount: string;
+  itemName: string;
+  note: string;
+  contracts: ContractorDialogContractOption[];
+  labels: {
+    actTitle: string;
+    paymentTitle: string;
+    contractLabel: string;
+    actTypeLabel: string;
+    actNumberLabel: string;
+    dateLabel: string;
+    amountLabel: string;
+    itemNameLabel: string;
+    paymentDateLabel: string;
+    paymentAmountLabel: string;
+    paymentActLabel: string;
+    noteLabel: string;
+    cancelButton: string;
+    saveButton: string;
+    actNameValidation: string;
+    actAmountValidation: string;
+    paymentAmountValidation: string;
+  };
+  actTypeOptions: Array<{
+    value: string;
+    label: string;
+  }>;
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{
