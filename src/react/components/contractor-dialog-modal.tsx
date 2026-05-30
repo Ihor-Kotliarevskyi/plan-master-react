@@ -38,6 +38,39 @@ export function ContractorDialogModal() {
     return subscribeContractorDialogSync(sync);
   }, []);
 
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const actionElement = target?.closest<HTMLElement>("[data-contractor-dialog-action]");
+      if (!actionElement) return;
+
+      const action = actionElement.dataset.contractorDialogAction || "";
+      if (action === "toggle-edit-row-delete") {
+        actionElement.closest(".contractor-edit-row")?.classList.toggle("marked-delete");
+      }
+    };
+
+    const handleDocumentChange = (event: Event) => {
+      const target = event.target as HTMLInputElement | HTMLSelectElement | null;
+      if (!target) return;
+      const inputType = target.dataset.contractorDialogInput || "";
+
+      if (inputType === "sync-act-contract-item") {
+        const selectedOption = target instanceof HTMLSelectElement ? target.selectedOptions?.[0] : null;
+        const nextItemName = selectedOption?.dataset.itemName || "";
+        const itemNameInput = document.getElementById("act-item-name") as HTMLInputElement | null;
+        if (itemNameInput && nextItemName) itemNameInput.value = nextItemName;
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    document.addEventListener("change", handleDocumentChange);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+      document.removeEventListener("change", handleDocumentChange);
+    };
+  }, []);
+
   if (!snapshot.visible) return null;
 
   const selectedContract = snapshot.contracts.find((contract) => contract.id === form.selectedContractId) || snapshot.contracts[0] || null;

@@ -45,6 +45,24 @@ export function ContractorEntryModal() {
     };
   }, []);
 
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const actionElement = target?.closest<HTMLElement>("[data-contractor-dialog-action]");
+      if (!actionElement) return;
+
+      const action = actionElement.dataset.contractorDialogAction || "";
+      if (action === "toggle-contract-row-delete") {
+        actionElement.closest(".contractor-contract-row")?.classList.toggle("marked-delete");
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+    };
+  }, []);
+
   return (
     <>
       <div className="modal-header">

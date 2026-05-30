@@ -10,6 +10,14 @@ import type {
   ContractorImportMappingSubmitPayload,
 } from "../types";
 
+type ContractorImportRow = { row?: Record<string, unknown> };
+
+declare global {
+  interface Window {
+    _ctColumnExamples?: (rows: ContractorImportRow[], column: string) => string[];
+  }
+}
+
 function buildInitialState(snapshot: ContractorImportMappingSnapshot): ContractorImportMappingSubmitPayload {
   return {
     defaultTaskId: snapshot.defaultTaskId,
@@ -23,6 +31,7 @@ function buildInitialState(snapshot: ContractorImportMappingSnapshot): Contracto
 export function ContractorImportMappingModal() {
   const [snapshot, setSnapshot] = useState<ContractorImportMappingSnapshot>(() => readContractorImportMappingSnapshot());
   const [form, setForm] = useState<ContractorImportMappingSubmitPayload>(() => buildInitialState(readContractorImportMappingSnapshot()));
+  const [rows, setRows] = useState<ContractorImportRow[]>([]);
 
   useEffect(() => {
     const sync = () => {
@@ -33,6 +42,31 @@ export function ContractorImportMappingModal() {
     sync();
     return subscribeContractorImportMappingSync(sync);
   }, []);
+
+  useEffect(() => {
+    const handleOpen = (event: Event) => {
+      const customEvent = event as CustomEvent<{ rows?: ContractorImportRow[] }>;
+      setRows(Array.isArray(customEvent.detail?.rows) ? customEvent.detail.rows : []);
+    };
+
+    const handleClose = () => {
+      setRows([]);
+    };
+
+    document.addEventListener("contractor-import-mapping-open", handleOpen);
+    document.addEventListener("contractor-import-mapping-close", handleClose);
+    return () => {
+      document.removeEventListener("contractor-import-mapping-open", handleOpen);
+      document.removeEventListener("contractor-import-mapping-close", handleClose);
+    };
+  }, []);
+
+  function getExamplesHtml(fieldName: string, selectedColumn: string, fallbackHtml: string): string {
+    const examples = selectedColumn && window._ctColumnExamples ? window._ctColumnExamples(rows, selectedColumn) : [];
+    if (!selectedColumn) return fallbackHtml;
+    if (!examples.length) return "<span class=\"muted\">-</span>";
+    return examples.join(" | ");
+  }
 
   if (!snapshot.visible) return null;
 
@@ -95,7 +129,7 @@ export function ContractorImportMappingModal() {
                     </td>
                     <td
                       className="contractor-import-map-examples"
-                      dangerouslySetInnerHTML={{ __html: field.examplesHtml }}
+                      dangerouslySetInnerHTML={{ __html: getExamplesHtml(field.field, selectedColumn, field.examplesHtml) }}
                       data-field={field.field}
                     />
                   </tr>
