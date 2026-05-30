@@ -541,7 +541,8 @@ export interface ContractorDialogSubmitPayload {
 
 export interface ContractorDialogSnapshot {
   visible: boolean;
-  mode: "act-add" | "payment-add";
+  mode: "act-add" | "act-edit" | "payment-add" | "payment-edit";
+  editPath: string;
   supplier: string;
   selectedContractId: string;
   selectedActValue: string;
@@ -555,6 +556,8 @@ export interface ContractorDialogSnapshot {
   labels: {
     actTitle: string;
     paymentTitle: string;
+    editActTitle: string;
+    editPaymentTitle: string;
     contractLabel: string;
     actTypeLabel: string;
     actNumberLabel: string;

@@ -42,15 +42,17 @@ export function ContractorDialogModal() {
 
   const selectedContract = snapshot.contracts.find((contract) => contract.id === form.selectedContractId) || snapshot.contracts[0] || null;
   const actOptions = selectedContract?.acts || [];
+  const isActMode = snapshot.mode === "act-add" || snapshot.mode === "act-edit";
+  const isPaymentMode = snapshot.mode === "payment-add" || snapshot.mode === "payment-edit";
 
   const handleContractChange = (nextContractId: string) => {
     const nextContract = snapshot.contracts.find((contract) => contract.id === nextContractId) || null;
     setForm((current) => ({
       ...current,
       selectedContractId: nextContractId,
-      itemName: snapshot.mode === "act-add" ? (nextContract?.itemName || "") : current.itemName,
+      itemName: isActMode ? (nextContract?.itemName || current.itemName) : current.itemName,
       selectedActValue:
-        snapshot.mode === "payment-add" && nextContract && !nextContract.acts.some((act) => act.value === current.selectedActValue)
+        isPaymentMode && nextContract && !nextContract.acts.some((act) => act.value === current.selectedActValue)
           ? ""
           : current.selectedActValue,
     }));
@@ -70,7 +72,12 @@ export function ContractorDialogModal() {
     <div className="react-share-overlay" onClick={closeContractorDialog} role="presentation">
       <div className="react-share-modal" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true">
         <div className="react-share-modal__header">
-          <h3>{snapshot.mode === "act-add" ? snapshot.labels.actTitle : snapshot.labels.paymentTitle}</h3>
+          <h3>
+            {snapshot.mode === "act-add" ? snapshot.labels.actTitle : null}
+            {snapshot.mode === "act-edit" ? snapshot.labels.editActTitle : null}
+            {snapshot.mode === "payment-add" ? snapshot.labels.paymentTitle : null}
+            {snapshot.mode === "payment-edit" ? snapshot.labels.editPaymentTitle : null}
+          </h3>
           <button className="btn btn-sm" onClick={closeContractorDialog} type="button">x</button>
         </div>
         <div className="contractor-entry-grid">
@@ -88,7 +95,7 @@ export function ContractorDialogModal() {
             </select>
           </div>
 
-          {snapshot.mode === "act-add" ? (
+          {isActMode ? (
             <>
               <div className="fg">
                 <label>{snapshot.labels.actTypeLabel}</label>

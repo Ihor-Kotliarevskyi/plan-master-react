@@ -85,6 +85,7 @@ let _reactContractorEntryState = {
 let _reactContractorDialogState = {
   visible: false,
   mode: "act-add",
+  editPath: "",
   supplier: "",
   selectedContractId: "",
   selectedActValue: "",
@@ -181,6 +182,7 @@ function getContractorDialogBridgeSnapshot() {
   return {
     visible: _reactContractorDialogState.visible,
     mode: _reactContractorDialogState.mode,
+    editPath: _reactContractorDialogState.editPath,
     supplier: _reactContractorDialogState.supplier,
     selectedContractId: _reactContractorDialogState.selectedContractId,
     selectedActValue: _reactContractorDialogState.selectedActValue,
@@ -194,6 +196,8 @@ function getContractorDialogBridgeSnapshot() {
     labels: {
       actTitle: CONTRACTOR_UI.addActTitleWithSupplier(_ctEsc(_reactContractorDialogState.supplier || "")),
       paymentTitle: CONTRACTOR_UI.addPaymentTitleWithSupplier(_ctEsc(_reactContractorDialogState.supplier || "")),
+      editActTitle: CONTRACTOR_UI.editActTitleWithSupplier(_ctEsc(_reactContractorDialogState.supplier || "")),
+      editPaymentTitle: CONTRACTOR_UI.editPaymentTitle(_ctEsc(_reactContractorDialogState.supplier || "")),
       contractLabel: CONTRACTOR_UI.contractFieldLabel,
       actTypeLabel: CONTRACTOR_UI.actTypeFieldLabel,
       actNumberLabel: CONTRACTOR_UI.actNumberFieldLabel,
@@ -273,24 +277,103 @@ async function submitReactContractorDialog(payload) {
     return { ok: true };
   }
 
+  if (_reactContractorDialogState.mode === "act-edit") {
+    const found = _findContractorAct(_reactContractorDialogState.editPath);
+    if (!found) return { ok: false, error: CONTRACTOR_UI.noContractsText };
+    const { task, item, act } = found;
+    const supplier = _reactContractorDialogState.supplier;
+    const amount = _ctAmount(payload?.amount);
+    const name = _ctText(payload?.actName);
+    if (!name) return { ok: false, error: CONTRACTOR_UI.actNumberValidation };
+    if (amount === null || amount <= 0) return { ok: false, error: CONTRACTOR_UI.actAmountValidation };
+
+    const target = _contractorFindContract(payload?.selectedContractId, supplier);
+    const targetItem = target?.item || item;
+    if (targetItem !== item) {
+      const idx = item.acts.indexOf(act);
+      if (idx >= 0) item.acts.splice(idx, 1);
+      if (!Array.isArray(targetItem.acts)) targetItem.acts = [];
+      targetItem.acts.push(act);
+    }
+    Object.assign(act, {
+      type: payload?.actType || "contract",
+      name,
+      date: _ctDate(payload?.date),
+      amount,
+      itemName: _ctText(payload?.itemName),
+      note: _ctText(payload?.note),
+    });
+    (targetItem.payments || []).forEach((payment) => {
+      if (String(payment.actId) === String(act.id)) payment.actNo = act.name;
+    });
+    _ctRecalcTaskTotals(task);
+    if (target?.task && target.task !== task) _ctRecalcTaskTotals(target.task);
+    saveAll();
+    render();
+    renderContractors();
+    closeReactContractorDialog();
+    return { ok: true };
+  }
+
+  if (_reactContractorDialogState.mode === "payment-add") {
+    const amount = _ctAmount(payload?.amount);
+    if (amount === null || amount <= 0) return { ok: false, error: CONTRACTOR_UI.paymentAmountValidation };
+    const target = _contractorFindContract(payload?.selectedContractId, _reactContractorDialogState.supplier);
+    const item = target?.item;
+    if (!item) return { ok: false, error: CONTRACTOR_UI.noContractsText };
+    if (!Array.isArray(item.payments)) item.payments = [];
+    const selected = (item.acts || []).find((act) => String(act.id || act.name) === String(payload?.selectedActValue || ""));
+    item.payments.push({
+      id: typeof _nextCostId === "function" ? _nextCostId() : Date.now() + Math.floor(Math.random() * 1000),
+      date: _ctDate(payload?.date),
+      type: "act",
+      amount,
+      contractId: item.id,
+      actId: selected?.id || "",
+      actNo: selected?.name || "",
+      note: _ctText(payload?.note),
+    });
+    _ctRecalcTaskTotals(target.task);
+    saveAll();
+    render();
+    renderContractors();
+    closeReactContractorDialog();
+    return { ok: true };
+  }
+
+  const found = _findContractorPayment(_reactContractorDialogState.editPath);
+  if (!found) return { ok: false, error: CONTRACTOR_UI.noContractsText };
+  const { task, item, payment } = found;
+  const currentTi = tasks.indexOf(task);
+  const supplier = _reactContractorDialogState.supplier;
   const amount = _ctAmount(payload?.amount);
-  if (amount === null || amount <= 0) return { ok: false, error: CONTRACTOR_UI.paymentAmountValidation };
-  const target = _contractorFindContract(payload?.selectedContractId, _reactContractorDialogState.supplier);
-  const item = target?.item;
-  if (!item) return { ok: false, error: CONTRACTOR_UI.noContractsText };
-  if (!Array.isArray(item.payments)) item.payments = [];
-  const selected = (item.acts || []).find((act) => String(act.id || act.name) === String(payload?.selectedActValue || ""));
-  item.payments.push({
-    id: typeof _nextCostId === "function" ? _nextCostId() : Date.now() + Math.floor(Math.random() * 1000),
+  if (amount === null || amount < 0) return { ok: false, error: CONTRACTOR_UI.correctAmountValidation };
+  const selectedContract = _contractorFindContract(payload?.selectedContractId, supplier);
+  const targetTask = selectedContract?.task || tasks[currentTi];
+  if (!targetTask) return { ok: false, error: CONTRACTOR_UI.noContractsText };
+  if (!Array.isArray(targetTask.costItems)) targetTask.costItems = Array.isArray(targetTask.cost_items) ? targetTask.cost_items : [];
+  delete targetTask.cost_items;
+  const targetItem = selectedContract?.item || item;
+  const sameItem = targetItem === item;
+  if (!sameItem) {
+    const oldIdx = item.payments.indexOf(payment);
+    if (oldIdx >= 0) item.payments.splice(oldIdx, 1);
+    if (!targetTask.costItems.includes(targetItem)) targetTask.costItems.push(targetItem);
+    if (!Array.isArray(targetItem.payments)) targetItem.payments = [];
+    targetItem.payments.push(payment);
+  }
+  const selectedAct = (targetItem.acts || []).find((act) => String(act.id || act.name) === String(payload?.selectedActValue || ""));
+  Object.assign(payment, {
     date: _ctDate(payload?.date),
-    type: "act",
     amount,
-    contractId: item.id,
-    actId: selected?.id || "",
-    actNo: selected?.name || "",
+    type: "act",
+    contractId: targetItem.id,
+    actId: selectedAct?.id || "",
+    actNo: selectedAct?.name || "",
     note: _ctText(payload?.note),
   });
-  _ctRecalcTaskTotals(target.task);
+  _ctRecalcTaskTotals(task);
+  if (targetTask !== task) _ctRecalcTaskTotals(targetTask);
   saveAll();
   render();
   renderContractors();
@@ -1464,6 +1547,24 @@ async function editContractorPayment(path) {
   const currentTi = tasks.indexOf(task);
   const currentName = _contractorName(item.supplier);
   const contracts = _contractorContractsForSupplier(currentName);
+  if (isReactContractorDialogEnabled()) {
+    const selectedContractItem = contracts.find(({ item: contract }) => String(payment.contractId || item.id) === String(contract.id))?.item || item;
+    _openReactContractorDialog({
+      mode: "payment-edit",
+      editPath: path,
+      supplier: currentName,
+      selectedContractId: String(payment.contractId || item.id || ""),
+      selectedActValue: String(payment.actId || payment.actNo || ""),
+      actType: "contract",
+      actName: "",
+      date: payment.date || "",
+      amount: String(payment.amount ?? 0),
+      itemName: "",
+      note: payment.note || "",
+      contracts: contracts.map(_contractorReactDialogContractData),
+    });
+    return;
+  }
   const contractOptions = contracts
     .map(({ item: contract }) => `<option value="${_ctAttr(contract.id)}"${String(payment.contractId || item.id) === String(contract.id) ? " selected" : ""}>${_ctEsc(_contractorContractLabel(contract))}</option>`)
     .join("");
@@ -1861,6 +1962,23 @@ async function editContractorAct(path) {
   const { task, item, act } = found;
   const supplier = _contractorName(item.supplier);
   const contracts = _contractorContractsForSupplier(supplier);
+  if (isReactContractorDialogEnabled()) {
+    _openReactContractorDialog({
+      mode: "act-edit",
+      editPath: path,
+      supplier,
+      selectedContractId: String(item.id || ""),
+      selectedActValue: "",
+      actType: act.type || "contract",
+      actName: act.name || "",
+      date: act.date || "",
+      amount: String(act.amount ?? 0),
+      itemName: act.itemName || act.description || item.name || "",
+      note: act.note || "",
+      contracts: contracts.map(_contractorReactDialogContractData),
+    });
+    return;
+  }
   const result = await Swal.fire({
     title: CONTRACTOR_UI.editActTitleWithSupplier(_ctEsc(supplier)),
     width: 760,

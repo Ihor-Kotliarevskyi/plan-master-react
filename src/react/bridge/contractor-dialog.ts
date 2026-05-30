@@ -3,7 +3,8 @@ import type { ContractorDialogSnapshot, ContractorDialogSubmitPayload } from "..
 
 const snapshotSchema: z.ZodType<ContractorDialogSnapshot> = z.object({
   visible: z.boolean(),
-  mode: z.union([z.literal("act-add"), z.literal("payment-add")]),
+  mode: z.union([z.literal("act-add"), z.literal("act-edit"), z.literal("payment-add"), z.literal("payment-edit")]),
+  editPath: z.string(),
   supplier: z.string(),
   selectedContractId: z.string(),
   selectedActValue: z.string(),
@@ -26,9 +27,11 @@ const snapshotSchema: z.ZodType<ContractorDialogSnapshot> = z.object({
       ),
     }),
   ),
-  labels: z.object({
+    labels: z.object({
     actTitle: z.string(),
     paymentTitle: z.string(),
+    editActTitle: z.string(),
+    editPaymentTitle: z.string(),
     contractLabel: z.string(),
     actTypeLabel: z.string(),
     actNumberLabel: z.string(),
@@ -70,6 +73,7 @@ function buildFallbackSnapshot(): ContractorDialogSnapshot {
   return {
     visible: false,
     mode: "act-add",
+    editPath: "",
     supplier: "",
     selectedContractId: "",
     selectedActValue: "",
@@ -83,6 +87,8 @@ function buildFallbackSnapshot(): ContractorDialogSnapshot {
     labels: {
       actTitle: "",
       paymentTitle: "",
+      editActTitle: "",
+      editPaymentTitle: "",
       contractLabel: "",
       actTypeLabel: "",
       actNumberLabel: "",
