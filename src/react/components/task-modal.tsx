@@ -1,25 +1,34 @@
 import { useEffect, useState } from "react";
 import {
   addTaskModalCostItem,
+  addTaskModalPayment,
   addTaskModalDependency,
   addTaskModalPhase,
   adjustTaskModalDependencyThreshold,
   adjustTaskModalNumber,
   closeTaskModal,
+  deleteTaskModalCostItem,
+  deleteTaskModalPayment,
   editTaskModalDependency,
   filterTaskModalDependencies,
   notifyTaskModalPhaseChange,
   notifyTaskModalProgressChange,
   pickTaskModalCategory,
+  recalcTaskModalCostRow,
   readTaskModalSnapshot,
+  refreshTaskModalCostTotals,
   removeTaskModalDependency,
   removeTaskModalPhase,
   saveTaskModal,
+  setTaskModalCostContractNo,
+  setTaskModalCostField,
   setTaskModalDependencyThreshold,
   setTaskModalDependencyType,
+  setTaskModalPaymentField,
   showTaskModalDependencyDropdown,
   subscribeTaskModalSync,
   switchTaskModalTab,
+  toggleTaskModalCostPayments,
   updateTaskModalCalc,
 } from "../bridge/task-modal";
 import type { TaskModalSnapshot } from "../types";
@@ -32,6 +41,14 @@ export function TaskModal() {
     sync();
     return subscribeTaskModalSync(sync);
   }, []);
+
+  function getTaskModalItemId(element: HTMLElement): number {
+    return Number(element.dataset.itemId || -1);
+  }
+
+  function getTaskModalPaymentIndex(element: HTMLElement): number {
+    return Number(element.dataset.paymentIndex || -1);
+  }
 
   useEffect(() => {
     window.lucide?.createIcons({
@@ -94,6 +111,18 @@ export function TaskModal() {
       case "add-cost-item":
         addTaskModalCostItem(actionElement.dataset.costType || "material");
         return;
+      case "toggle-payments":
+        toggleTaskModalCostPayments(getTaskModalItemId(actionElement));
+        return;
+      case "delete-item":
+        deleteTaskModalCostItem(getTaskModalItemId(actionElement));
+        return;
+      case "add-payment":
+        addTaskModalPayment(getTaskModalItemId(actionElement));
+        return;
+      case "delete-payment":
+        deleteTaskModalPayment(getTaskModalItemId(actionElement), getTaskModalPaymentIndex(actionElement));
+        return;
       case "add-dependency":
         addTaskModalDependency(actionElement.dataset.dependencyId || "");
         return;
@@ -144,6 +173,26 @@ export function TaskModal() {
     if (inputType === "dependency-threshold") {
       const input = inputElement as HTMLInputElement;
       setTaskModalDependencyThreshold(input.dataset.dependencyId || "", input.value);
+      return;
+    }
+
+    if (inputType === "item-type") {
+      const input = inputElement as HTMLSelectElement;
+      const itemId = getTaskModalItemId(input);
+      setTaskModalCostField(itemId, "type", input.value);
+      recalcTaskModalCostRow(itemId);
+      return;
+    }
+
+    if (inputType === "payment-date") {
+      const input = inputElement as HTMLInputElement;
+      setTaskModalPaymentField(getTaskModalItemId(input), getTaskModalPaymentIndex(input), "date", input.value);
+      return;
+    }
+
+    if (inputType === "payment-type") {
+      const input = inputElement as HTMLSelectElement;
+      setTaskModalPaymentField(getTaskModalItemId(input), getTaskModalPaymentIndex(input), "type", input.value);
     }
   }
 
@@ -171,10 +220,49 @@ export function TaskModal() {
     }
   }
 
+  function handleTaskBlur(event: React.FocusEvent<HTMLElement>) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const inputElement = target.closest<HTMLElement>("[data-cost-editor-input]");
+    if (!inputElement) return;
+
+    const input = inputElement as HTMLInputElement;
+    const itemId = getTaskModalItemId(input);
+    const paymentIndex = getTaskModalPaymentIndex(input);
+    const inputType = input.dataset.costEditorInput || "";
+
+    switch (inputType) {
+      case "contract-no":
+        setTaskModalCostContractNo(itemId, input.value);
+        return;
+      case "supplier":
+        setTaskModalCostField(itemId, "supplier", input.value);
+        return;
+      case "unit-price":
+        setTaskModalCostField(itemId, "unitPrice", Number(input.value || 0));
+        recalcTaskModalCostRow(itemId);
+        return;
+      case "contract-note":
+        setTaskModalCostField(itemId, "contractNote", input.value);
+        return;
+      case "payment-amount":
+        setTaskModalPaymentField(itemId, paymentIndex, "amount", Number(input.value || 0));
+        refreshTaskModalCostTotals();
+        return;
+      case "payment-note":
+        setTaskModalPaymentField(itemId, paymentIndex, "note", input.value);
+        return;
+      default:
+        return;
+    }
+  }
+
   return (
     <div
       onClick={(event) => void handleTaskAction(event)}
       onChange={handleTaskChange}
+      onBlur={handleTaskBlur}
       onInput={handleTaskInput}
     >
       <div className="task-modal-header" aria-hidden={!snapshot.visible} onClick={(event) => void handleTaskAction(event)}>

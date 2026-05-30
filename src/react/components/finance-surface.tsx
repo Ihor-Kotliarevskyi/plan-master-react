@@ -19,6 +19,7 @@ import {
   toggleFinanceEvm,
   toggleWeeklyFinanceBars,
 } from "../bridge/finance-surface";
+import { openReactMultiFilter, resetReactMultiFilter, setReactMultiFilter } from "../bridge/multi-filter";
 import type { FinanceSurfaceSnapshot } from "../types";
 
 declare global {
@@ -52,6 +53,25 @@ export function FinanceFiltersShell() {
 
   async function handleAction(event: React.MouseEvent<HTMLElement>) {
     const target = event.target as HTMLElement;
+    const multiFilterAction = target.closest<HTMLElement>("[data-multi-filter-action]");
+    if (multiFilterAction) {
+      event.stopPropagation();
+      const action = multiFilterAction.dataset.multiFilterAction || "";
+      const path = multiFilterAction.dataset.filterPath || "";
+      if (action === "toggle") {
+        openReactMultiFilter(path, multiFilterAction, event.nativeEvent);
+        return;
+      }
+      if (action === "reset") {
+        resetReactMultiFilter(path, multiFilterAction.dataset.renderFn || "");
+        return;
+      }
+    }
+
+    if (target.closest("[data-multi-filter-root]")) {
+      event.stopPropagation();
+    }
+
     const actionElement = target.closest<HTMLElement>("[data-finance-surface-action]");
     if (!actionElement) return;
 
@@ -87,6 +107,15 @@ export function FinanceFiltersShell() {
   function handleChange(event: React.FormEvent<HTMLElement>) {
     const target = event.target as HTMLInputElement | null;
     if (!target) return;
+    if (target.dataset.multiFilterAction === "set-option") {
+      setReactMultiFilter(
+        target.dataset.filterPath || "",
+        target.dataset.filterOption || "",
+        target.checked,
+        target.dataset.renderFn || "",
+      );
+      return;
+    }
     const inputType = target.dataset.financeSurfaceInput || "";
     if (inputType === "budget-min") {
       setFinanceBudgetFilter("budgetMin", target.value);

@@ -25,6 +25,7 @@ import {
   zoomGanttIn,
   zoomGanttOut,
 } from "../bridge/gantt-surface";
+import { openReactMultiFilter, resetReactMultiFilter, setReactMultiFilter } from "../bridge/multi-filter";
 import type { GanttSurfaceSnapshot } from "../types";
 
 declare global {
@@ -85,6 +86,25 @@ export function GanttToolbar() {
 
   async function handleToolbarClick(event: React.MouseEvent<HTMLElement>) {
     const target = event.target as HTMLElement;
+    const multiFilterAction = target.closest<HTMLElement>("[data-multi-filter-action]");
+    if (multiFilterAction) {
+      event.stopPropagation();
+      const action = multiFilterAction.dataset.multiFilterAction || "";
+      const path = multiFilterAction.dataset.filterPath || "";
+      if (action === "toggle") {
+        openReactMultiFilter(path, multiFilterAction, event.nativeEvent);
+        return;
+      }
+      if (action === "reset") {
+        resetReactMultiFilter(path, multiFilterAction.dataset.renderFn || "");
+        return;
+      }
+    }
+
+    if (target.closest("[data-multi-filter-root]")) {
+      event.stopPropagation();
+    }
+
     const actionElement = target.closest<HTMLElement>("[data-gantt-action]");
     if (!actionElement) return;
     const action = actionElement.dataset.ganttAction || "";
@@ -133,6 +153,15 @@ export function GanttToolbar() {
 
   function handleToolbarInput(event: React.FormEvent<HTMLElement>) {
     const target = event.target as HTMLInputElement | null;
+    if (target?.dataset.multiFilterAction === "set-option") {
+      setReactMultiFilter(
+        target.dataset.filterPath || "",
+        target.dataset.filterOption || "",
+        target.checked,
+        target.dataset.renderFn || "",
+      );
+      return;
+    }
     const inputElement = target?.closest<HTMLElement>("[data-gantt-input]");
     if (!inputElement || !target) return;
     const inputType = inputElement.dataset.ganttInput || "";
@@ -161,6 +190,7 @@ export function GanttToolbar() {
       dangerouslySetInnerHTML={{ __html: snapshot.toolbarHtml }}
       onClick={(event) => void handleToolbarClick(event)}
       onInput={handleToolbarInput}
+      onChange={handleToolbarInput}
       onKeyDown={handleToolbarKeyDown}
     />
   );

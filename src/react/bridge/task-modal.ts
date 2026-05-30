@@ -85,6 +85,15 @@ type TaskModalWindow = Window & {
   pickCat?: (index: number) => void;
   updCalc?: () => void;
   addCostItem?: (type: string) => void;
+  setCostField?: (id: number, field: string, value: string | number) => void;
+  setCostContractNo?: (id: number, value: string) => void;
+  toggleCostPayments?: (id: number) => void;
+  deleteCostItem?: (id: number) => void;
+  addPayment?: (itemId: number) => void;
+  setPayField?: (itemId: number, paymentIndex: number, field: string, value: string | number) => void;
+  deletePayment?: (itemId: number, paymentIndex: number) => void;
+  _recalcRow?: (id: number) => void;
+  _refreshTotals?: () => void;
 };
 
 function getTaskModalWindow(): TaskModalWindow {
@@ -241,4 +250,45 @@ export function updateTaskModalCalc(): void {
 
 export function addTaskModalCostItem(type: string): void {
   getTaskModalWindow().addCostItem?.(type);
+}
+
+export function setTaskModalCostField(id: number, field: string, value: string | number): void {
+  getTaskModalWindow().setCostField?.(id, field, value);
+}
+
+export function setTaskModalCostContractNo(id: number, value: string): void {
+  getTaskModalWindow().setCostContractNo?.(id, value);
+}
+
+export function toggleTaskModalCostPayments(id: number): void {
+  getTaskModalWindow().toggleCostPayments?.(id);
+}
+
+export function deleteTaskModalCostItem(id: number): void {
+  getTaskModalWindow().deleteCostItem?.(id);
+}
+
+export function addTaskModalPayment(itemId: number): void {
+  getTaskModalWindow().addPayment?.(itemId);
+}
+
+export function setTaskModalPaymentField(
+  itemId: number,
+  paymentIndex: number,
+  field: string,
+  value: string | number,
+): void {
+  getTaskModalWindow().setPayField?.(itemId, paymentIndex, field, value);
+}
+
+export function deleteTaskModalPayment(itemId: number, paymentIndex: number): void {
+  getTaskModalWindow().deletePayment?.(itemId, paymentIndex);
+}
+
+export function recalcTaskModalCostRow(id: number): void {
+  getTaskModalWindow()._recalcRow?.(id);
+}
+
+export function refreshTaskModalCostTotals(): void {
+  getTaskModalWindow()._refreshTotals?.();
 }
