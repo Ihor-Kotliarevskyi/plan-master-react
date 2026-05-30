@@ -162,32 +162,38 @@ role and sharing work.
 
 ### Phase 8 - UI migration to React
 
-Status: `not started`
+Status: `planned`
 
-This is still the right long-term direction, but only after enough legacy UI
-areas are isolated and stable.
+This is now the next major architectural phase for ecosystem alignment, not a
+vague long-term possibility.
+
+Reference:
+
+- `docs/PHASE3_REACT_TRANSITION_PLAN.md`
 
 ## Recommended Next Engineering Step
 
-The next correct step is no longer another migration slice. It is targeted
-post-migration bug fixing from the completed stabilization pass.
+The next correct step is no longer another migration slice inside the legacy
+runtime. It is planning and executing the staged React transition on top of the
+completed migration baseline.
 
 Execution order:
 
-1. use `docs/STABILIZATION_CHECKLIST.md` as the source of confirmed findings
-2. fix only the recorded runtime issues
-3. defer `print/charts` redesign to a separate focused cycle
+1. keep `docs/STABILIZATION_CHECKLIST.md` as the baseline verification record
+2. start `docs/PHASE3_REACT_TRANSITION_PLAN.md`
+3. begin with the React host bootstrap and low-risk cabinet/auth screens
 
-Migration work for the current scope is complete enough that a new broad
-refactor would only create avoidable risk.
+Migration work for the current scope is complete enough that the next broad
+engineering move should happen in the new stack, not as another legacy cleanup
+cycle.
 
 ## What Not To Do
 
-- do not start a full React rewrite yet
+- do not start from gantt, print, or charts
 - do not introduce company tables just because roles now work
 - do not reintroduce binary access checks
 - do not mix audit and notifications into one vague feature bucket
-- do not start UI migration from gantt or print subsystems
+- do not duplicate business logic in both runtimes without a shared domain layer
 
 ## Document Map
 
@@ -197,8 +203,9 @@ Recommended reading order:
 2. `docs/TECH_MIGRATION_PLAN.md`
 3. `docs/PHASE1_IMPLEMENTATION_BACKLOG.md`
 4. `docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md`
-5. `docs/ARCHITECTURE.md`
-6. `docs/DATABASE.md`
+5. `docs/PHASE3_REACT_TRANSITION_PLAN.md`
+6. `docs/ARCHITECTURE.md`
+7. `docs/DATABASE.md`
 
 Document roles:
 
@@ -208,6 +215,8 @@ Document roles:
   roles/sharing phase`
 - `PHASE2_TYPESCRIPT_BOOTSTRAP.md` answers `what was added to stabilize typed
   contracts before deeper runtime migration`
+- `PHASE3_REACT_TRANSITION_PLAN.md` answers `how this application moves to the
+  same React stack as the rest of the ecosystem`
 
 ## Summary
 
@@ -224,7 +233,7 @@ What is already closed enough not to revisit for the current migration scope:
 
 What remains ahead:
 
-- targeted bug fixes from the completed stabilization pass
-- separate `print/charts` quality pass
-- only after that, any later UI bootstrap shift or company-level architecture work
+- staged React transition on top of the completed migration baseline
+- separate `print/charts` quality pass during the React era
+- only after that, any later company-level architecture work
 

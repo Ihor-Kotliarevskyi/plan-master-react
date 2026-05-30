@@ -70,6 +70,7 @@
 - `docs/TECH_MIGRATION_PLAN.md` — технічна послідовність міграції та модернізації
 - `docs/PHASE1_IMPLEMENTATION_BACKLOG.md` — деталізований backlog поточного етапу `owner/manager/editor/viewer`
 - `docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md` — статус стартового TypeScript-шару для нових модулів
+- `docs/PHASE3_REACT_TRANSITION_PLAN.md` — поетапний план переходу на React + TypeScript
 - `docs/STABILIZATION_CHECKLIST.md` — фінальний checklist для комплексного auth/sync/roles/audit прогону
 
 ## Структура Проєкту
@@ -166,6 +167,7 @@ const SUPABASE_KEY = "your-public-key";
 - **[docs/TECH_MIGRATION_PLAN.md](docs/TECH_MIGRATION_PLAN.md)** — технічний план міграції та поетапної модернізації
 - **[docs/PHASE1_IMPLEMENTATION_BACKLOG.md](docs/PHASE1_IMPLEMENTATION_BACKLOG.md)** — backlog найближчої реалізації granular project roles
 - **[docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md](docs/PHASE2_TYPESCRIPT_BOOTSTRAP.md)** — статус і межі першого TypeScript bootstrap етапу
+- **[docs/PHASE3_REACT_TRANSITION_PLAN.md](docs/PHASE3_REACT_TRANSITION_PLAN.md)** — поетапний план переходу на React + TypeScript
 
 ## PWA та Офлайн
 
