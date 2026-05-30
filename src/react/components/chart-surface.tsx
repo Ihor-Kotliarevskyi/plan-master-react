@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { readChartSurfaceSnapshot, subscribeChartSurfaceSync } from "../bridge/chart-surface";
+import { addCustomChart, openChartEdit } from "../bridge/chart-edit";
 import type { ChartSurfaceSnapshot } from "../types";
 
 declare global {
@@ -81,6 +82,12 @@ export function ChartSurface() {
     });
   }, [snapshot.capturedAt]);
 
+  function handleChartGridClick(event: React.MouseEvent<HTMLElement>) {
+    const actionElement = (event.target as HTMLElement).closest<HTMLElement>("[data-chart-action='open-edit']");
+    if (!actionElement) return;
+    openChartEdit(actionElement.dataset.chartId || "");
+  }
+
   return (
     <>
       <div className="card">
@@ -98,12 +105,12 @@ export function ChartSurface() {
             />
           </div>
           <SelectField id="cb-fstat" label={snapshot.labels.statusLabel} value={snapshot.form.status} options={STATUS_OPTIONS} />
-          <button className="btn btn-acc btn-align-end" data-chart-action="add-custom-chart" type="button">
+          <button className="btn btn-acc btn-align-end" onClick={addCustomChart} type="button">
             {snapshot.labels.buildButton}
           </button>
         </div>
       </div>
-      <div className="chart-grid" id="chart-grid"></div>
+      <div className="chart-grid" id="chart-grid" onClick={handleChartGridClick}></div>
     </>
   );
 }

@@ -27,6 +27,10 @@ const snapshotSchema: z.ZodType<ChartEditSnapshot> = z.object({
 
 type ChartEditWindow = Window & {
   getChartEditBridgeSnapshot?: () => unknown;
+  addCustomChart?: () => void;
+  openChartEdit?: (id: string) => void;
+  closeChartEdit?: () => void;
+  applyChartEdit?: () => void;
 };
 
 function getChartEditWindow(): ChartEditWindow {
@@ -68,4 +72,20 @@ export function subscribeChartEditSync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:chart-edit-sync", handler);
   return () => document.removeEventListener("plan-master:chart-edit-sync", handler);
+}
+
+export function addCustomChart(): void {
+  getChartEditWindow().addCustomChart?.();
+}
+
+export function openChartEdit(chartId: string): void {
+  getChartEditWindow().openChartEdit?.(chartId);
+}
+
+export function closeChartEdit(): void {
+  getChartEditWindow().closeChartEdit?.();
+}
+
+export function applyChartEdit(): void {
+  getChartEditWindow().applyChartEdit?.();
 }

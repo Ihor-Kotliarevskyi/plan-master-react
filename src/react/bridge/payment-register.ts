@@ -17,6 +17,12 @@ const snapshotSchema: z.ZodType<PaymentRegisterSnapshot> = z.object({
 
 type PaymentRegisterWindow = Window & {
   getPaymentRegisterBridgeSnapshot?: () => unknown;
+  openPaymentRegisterModal?: () => void;
+  closePaymentRegisterModal?: () => void;
+  createPaymentRegisterFromFilters?: () => Promise<void> | void;
+  exportCurrentPaymentRegister?: (type: string) => void;
+  printCurrentPaymentRegister?: () => void;
+  closeContractorToolsMenu?: () => void;
 };
 
 function getPaymentRegisterWindow(): PaymentRegisterWindow {
@@ -48,4 +54,25 @@ export function subscribePaymentRegisterSync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:payment-register-sync", handler);
   return () => document.removeEventListener("plan-master:payment-register-sync", handler);
+}
+
+export function openPaymentRegisterModal(): void {
+  getPaymentRegisterWindow().openPaymentRegisterModal?.();
+  getPaymentRegisterWindow().closeContractorToolsMenu?.();
+}
+
+export function closePaymentRegisterModal(): void {
+  getPaymentRegisterWindow().closePaymentRegisterModal?.();
+}
+
+export async function createPaymentRegisterFromFilters(): Promise<void> {
+  await Promise.resolve(getPaymentRegisterWindow().createPaymentRegisterFromFilters?.());
+}
+
+export function exportCurrentPaymentRegister(type: string): void {
+  getPaymentRegisterWindow().exportCurrentPaymentRegister?.(type);
+}
+
+export function printCurrentPaymentRegister(): void {
+  getPaymentRegisterWindow().printCurrentPaymentRegister?.();
 }

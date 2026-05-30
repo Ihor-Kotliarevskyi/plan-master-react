@@ -1,5 +1,12 @@
 import { useEffect, useState } from "react";
-import { readPaymentRegisterSnapshot, subscribePaymentRegisterSync } from "../bridge/payment-register";
+import {
+  closePaymentRegisterModal,
+  createPaymentRegisterFromFilters,
+  exportCurrentPaymentRegister,
+  printCurrentPaymentRegister,
+  readPaymentRegisterSnapshot,
+  subscribePaymentRegisterSync,
+} from "../bridge/payment-register";
 import type { PaymentRegisterSnapshot } from "../types";
 
 declare global {
@@ -25,23 +32,37 @@ export function PaymentRegisterModal() {
     });
   }, [snapshot.capturedAt]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("payment-register-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closePaymentRegisterModal();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+    };
+  }, []);
+
   return (
     <>
       <div className="modal-header">
         <h3><i data-lucide="file-spreadsheet"></i> {snapshot.labels.title}</h3>
-        <button className="btn btn-sm" data-payment-register-action="close-modal"><i data-lucide="x"></i></button>
+        <button className="btn btn-sm" onClick={closePaymentRegisterModal} type="button"><i data-lucide="x"></i></button>
       </div>
       <div className="payment-register-actions">
-        <button className="btn btn-acc" data-payment-register-action="create-from-filters">
+        <button className="btn btn-acc" onClick={() => void createPaymentRegisterFromFilters()} type="button">
           <i data-lucide="plus"></i> {snapshot.labels.createButton}
         </button>
-        <button className="btn btn-sm" data-payment-register-action="export-current" data-export-type="xlsx">
+        <button className="btn btn-sm" onClick={() => exportCurrentPaymentRegister("xlsx")} type="button">
           <i data-lucide="file-spreadsheet"></i> {snapshot.labels.exportXlsxButton}
         </button>
-        <button className="btn btn-sm" data-payment-register-action="export-current" data-export-type="csv">
+        <button className="btn btn-sm" onClick={() => exportCurrentPaymentRegister("csv")} type="button">
           <i data-lucide="file-text"></i> {snapshot.labels.exportCsvButton}
         </button>
-        <button className="btn btn-sm" data-payment-register-action="print-current">
+        <button className="btn btn-sm" onClick={printCurrentPaymentRegister} type="button">
           <i data-lucide="printer"></i> {snapshot.labels.printButton}
         </button>
       </div>

@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { readDependencyListSnapshot, subscribeDependencyListSync } from "../bridge/dependency-list";
+import {
+  closeDependencyList,
+  goToDependencyTask,
+  readDependencyListSnapshot,
+  setDependencyListFilter,
+  subscribeDependencyListSync,
+} from "../bridge/dependency-list";
 import type { DependencyListSnapshot } from "../types";
 
 export function DependencyListModal() {
@@ -17,6 +23,27 @@ export function DependencyListModal() {
     });
   }, [snapshot.capturedAt]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("dep-list-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closeDependencyList();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+    };
+  }, []);
+
+  function handleBodyClick(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    const row = target.closest<HTMLElement>("[data-dep-action='go-to-task']");
+    if (!row) return;
+    goToDependencyTask(Number(row.dataset.taskIndex || -1));
+  }
+
   return (
     <>
       <div className="modal-header">
@@ -25,23 +52,23 @@ export function DependencyListModal() {
           <span className="dl-count-badge" id="dl-count">{snapshot.countText}</span>
         </div>
         <div className="dl-filters">
-          <button className={`dl-filter-btn${snapshot.filter === "all" ? " on" : ""}`} data-f="all" data-dep-action="set-filter">
+          <button className={`dl-filter-btn${snapshot.filter === "all" ? " on" : ""}`} onClick={() => setDependencyListFilter("all")} type="button">
             {snapshot.labels.allFilter}
           </button>
-          <button className={`dl-filter-btn${snapshot.filter === "FS" ? " on" : ""}`} data-f="FS" data-dep-action="set-filter">
+          <button className={`dl-filter-btn${snapshot.filter === "FS" ? " on" : ""}`} onClick={() => setDependencyListFilter("FS")} type="button">
             {snapshot.labels.fsFilter}
           </button>
-          <button className={`dl-filter-btn${snapshot.filter === "SS" ? " on" : ""}`} data-f="SS" data-dep-action="set-filter">
+          <button className={`dl-filter-btn${snapshot.filter === "SS" ? " on" : ""}`} onClick={() => setDependencyListFilter("SS")} type="button">
             {snapshot.labels.ssFilter}
           </button>
-          <button className={`dl-filter-btn${snapshot.filter === "FF" ? " on" : ""}`} data-f="FF" data-dep-action="set-filter">
+          <button className={`dl-filter-btn${snapshot.filter === "FF" ? " on" : ""}`} onClick={() => setDependencyListFilter("FF")} type="button">
             {snapshot.labels.ffFilter}
           </button>
         </div>
       </div>
-      <div dangerouslySetInnerHTML={{ __html: snapshot.bodyHtml }} className="dl-wrap" id="dl-body" />
+      <div dangerouslySetInnerHTML={{ __html: snapshot.bodyHtml }} className="dl-wrap" id="dl-body" onClick={handleBodyClick} />
       <div className="m-btns m-btns-sep">
-        <button className="btn" data-dep-action="close-modal">
+        <button className="btn" onClick={closeDependencyList} type="button">
           {snapshot.labels.closeButton}
         </button>
       </div>

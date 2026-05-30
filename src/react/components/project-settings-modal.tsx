@@ -22,6 +22,20 @@ export function ProjectSettingsModal() {
     setFormState(snapshot.formState);
   }, [snapshot.capturedAt, snapshot.formState]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("proj-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closeProjectSettings();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+    };
+  }, []);
+
   return snapshot.visible ? (
     <div className="react-project-settings-modal" role="dialog" aria-modal="true">
       <h3>{snapshot.labels.title}</h3>

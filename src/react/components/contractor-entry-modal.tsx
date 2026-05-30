@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { readContractorEntrySnapshot, subscribeContractorEntrySync } from "../bridge/contractor-entry";
+import {
+  addContractorContractRow,
+  closeContractorEntryModal,
+  readContractorEntrySnapshot,
+  saveContractorEntry,
+  subscribeContractorEntrySync,
+} from "../bridge/contractor-entry";
 import type { ContractorEntrySnapshot } from "../types";
 
 declare global {
@@ -25,11 +31,25 @@ export function ContractorEntryModal() {
     });
   }, [snapshot.capturedAt]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("contractor-entry-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closeContractorEntryModal();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+    };
+  }, []);
+
   return (
     <>
       <div className="modal-header">
         <h3><i data-lucide="receipt-text"></i> {snapshot.labels.title}</h3>
-        <button className="btn btn-sm" data-contractor-entry-action="close-modal"><i data-lucide="x"></i></button>
+        <button className="btn btn-sm" onClick={closeContractorEntryModal} type="button"><i data-lucide="x"></i></button>
       </div>
       <div className="contractor-entry-grid contractor-contract-manager">
         <div className="fg contractor-entry-span">
@@ -46,14 +66,14 @@ export function ContractorEntryModal() {
         </div>
         <div dangerouslySetInnerHTML={{ __html: snapshot.contractsHtml }} className="contractor-contract-list contractor-entry-span" id="ce-contract-list" />
         <div className="contractor-entry-span">
-          <button type="button" className="btn btn-sm" data-contractor-entry-action="add-contract-row">
+          <button type="button" className="btn btn-sm" onClick={addContractorContractRow}>
             <i data-lucide="plus"></i> {snapshot.labels.addContractButton}
           </button>
         </div>
       </div>
       <div className="m-btns m-btns-sep">
-        <button className="btn" data-contractor-entry-action="close-modal">{snapshot.labels.cancelButton}</button>
-        <button className="btn btn-acc" data-contractor-entry-action="save-entry">{snapshot.labels.saveButton}</button>
+        <button className="btn" onClick={closeContractorEntryModal} type="button">{snapshot.labels.cancelButton}</button>
+        <button className="btn btn-acc" onClick={() => void saveContractorEntry()} type="button">{snapshot.labels.saveButton}</button>
       </div>
     </>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { readChartEditSnapshot, subscribeChartEditSync } from "../bridge/chart-edit";
+import { applyChartEdit, closeChartEdit, readChartEditSnapshot, subscribeChartEditSync } from "../bridge/chart-edit";
 import type { ChartEditSnapshot } from "../types";
 
 const TYPE_OPTIONS = [
@@ -65,6 +65,20 @@ export function ChartEditModal() {
     return subscribeChartEditSync(sync);
   }, []);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("chart-edit-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closeChartEdit();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+    };
+  }, []);
+
   return (
     <>
       <h3>{snapshot.labels.title}</h3>
@@ -87,8 +101,8 @@ export function ChartEditModal() {
       </div>
       <SelectField id="ce-fstat" label={snapshot.labels.statusLabel} value={snapshot.form.status} options={STATUS_OPTIONS} />
       <div className="m-btns">
-        <button className="btn" data-chart-action="close-edit" type="button">{snapshot.labels.cancelButton}</button>
-        <button className="btn btn-acc" data-chart-action="apply-edit" type="button">{snapshot.labels.applyButton}</button>
+        <button className="btn" onClick={closeChartEdit} type="button">{snapshot.labels.cancelButton}</button>
+        <button className="btn btn-acc" onClick={applyChartEdit} type="button">{snapshot.labels.applyButton}</button>
       </div>
     </>
   );

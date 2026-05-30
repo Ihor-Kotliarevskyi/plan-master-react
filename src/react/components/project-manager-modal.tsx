@@ -90,6 +90,20 @@ export function ProjectManagerModal() {
     setCreateName(snapshot.labels.createDialog.inputValue);
   }, [snapshot.labels.createDialog.inputValue]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("projmgr-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closeProjectManager();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+    };
+  }, []);
+
   const deleteRow = [...snapshot.groups.own, ...snapshot.groups.shared].find((row) => row.id === confirmDeleteId) || null;
 
   return snapshot.visible ? (

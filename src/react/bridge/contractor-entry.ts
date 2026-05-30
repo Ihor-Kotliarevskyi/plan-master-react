@@ -19,6 +19,10 @@ const snapshotSchema: z.ZodType<ContractorEntrySnapshot> = z.object({
 
 type ContractorEntryWindow = Window & {
   getContractorEntryBridgeSnapshot?: () => unknown;
+  openContractorEntryModal?: (prefillSupplier?: string, lockSupplier?: boolean) => void;
+  closeContractorEntryModal?: () => void;
+  addContractorContractRow?: () => void;
+  saveContractorEntry?: () => Promise<void> | void;
 };
 
 function getContractorEntryWindow(): ContractorEntryWindow {
@@ -52,4 +56,20 @@ export function subscribeContractorEntrySync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:contractor-entry-sync", handler);
   return () => document.removeEventListener("plan-master:contractor-entry-sync", handler);
+}
+
+export function openContractorEntryModal(prefillSupplier?: string, lockSupplier?: boolean): void {
+  getContractorEntryWindow().openContractorEntryModal?.(prefillSupplier, lockSupplier);
+}
+
+export function closeContractorEntryModal(): void {
+  getContractorEntryWindow().closeContractorEntryModal?.();
+}
+
+export function addContractorContractRow(): void {
+  getContractorEntryWindow().addContractorContractRow?.();
+}
+
+export async function saveContractorEntry(): Promise<void> {
+  await Promise.resolve(getContractorEntryWindow().saveContractorEntry?.());
 }

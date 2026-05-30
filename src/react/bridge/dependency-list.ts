@@ -19,6 +19,9 @@ const snapshotSchema: z.ZodType<DependencyListSnapshot> = z.object({
 
 type DependencyListWindow = Window & {
   getDependencyListBridgeSnapshot?: () => unknown;
+  closeDepList?: () => void;
+  setDepListFilter?: (filter: string) => void;
+  depListGo?: (taskIndex: number) => void;
 };
 
 function getDependencyListWindow(): DependencyListWindow {
@@ -52,4 +55,16 @@ export function subscribeDependencyListSync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:dependency-list-sync", handler);
   return () => document.removeEventListener("plan-master:dependency-list-sync", handler);
+}
+
+export function closeDependencyList(): void {
+  getDependencyListWindow().closeDepList?.();
+}
+
+export function setDependencyListFilter(filter: string): void {
+  getDependencyListWindow().setDepListFilter?.(filter);
+}
+
+export function goToDependencyTask(taskIndex: number): void {
+  getDependencyListWindow().depListGo?.(taskIndex);
 }

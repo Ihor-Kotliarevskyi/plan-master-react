@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { readContractorSurfaceSnapshot, subscribeContractorSurfaceSync } from "../bridge/contractor-surface";
+import { openPaymentRegisterModal } from "../bridge/payment-register";
 import type { ContractorSurfaceSnapshot } from "../types";
 
 declare global {
@@ -87,7 +88,7 @@ export function ContractorSurface() {
               <i data-lucide="trash"></i> Видалити всіх за фільтром
             </button>
             <div className="tools-sep"></div>
-            <button className="tools-item" data-payment-register-action="open-modal" type="button">
+            <button className="tools-item" onClick={openPaymentRegisterModal} type="button">
               <i data-lucide="file-spreadsheet"></i> Реєстри
             </button>
           </div>
