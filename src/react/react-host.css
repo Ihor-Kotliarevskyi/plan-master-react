@@ -167,3 +167,34 @@
     width: auto;
   }
 }
+
+.react-user-cabinet {
+  display: grid;
+  gap: 16px;
+}
+
+.react-user-cabinet__theme-btn {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.react-user-cabinet__sync-row {
+  gap: 12px;
+}
+
+.react-user-cabinet__footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.react-user-cabinet__auth-error {
+  display: block;
+}
+
+.react-user-cabinet__status {
+  color: var(--txt2, #64748b);
+  font-size: 13px;
+}

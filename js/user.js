@@ -85,6 +85,168 @@ const DEF_USER = {
 };
 
 let userProfile = { ...DEF_USER };
+let _userCabinetAuthTab = "login";
+
+function isReactUserCabinetEnabled() {
+  return document.body?.dataset?.reactTransitionUserCabinet === "enabled";
+}
+
+function syncReactUserCabinetBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:user-cabinet-sync"));
+}
+
+function getUserCabinetModalRoot() {
+  return document.getElementById("user-modal");
+}
+
+function getUserCabinetModalFooter() {
+  return getUserCabinetModalRoot()?.querySelector(".m-btns.m-btns-sep") || null;
+}
+
+function setUserCabinetFooterVisibility(visible) {
+  const footer = getUserCabinetModalFooter();
+  if (!footer) return;
+  footer.style.display = visible ? "" : "none";
+}
+
+function getActiveUserCabinetProfile() {
+  const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
+  const sbp = loggedIn && typeof _sbProfile !== "undefined" ? _sbProfile : null;
+
+  return {
+    loggedIn,
+    supabaseProfile: sbp,
+    profile: {
+      name: sbp?.name || userProfile.name,
+      email:
+        sbp?.email ||
+        userProfile.email ||
+        (sbp ? (typeof _sbUser !== "undefined" ? _sbUser?.email : "") : ""),
+      avatar: sbp?.avatar || userProfile.avatar,
+      theme: userProfile.theme,
+      defaults: { ...userProfile.defaults },
+    },
+  };
+}
+
+function getUserCabinetBridgeSnapshot() {
+  const profileState = getActiveUserCabinetProfile();
+  const p = profileState.profile;
+  const identity =
+    typeof buildRuntimeUserIdentityModel === "function"
+      ? buildRuntimeUserIdentityModel(p, "Profile")
+      : {
+          displayName: p.name || "Profile",
+          emailText: p.email || "",
+          initial: ((p.name || "?")[0] || "?").toUpperCase(),
+          avatarUrl: p.avatar || null,
+          themeToggle: {
+            icon: p.theme === "dark" ? "sun" : "moon",
+            label: p.theme === "dark" ? "Light" : "Dark",
+          },
+        };
+  const defaultsPanel =
+    typeof buildRuntimeProjectDefaultsPanelModel === "function"
+      ? buildRuntimeProjectDefaultsPanelModel()
+      : {
+          sectionTitle: "Project defaults",
+          startMonthLabel: "Start month",
+          startYearLabel: "Start year",
+          durationLabel: "Duration (months)",
+        };
+  const themePanel =
+    typeof buildRuntimeThemePanelModel === "function"
+      ? buildRuntimeThemePanelModel()
+      : {
+          sectionTitle: "Appearance",
+          themeLabel: "Theme",
+        };
+  const baselinePanel =
+    typeof buildRuntimeBaselinePanelModel === "function"
+      ? buildRuntimeBaselinePanelModel({
+          hasBaseline: !!proj.baseline,
+          baselineDate: proj.baselineDate || null,
+          showBaseline: !!showBaseline,
+        })
+      : {
+          sectionTitle: "Baseline",
+          hasBaseline: !!proj.baseline,
+          savedLabel: `Saved: ${proj.baselineDate || "-"}`,
+          toggleLabel: showBaseline ? "Hide" : "Show",
+          saveActionLabel: proj.baseline ? "Overwrite" : "Save baseline",
+          deleteActionLabel: "Delete",
+          emptyHint: "Baseline is not saved yet. Save the current task positions to compare plan vs actual later.",
+          showBaseline: !!showBaseline,
+        };
+  const syncBadge = getCurrentSyncBadge();
+  const projectSync = getProjectSyncState();
+  const currentRole = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(currentId, "owner")
+    : "owner";
+  const syncPanel =
+    typeof buildRuntimeAccountSyncPanelModel === "function"
+      ? buildRuntimeAccountSyncPanelModel(projectSync, currentRole, "-")
+      : {
+          roleLabel:
+            typeof getRuntimeProjectRoleLabel === "function"
+              ? getRuntimeProjectRoleLabel(currentRole)
+              : (typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS[currentRole] || currentRole : currentRole),
+          projectName: projectSync.snap?.proj?.name || "-",
+          hasServerCopyText: projectSync.hasServerCopy ? "yes" : "no",
+          localVersionText: String(projectSync.localVersion),
+          serverVersionText: String(projectSync.serverVersion),
+          updatedAtText: projectSync.updatedAt || "",
+        };
+  const accountSection =
+    typeof buildRuntimeAccountSectionModel === "function"
+      ? buildRuntimeAccountSectionModel()
+      : {
+          sectionTitle: "Cloud account",
+          emailLabel: "Email",
+          logoutLabel: "Log out",
+          auditLogLabel: "Activity log",
+          projectLabel: "Project",
+          roleLabel: "Role",
+          cloudCopyLabel: "Cloud copy",
+          localVersionLabel: "Local version",
+          serverVersionLabel: "Server version",
+          lastLocalChangeLabel: "Last local change",
+        };
+  const authFormModel =
+    typeof buildRuntimeAuthFormModel === "function"
+      ? buildRuntimeAuthFormModel(_userCabinetAuthTab)
+      : {
+          tab: _userCabinetAuthTab,
+          isLogin: _userCabinetAuthTab === "login",
+          hintText: "Sign in to save projects in the cloud and access them from any device.",
+          loginTabLabel: "Sign in",
+          registerTabLabel: "Register",
+          nameLabel: "Name",
+          namePlaceholder: "Your name",
+          emailLabel: "Email",
+          emailPlaceholder: "example@mail.com",
+          passwordLabel: "Password",
+          passwordPlaceholder: "Minimum 6 characters",
+          submitLabel: _userCabinetAuthTab === "login" ? "Sign in" : "Register",
+        };
+
+  return {
+    visible: getUserCabinetModalRoot()?.style.display === "flex",
+    loggedIn: profileState.loggedIn,
+    activeAuthTab: _userCabinetAuthTab,
+    profile: p,
+    identity,
+    defaultsPanel,
+    themePanel,
+    baselinePanel,
+    syncBadge,
+    syncPanel,
+    accountSection,
+    authFormModel,
+    canViewAuditLog: typeof canViewAuditLog === "function" && canViewAuditLog(),
+    capturedAt: new Date().toISOString(),
+  };
+}
 
 function loadUser() {
   try {
@@ -98,6 +260,7 @@ function loadUser() {
   } catch (_) {}
   applyTheme(userProfile.theme);
   updateUserBtn();
+  syncReactUserCabinetBridge();
 }
 
 function saveUser() {
@@ -123,6 +286,7 @@ function applyTheme(theme) {
     btn.querySelector(".theme-label").textContent = themeToggle.label;
     lucide.createIcons({ nodes: [btn] });
   }
+  syncReactUserCabinetBridge();
 }
 
 function toggleTheme() {
@@ -132,6 +296,7 @@ function toggleTheme() {
   if (typeof isLoggedIn === "function" && isLoggedIn()) {
     apiUpdateProfile({ theme: next }).catch(() => {});
   }
+  syncReactUserCabinetBridge();
 }
 
 function updateUserBtn() {
@@ -165,15 +330,23 @@ function updateUserBtn() {
     </div>
     <span>${identity.displayName}</span>`;
   btn.className = `user-btn status-${status}${status === "syncing" ? " syncing" : ""}`;
+  syncReactUserCabinetBridge();
 }
 
 function openUserModal() {
-  _renderUserModal();
-  document.getElementById("user-modal").style.display = "flex";
+  if (isReactUserCabinetEnabled()) {
+    setUserCabinetFooterVisibility(false);
+  } else {
+    setUserCabinetFooterVisibility(true);
+    _renderUserModal();
+  }
+  getUserCabinetModalRoot().style.display = "flex";
+  syncReactUserCabinetBridge();
 }
 
 function closeUserModal() {
-  document.getElementById("user-modal").style.display = "none";
+  getUserCabinetModalRoot().style.display = "none";
+  syncReactUserCabinetBridge();
 }
 
 function _renderUserModal() {
@@ -458,11 +631,17 @@ function _renderAuthForm(tab) {
 }
 
 function _switchAuthTab(tab) {
+  _userCabinetAuthTab = tab === "register" ? "register" : "login";
+  if (!document.getElementById("atab-login") || !document.getElementById("auth-tab-body")) {
+    syncReactUserCabinetBridge();
+    return;
+  }
   document.getElementById("atab-login").className =
-    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("login", tab) : ("btn btn-sm" + (tab === "login" ? " btn-acc" : "")));
+    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("login", _userCabinetAuthTab) : ("btn btn-sm" + (_userCabinetAuthTab === "login" ? " btn-acc" : "")));
   document.getElementById("atab-register").className =
-    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("register", tab) : ("btn btn-sm" + (tab === "register" ? " btn-acc" : "")));
-  document.getElementById("auth-tab-body").innerHTML = _renderAuthForm(tab);
+    (typeof getRuntimeAuthTabButtonClass === "function" ? getRuntimeAuthTabButtonClass("register", _userCabinetAuthTab) : ("btn btn-sm" + (_userCabinetAuthTab === "register" ? " btn-acc" : "")));
+  document.getElementById("auth-tab-body").innerHTML = _renderAuthForm(_userCabinetAuthTab);
+  syncReactUserCabinetBridge();
 }
 
 function _syncUserNamePreview(value) {
@@ -597,10 +776,12 @@ async function openAuditLogModal() {
   });
 }
 
-async function _submitAuthInCabinet(tab) {
-  const email = document.getElementById("auth-email")?.value?.trim();
-  const pass = document.getElementById("auth-pass")?.value;
-  const name = document.getElementById("auth-name")?.value?.trim();
+async function _submitAuthInCabinet(tab, formState = null) {
+  const resolvedTab = tab === "register" ? "register" : "login";
+  _userCabinetAuthTab = resolvedTab;
+  const email = formState?.email?.trim?.() || document.getElementById("auth-email")?.value?.trim();
+  const pass = formState?.password ?? document.getElementById("auth-pass")?.value;
+  const name = formState?.name?.trim?.() || document.getElementById("auth-name")?.value?.trim();
   const errEl = document.getElementById("auth-error");
   const authMessages = _getAuthFlowMessages();
   const setStage = (msg) => {
@@ -620,12 +801,15 @@ async function _submitAuthInCabinet(tab) {
   };
 
   try {
-    if (tab === "login") {
+    if (resolvedTab === "login") {
       setStage("calling apiLogin");
       await apiLogin(email, pass);
       setStage("apiLogin success");
     } else {
-      if (!name) { showErr(authMessages.nameRequired); return; }
+      if (!name) {
+        showErr(authMessages.nameRequired);
+        return { ok: false, error: authMessages.nameRequired };
+      }
       setStage("calling apiRegister");
       await apiRegister(name, email, pass);
       setStage("apiRegister success");
@@ -657,7 +841,7 @@ async function _submitAuthInCabinet(tab) {
     else updateUserBtn();
     setStage(`ui updated: loggedIn=${typeof isLoggedIn === "function" ? isLoggedIn() : "?"}`);
 
-    if (tab === "login" && typeof isLoggedIn === "function" && isLoggedIn()) {
+    if (resolvedTab === "login" && typeof isLoggedIn === "function" && isLoggedIn()) {
       setStage("closing modal after login");
       closeUserModal();
       Swal.fire({
@@ -669,7 +853,7 @@ async function _submitAuthInCabinet(tab) {
         timer: 2200,
       });
     } else {
-      if (tab !== "login" && !(typeof isLoggedIn === "function" && isLoggedIn())) {
+      if (resolvedTab !== "login" && !(typeof isLoggedIn === "function" && isLoggedIn())) {
         await Swal.fire({
           icon: "info",
           title: authMessages.emailConfirmationInfoTitle,
@@ -677,7 +861,7 @@ async function _submitAuthInCabinet(tab) {
           confirmButtonText: "Добре",
         });
         _switchAuthTab("login");
-        return;
+        return { ok: true, requiresEmailConfirmation: true };
       }
       _renderUserModal();
     }
@@ -729,15 +913,17 @@ async function _submitAuthInCabinet(tab) {
         timer: 4500,
       });
     }
-    if (tab !== "login") _renderUserModal();
+    if (resolvedTab !== "login" && !isReactUserCabinetEnabled()) _renderUserModal();
 
     Swal.fire({
       toast: true, position: "top-end", icon: "success",
       title: authMessages.syncEnabledTitle,
       showConfirmButton: false, timer: 3000,
     });
+    syncReactUserCabinetBridge();
+    return { ok: true };
   } catch (err) {
-    if (tab !== "login" && _isEmailConfirmationMessage(err?.message)) {
+    if (resolvedTab !== "login" && _isEmailConfirmationMessage(err?.message)) {
       await Swal.fire({
         icon: "info",
         title: authMessages.emailConfirmationInfoTitle,
@@ -745,19 +931,21 @@ async function _submitAuthInCabinet(tab) {
         confirmButtonText: "Добре",
       });
       _switchAuthTab("login");
-      return;
+      return { ok: true, requiresEmailConfirmation: true };
     }
-    showErr(err.message || "???????");
+    const errorMessage = err.message || "???????";
+    showErr(errorMessage);
+    return { ok: false, error: errorMessage };
   }
 }
 
-async function saveUserProfile() {
+async function saveUserProfile(nextState = null) {
   const profileFeedback = _getProfileFeedbackMessages();
-  const nameVal = document.getElementById("um-name")?.value.trim();
+  const nameVal = nextState?.name?.trim?.() || document.getElementById("um-name")?.value.trim();
   if (nameVal) userProfile.name = nameVal;
-  userProfile.defaults.sm = +document.getElementById("um-sm").value;
-  userProfile.defaults.sy = +document.getElementById("um-sy").value;
-  userProfile.defaults.nm = +document.getElementById("um-nm").value;
+  userProfile.defaults.sm = +(nextState?.defaults?.sm ?? document.getElementById("um-sm").value);
+  userProfile.defaults.sy = +(nextState?.defaults?.sy ?? document.getElementById("um-sy").value);
+  userProfile.defaults.nm = +(nextState?.defaults?.nm ?? document.getElementById("um-nm").value);
   saveUser();
   updateUserBtn();
   closeUserModal();
@@ -773,37 +961,70 @@ async function saveUserProfile() {
     title: profileFeedback.profileSavedTitle,
     showConfirmButton: false, timer: 2000,
   });
+  syncReactUserCabinetBridge();
+  return { ok: true };
 }
 
 function handleAvatarUpload(e) {
+  return uploadUserAvatarFile(e.target.files[0] || null);
+}
+
+function uploadUserAvatarFile(file) {
   const profileFeedback = _getProfileFeedbackMessages();
-  const file = e.target.files[0];
   if (!file) return;
   if (file.size > 2 * 1024 * 1024) {
     Swal.fire({ icon: "warning", title: profileFeedback.avatarTooLargeTitle, text: profileFeedback.avatarTooLargeText });
-    return;
+    return { ok: false, error: profileFeedback.avatarTooLargeText };
   }
   const reader = new FileReader();
   reader.onload = async (ev) => {
     userProfile.avatar = ev.target.result;
     saveUser();
     updateUserBtn();
-    _renderUserModal();
+    if (!isReactUserCabinetEnabled()) _renderUserModal();
     if (typeof isLoggedIn === "function" && isLoggedIn()) {
       try { await apiUpdateProfile({ avatar: userProfile.avatar }); } catch (_) {}
     }
+    syncReactUserCabinetBridge();
   };
   reader.readAsDataURL(file);
+  return { ok: true };
 }
 
 function clearAvatar() {
   userProfile.avatar = null;
   saveUser();
   updateUserBtn();
-  _renderUserModal();
+  if (!isReactUserCabinetEnabled()) _renderUserModal();
   if (typeof isLoggedIn === "function" && isLoggedIn()) {
     apiUpdateProfile({ avatar: null }).catch(() => {});
   }
+  syncReactUserCabinetBridge();
+}
+
+function setUserCabinetAuthTab(tab) {
+  _switchAuthTab(tab);
+  return getUserCabinetBridgeSnapshot();
+}
+
+async function submitUserCabinetAuth(formState) {
+  return _submitAuthInCabinet(formState?.tab || _userCabinetAuthTab, formState || null);
+}
+
+async function saveUserCabinetProfile(profileState) {
+  return saveUserProfile(profileState || null);
+}
+
+async function logoutUserCabinet() {
+  closeUserModal();
+  await apiLogout?.();
+  updateUserBtn?.();
+  syncReactUserCabinetBridge();
+}
+
+async function openUserCabinetAuditLog() {
+  await openAuditLogModal();
+  syncReactUserCabinetBridge();
 }
 
 /** Перенаправляє виклики зі старих посилань на openUserModal. */
