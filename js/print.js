@@ -15,6 +15,68 @@ const PRINT_PAPER_MM = {
 
 let _printPreviewTimer = null;
 let _printPreviewPage = 0;
+let _reactPrintDialogState = {
+  visible: false,
+};
+
+function isReactPrintDialogEnabled() {
+  return document.body?.dataset?.reactTransitionPrintDialog === "enabled";
+}
+
+function syncReactPrintDialogBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:print-dialog-sync"));
+}
+
+function getPrintDialogBridgeSnapshot() {
+  return {
+    visible: _reactPrintDialogState.visible,
+    previewHtml: document.getElementById("print-preview")?.innerHTML || "",
+    previewMeta: document.getElementById("print-preview-meta")?.textContent || "",
+    chartListHtml: document.getElementById("print-chart-list")?.innerHTML || "",
+    controls: {
+      gantt: document.getElementById("print-gantt")?.checked ?? true,
+      finance: document.getElementById("print-finance")?.checked ?? false,
+      charts: document.getElementById("print-charts")?.checked ?? false,
+      range: document.getElementById("print-range")?.value || "all",
+      paper: document.getElementById("print-paper")?.value || PRINT_DEFAULTS.paper,
+      orientation: document.getElementById("print-orientation")?.value || PRINT_DEFAULTS.orientation,
+      scale: document.getElementById("print-scale")?.value || String(PRINT_DEFAULTS.contentScale),
+      fit: document.getElementById("print-fit")?.value || PRINT_DEFAULTS.fitMode,
+      margin: document.getElementById("print-margin")?.value || String(PRINT_DEFAULTS.margin),
+      quality: document.getElementById("print-quality")?.value || String(PRINT_DEFAULTS.renderScale),
+    },
+    chartPickerVisible: document.getElementById("print-charts")?.checked ?? false,
+    navigation: {
+      prevDisabled: document.getElementById("print-prev-page")?.disabled ?? true,
+      nextDisabled: document.getElementById("print-next-page")?.disabled ?? true,
+    },
+    labels: {
+      title: "Друк та експорт PDF",
+      includeSectionTitle: "Що включити",
+      ganttLabel: "Діаграма Ганта",
+      ganttHint: "Таблиця з барами",
+      financeLabel: "Фінанси",
+      financeHint: "Зведення + таблиця задач",
+      chartsLabel: "Графіки аналітики",
+      chartsHint: "Вибрати конкретні графіки нижче",
+      chartPickerLabel: "Які графіки включити",
+      settingsSectionTitle: "Налаштування сторінки",
+      formatLabel: "Формат",
+      orientationLabel: "Орієнтація",
+      scaleLabel: "Масштаб",
+      fitLabel: "Вміщення",
+      marginLabel: "Поля",
+      qualityLabel: "Якість PDF",
+      cancelButton: "Скасувати",
+      printButton: "Друк",
+      exportButton: "Зберегти PDF",
+      prevTitle: "Попередня сторінка",
+      nextTitle: "Наступна сторінка",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 const PRINT_UI = typeof buildRuntimePrintUiModel === "function"
   ? buildRuntimePrintUiModel()
   : {
@@ -82,14 +144,18 @@ function openPrintDialog() {
         .join("")
     : `<div class="print-no-charts">${PRINT_UI.noChartsText}</div>`;
 
+  _reactPrintDialogState.visible = true;
   document.getElementById("print-modal").style.display = "flex";
+  if (isReactPrintDialogEnabled()) syncReactPrintDialogBridge();
   _schedulePrintPreview();
 }
 
 function closePrintDialog() {
+  _reactPrintDialogState.visible = false;
   document.getElementById("print-modal").style.display = "none";
   if (_printPreviewTimer) clearTimeout(_printPreviewTimer);
   _printPreviewTimer = null;
+  if (isReactPrintDialogEnabled()) syncReactPrintDialogBridge();
 }
 
 async function doPrint() {
@@ -518,6 +584,7 @@ function _buildSCurvePrintData() {
 function _schedulePrintPreview() {
   if (_printPreviewTimer) clearTimeout(_printPreviewTimer);
   _printPreviewPage = 0;
+  if (isReactPrintDialogEnabled()) syncReactPrintDialogBridge();
   _printPreviewTimer = setTimeout(_renderPrintPreview, 120);
 }
 
@@ -526,6 +593,7 @@ function changePrintPreviewPage(delta) {
   if (!pages) return;
   _printPreviewPage = Math.min(pages - 1, Math.max(0, _printPreviewPage + delta));
   _syncPrintPreviewPage();
+  if (isReactPrintDialogEnabled()) syncReactPrintDialogBridge();
 }
 
 function _renderPrintPreview() {
@@ -550,6 +618,7 @@ function _renderPrintPreview() {
   target.appendChild(clone);
 
   requestAnimationFrame(_syncPrintPreviewPage);
+  if (isReactPrintDialogEnabled()) syncReactPrintDialogBridge();
   return;
 
   requestAnimationFrame(() => {
@@ -613,6 +682,7 @@ function _syncPrintPreviewPage() {
   if (meta) meta.textContent = previewState.pageLabel;
   if (prevBtn) prevBtn.disabled = previewState.prevDisabled;
   if (nextBtn) nextBtn.disabled = previewState.nextDisabled;
+  if (isReactPrintDialogEnabled()) syncReactPrintDialogBridge();
 }
 
 function _printEsc(value) {

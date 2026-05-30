@@ -424,6 +424,54 @@ export interface FinanceSurfaceSnapshot {
   capturedAt: string;
 }
 
+export interface PrintDialogSnapshot {
+  visible: boolean;
+  previewHtml: string;
+  previewMeta: string;
+  chartListHtml: string;
+  controls: {
+    gantt: boolean;
+    finance: boolean;
+    charts: boolean;
+    range: string;
+    paper: string;
+    orientation: string;
+    scale: string;
+    fit: string;
+    margin: string;
+    quality: string;
+  };
+  chartPickerVisible: boolean;
+  navigation: {
+    prevDisabled: boolean;
+    nextDisabled: boolean;
+  };
+  labels: {
+    title: string;
+    includeSectionTitle: string;
+    ganttLabel: string;
+    ganttHint: string;
+    financeLabel: string;
+    financeHint: string;
+    chartsLabel: string;
+    chartsHint: string;
+    chartPickerLabel: string;
+    settingsSectionTitle: string;
+    formatLabel: string;
+    orientationLabel: string;
+    scaleLabel: string;
+    fitLabel: string;
+    marginLabel: string;
+    qualityLabel: string;
+    cancelButton: string;
+    printButton: string;
+    exportButton: string;
+    prevTitle: string;
+    nextTitle: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

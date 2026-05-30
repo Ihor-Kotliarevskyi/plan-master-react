@@ -9,6 +9,7 @@ import { ContractorSurface } from "./components/contractor-surface";
 import { ContractorEntryModal } from "./components/contractor-entry-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
 import { FinanceFiltersShell, FinanceSummaryShell, FinanceTableShell } from "./components/finance-surface";
+import { PrintDialogModal } from "./components/print-dialog-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
@@ -190,6 +191,16 @@ function mountReactHost() {
     createRoot(paymentRegisterModal).render(
       <StrictMode>
         <PaymentRegisterModal />
+      </StrictMode>,
+    );
+  }
+
+  const printDialogModal = document.querySelector<HTMLElement>("[data-print-dialog-root] .modal");
+  if (printDialogModal) {
+    document.body.dataset.reactTransitionPrintDialog = "enabled";
+    createRoot(printDialogModal).render(
+      <StrictMode>
+        <PrintDialogModal />
       </StrictMode>,
     );
   }
