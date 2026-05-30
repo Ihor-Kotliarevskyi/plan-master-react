@@ -1,6 +1,34 @@
 import { useEffect, useState } from "react";
 import { openContractorEntryModal } from "../bridge/contractor-entry";
-import { readContractorSurfaceSnapshot, subscribeContractorSurfaceSync } from "../bridge/contractor-surface";
+import {
+  clearContractorSearch,
+  clearContractorSelection,
+  deleteContractor,
+  deleteContractorAct,
+  deleteContractorPayment,
+  deletePaymentRegister,
+  deleteSelectedContractorsFromSurface,
+  editContractor,
+  editContractorAct,
+  editContractorPayment,
+  exportPaymentRegister,
+  onContractorSearch,
+  openContractorActModal,
+  openContractorPaymentModal,
+  openContractorTask,
+  printPaymentRegister,
+  readContractorSurfaceSnapshot,
+  resetContractorFilters,
+  sortContractorDetails,
+  sortContractors,
+  startContractorColResize,
+  startContractorDetailColResize,
+  subscribeContractorSurfaceSync,
+  toggleAllVisibleContractors,
+  toggleContractorDetails,
+  toggleContractorSelection,
+  toggleContractorSelectionMode,
+} from "../bridge/contractor-surface";
 import { openPaymentRegisterModal } from "../bridge/payment-register";
 import {
   closeContractorToolsMenu,
@@ -48,9 +76,127 @@ export function ContractorSurface() {
     };
   }, []);
 
+  async function handleSurfaceAction(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    const actionElement = target.closest<HTMLElement>("[data-contractor-surface-action]");
+    if (!actionElement) return;
+
+    const action = actionElement.dataset.contractorSurfaceAction || "";
+    switch (action) {
+      case "clear-search":
+        clearContractorSearch();
+        return;
+      case "reset-filters":
+        resetContractorFilters();
+        return;
+      case "toggle-selection-mode":
+        toggleContractorSelectionMode();
+        return;
+      case "clear-selection":
+        clearContractorSelection();
+        return;
+      case "delete-selected":
+        await deleteSelectedContractorsFromSurface();
+        return;
+      case "sort-main-col":
+        sortContractors(actionElement.dataset.colKey || "");
+        return;
+      case "sort-detail-col":
+        sortContractorDetails(actionElement.dataset.detailGroup || "", actionElement.dataset.colKey || "");
+        return;
+      case "toggle-details":
+        toggleContractorDetails(actionElement.dataset.rowKey || "");
+        return;
+      case "open-task":
+        openContractorTask(Number(actionElement.dataset.taskIndex || -1));
+        return;
+      case "edit-contractor":
+        await editContractor(actionElement.dataset.rowKey || "");
+        return;
+      case "delete-contractor":
+        await deleteContractor(actionElement.dataset.rowKey || "");
+        return;
+      case "open-act-modal":
+        await openContractorActModal("", actionElement.dataset.contractPath || "");
+        return;
+      case "open-payment-modal":
+        await openContractorPaymentModal(actionElement.dataset.contractPath || "", actionElement.dataset.actPath || "");
+        return;
+      case "edit-act":
+        await editContractorAct(actionElement.dataset.actPath || "");
+        return;
+      case "delete-act":
+        await deleteContractorAct(actionElement.dataset.actPath || "");
+        return;
+      case "edit-payment":
+        await editContractorPayment(actionElement.dataset.paymentPath || "");
+        return;
+      case "delete-payment":
+        await deleteContractorPayment(actionElement.dataset.paymentPath || "");
+        return;
+      case "print-register":
+        printPaymentRegister(actionElement.dataset.registerId || "");
+        return;
+      case "export-register":
+        exportPaymentRegister(actionElement.dataset.registerId || "", actionElement.dataset.exportType || "xlsx");
+        return;
+      case "delete-register":
+        await deletePaymentRegister(actionElement.dataset.registerId || "");
+        return;
+      default:
+        return;
+    }
+  }
+
+  function handleSurfaceInput(event: React.FormEvent<HTMLElement>) {
+    const target = event.target as HTMLInputElement | null;
+    if (!target) return;
+    if (target.dataset.contractorSurfaceInput === "search") {
+      onContractorSearch(target.value);
+    }
+  }
+
+  function handleSurfaceChange(event: React.FormEvent<HTMLElement>) {
+    const target = event.target as HTMLInputElement | null;
+    if (!target) return;
+    const inputType = target.dataset.contractorSurfaceInput || "";
+    if (inputType === "toggle-select-all") {
+      toggleAllVisibleContractors(!!target.checked);
+      return;
+    }
+    if (inputType === "toggle-selection") {
+      toggleContractorSelection(target.dataset.rowKey || "", !!target.checked);
+    }
+  }
+
+  function handleSurfaceKeyDown(event: React.KeyboardEvent<HTMLElement>) {
+    const target = event.target as HTMLInputElement | null;
+    if (!target || target.dataset.contractorSurfaceInput !== "search") return;
+    if (event.key !== "Escape") return;
+    clearContractorSearch();
+  }
+
+  function handleSurfaceMouseDown(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement | null;
+    const handle = target?.closest<HTMLElement>("[data-contractor-surface-mousedown]");
+    if (!handle) return;
+    const action = handle.dataset.contractorSurfaceMousedown || "";
+    if (action === "resize-main-col") {
+      startContractorColResize(event.nativeEvent, handle.dataset.col || "");
+      return;
+    }
+    if (action === "resize-detail-col") {
+      startContractorDetailColResize(
+        event.nativeEvent,
+        handle.dataset.detailGroup || "",
+        handle.dataset.col || "",
+      );
+    }
+  }
+
   return (
     <>
-      <div className="contractor-toolbar">
+      <div className="contractor-toolbar" onClick={(event) => void handleSurfaceAction(event)}>
         <div className="contractor-search-wrap">
           <i data-lucide="search"></i>
           <input
@@ -120,9 +266,24 @@ export function ContractorSurface() {
           </div>
         </div>
       </div>
-      <div dangerouslySetInnerHTML={{ __html: snapshot.summaryHtml }} className="contractor-summary" id="contractor-summary" />
+      <div
+        dangerouslySetInnerHTML={{ __html: snapshot.summaryHtml }}
+        className="contractor-summary"
+        id="contractor-summary"
+        onClick={(event) => void handleSurfaceAction(event)}
+        onMouseDown={handleSurfaceMouseDown}
+      />
       <div className="contractor-table-wrap">
-        <table dangerouslySetInnerHTML={{ __html: snapshot.tableHtml }} className="contractor-tbl" id="contractor-tbl" />
+        <table
+          dangerouslySetInnerHTML={{ __html: snapshot.tableHtml }}
+          className="contractor-tbl"
+          id="contractor-tbl"
+          onClick={(event) => void handleSurfaceAction(event)}
+          onInput={handleSurfaceInput}
+          onChange={handleSurfaceChange}
+          onKeyDown={handleSurfaceKeyDown}
+          onMouseDown={handleSurfaceMouseDown}
+        />
       </div>
     </>
   );
