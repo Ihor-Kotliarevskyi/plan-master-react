@@ -12,6 +12,7 @@ import { ContractorEntryModal } from "./components/contractor-entry-modal";
 import { ContractorDialogModal } from "./components/contractor-dialog-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
 import { ContractorImportMappingModal } from "./components/contractor-import-mapping-modal";
+import { ContractorImportReviewModal } from "./components/contractor-import-review-modal";
 import { FinanceFiltersShell, FinanceSummaryShell, FinanceTableShell } from "./components/finance-surface";
 import { PrintDialogModal } from "./components/print-dialog-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
@@ -261,6 +262,16 @@ function mountReactHost() {
   createRoot(contractorImportMappingHost).render(
     <StrictMode>
       <ContractorImportMappingModal />
+    </StrictMode>,
+  );
+
+  const contractorImportReviewHost = document.createElement("div");
+  contractorImportReviewHost.id = "react-contractor-import-review-root";
+  document.body.appendChild(contractorImportReviewHost);
+  document.body.dataset.reactTransitionContractorImportReview = "enabled";
+  createRoot(contractorImportReviewHost).render(
+    <StrictMode>
+      <ContractorImportReviewModal />
     </StrictMode>,
   );
 

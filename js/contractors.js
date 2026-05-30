@@ -106,6 +106,11 @@ let _reactContractorImportMappingState = {
   defaultTaskId: "",
 };
 let _reactContractorImportMappingResolver = null;
+let _reactContractorImportReviewState = {
+  visible: false,
+  preview: null,
+};
+let _reactContractorImportReviewResolver = null;
 
 function isReactContractorSurfaceEnabled() {
   return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
@@ -135,6 +140,10 @@ function isReactContractorImportMappingEnabled() {
   return document.body?.dataset?.reactTransitionContractorImportMapping === "enabled";
 }
 
+function isReactContractorImportReviewEnabled() {
+  return document.body?.dataset?.reactTransitionContractorImportReview === "enabled";
+}
+
 function syncReactContractorEntryBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-entry-sync"));
 }
@@ -145,6 +154,10 @@ function syncReactContractorDialogBridge() {
 
 function syncReactContractorImportMappingBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-import-mapping-sync"));
+}
+
+function syncReactContractorImportReviewBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:contractor-import-review-sync"));
 }
 
 function getContractorSurfaceBridgeSnapshot() {
@@ -257,6 +270,25 @@ function getContractorImportMappingBridgeSnapshot() {
   };
 }
 
+function getContractorImportReviewBridgeSnapshot() {
+  const preview = _reactContractorImportReviewState.preview || {};
+  return {
+    visible: _reactContractorImportReviewState.visible,
+    hasImportableRows: !!preview.hasImportableRows,
+    filterCardsHtml: preview.filterCardsHtml || "",
+    noteHtml: preview.noteHtml || "",
+    tableHtml: preview.tableHtml || "",
+    labels: {
+      title: CONTRACTOR_UI.importReviewTitle,
+      importButton: CONTRACTOR_UI.importLabel,
+      okButton: CONTRACTOR_UI.importOkLabel,
+      cancelButton: CONTRACTOR_UI.cancelLabel,
+      noChangesValidation: CONTRACTOR_UI.importNoChangesValidation,
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 function closeReactContractorImportMapping(result = null) {
   _reactContractorImportMappingState = {
     visible: false,
@@ -281,6 +313,39 @@ function submitReactContractorImportMapping(payload) {
   });
   if (payload?.defaultTaskId) next.defaultTaskId = payload.defaultTaskId;
   closeReactContractorImportMapping(next);
+}
+
+function closeReactContractorImportReview(result = null) {
+  _reactContractorImportReviewState = {
+    visible: false,
+    preview: null,
+  };
+  _ctCloseImportReviewSession();
+  syncReactContractorImportReviewBridge();
+  if (_reactContractorImportReviewResolver) {
+    _reactContractorImportReviewResolver(result);
+    _reactContractorImportReviewResolver = null;
+  }
+}
+
+function submitReactContractorImportReview() {
+  const preview = _reactContractorImportReviewState.preview;
+  if (!preview) return { ok: false, error: CONTRACTOR_UI.importNoChangesValidation };
+  const updatedEntries = (preview.entries || []).map((entry) => ({ ...entry }));
+  document.querySelectorAll("[data-import-decision]").forEach((select) => {
+    const index = Number(select.getAttribute("data-entry-index"));
+    const kind = select.getAttribute("data-decision-kind");
+    if (!updatedEntries[index]) return;
+    if (kind === "row") updatedEntries[index].rowDecision = select.value;
+    if (kind === "payment") updatedEntries[index].paymentDecision = select.value;
+  });
+  updatedEntries.forEach(_ctNormalizeImportDecisionEntry);
+  const nextSummary = _ctSummarizeContractorImportPlan(updatedEntries, preview.processed || 0);
+  if (!nextSummary.itemsCreated && !nextSummary.itemsUpdated && !nextSummary.paymentsAdded) {
+    return { ok: false, error: CONTRACTOR_UI.importNoChangesValidation };
+  }
+  closeReactContractorImportReview({ ...preview, ...nextSummary, entries: updatedEntries });
+  return { ok: true };
 }
 
 function _contractorReactDialogContractData(entry) {
@@ -3400,6 +3465,43 @@ async function _confirmContractorImport(preview) {
   ];
   const hasDecisionOptions = issueEntries.some((entry) => entry.rowDecisionOptions?.length || entry.paymentDecisionOptions?.length);
   const hasImportableRows = summary.itemsCreated > 0 || summary.itemsUpdated > 0 || summary.paymentsAdded > 0 || hasDecisionOptions;
+  if (isReactContractorImportReviewEnabled()) {
+    _reactContractorImportReviewState = {
+      visible: true,
+      preview: {
+        ...preview,
+        ...summary,
+        hasImportableRows,
+        filterCardsHtml: filterCards.map(([filter, count, label], index) => `
+            <button type="button" class="contractor-import-filter-card${index === 0 ? " is-active" : ""}" data-import-filter="${filter}">
+              <b>${count}</b><span>${label}</span>
+            </button>`).join(""),
+        noteHtml: summary.fallbackTaskUsed ? `<div class="contractor-import-warnings"><b>${CONTRACTOR_UI.importReviewNoteTitle}</b><ul><li>${CONTRACTOR_UI.importReviewFallbackTaskNote}</li></ul></div>` : "",
+        tableHtml: reviewEntries.length ? `
+          <div class="contractor-import-warnings">
+            <b>${CONTRACTOR_UI.importReviewRowsTitle}</b>
+            <table class="contractor-import-review-table">
+              <thead>
+                <tr>
+                  <th>${CONTRACTOR_UI.importReviewRefHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewSupplierHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewPositionHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewPaymentHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewIssueHeader}</th>
+                  <th>${CONTRACTOR_UI.importReviewActionHeader}</th>
+                </tr>
+              </thead>
+              <tbody>${reviewEntries.map((entry) => _ctRenderImportIssueRow(entry)).join("")}</tbody>
+            </table>
+          </div>` : "",
+      },
+    };
+    _ctOpenImportReviewSession(reviewEntries);
+    syncReactContractorImportReviewBridge();
+    return await new Promise((resolve) => {
+      _reactContractorImportReviewResolver = resolve;
+    });
+  }
   const result = await Swal.fire({
     icon: issueEntries.length ? "warning" : "question",
     title: CONTRACTOR_UI.importReviewTitle,

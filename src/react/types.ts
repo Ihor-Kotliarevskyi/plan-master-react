@@ -618,6 +618,22 @@ export interface ContractorImportMappingSnapshot {
   capturedAt: string;
 }
 
+export interface ContractorImportReviewSnapshot {
+  visible: boolean;
+  hasImportableRows: boolean;
+  filterCardsHtml: string;
+  noteHtml: string;
+  tableHtml: string;
+  labels: {
+    title: string;
+    importButton: string;
+    okButton: string;
+    cancelButton: string;
+    noChangesValidation: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{
