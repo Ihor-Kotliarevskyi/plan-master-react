@@ -387,6 +387,20 @@ export interface ContractorSurfaceSnapshot {
   capturedAt: string;
 }
 
+export interface PaymentRegisterSnapshot {
+  visible: boolean;
+  currentHtml: string;
+  listHtml: string;
+  labels: {
+    title: string;
+    createButton: string;
+    exportXlsxButton: string;
+    exportCsvButton: string;
+    printButton: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

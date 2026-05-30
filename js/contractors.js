@@ -75,6 +75,9 @@ let _contractorDetailColDrag = null;
 let _contractorEntryEditPath = null;
 let _contractorEntryOriginalKey = "";
 let _contractorImportMapping = null;
+let _reactPaymentRegisterState = {
+  visible: false,
+};
 
 function isReactContractorSurfaceEnabled() {
   return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
@@ -82,6 +85,14 @@ function isReactContractorSurfaceEnabled() {
 
 function syncReactContractorSurfaceBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-surface-sync"));
+}
+
+function isReactPaymentRegisterEnabled() {
+  return document.body?.dataset?.reactTransitionPaymentRegister === "enabled";
+}
+
+function syncReactPaymentRegisterBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:payment-register-sync"));
 }
 
 function getContractorSurfaceBridgeSnapshot() {
@@ -94,6 +105,22 @@ function getContractorSurfaceBridgeSnapshot() {
     resetFilterHtml: document.getElementById("contractor-reset-filter")?.innerHTML || "",
     selectionActionsHtml: document.getElementById("contractor-selection-actions")?.innerHTML || "",
     tableHtml: document.getElementById("contractor-tbl")?.innerHTML || "",
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function getPaymentRegisterBridgeSnapshot() {
+  return {
+    visible: _reactPaymentRegisterState.visible,
+    currentHtml: document.getElementById("payment-register-current")?.innerHTML || "",
+    listHtml: document.getElementById("payment-register-list")?.innerHTML || "",
+    labels: {
+      title: "Реєстри платежів",
+      createButton: "Сформувати з поточного фільтра",
+      exportXlsxButton: "Поточний XLSX",
+      exportCsvButton: "Поточний CSV",
+      printButton: "Друк поточного",
+    },
     capturedAt: new Date().toISOString(),
   };
 }
@@ -2074,13 +2101,17 @@ function openPaymentRegisterModal() {
   _ensurePaymentRegisters();
   const modal = document.getElementById("payment-register-modal");
   if (!modal) return;
+  _reactPaymentRegisterState.visible = true;
   modal.style.display = "flex";
   renderPaymentRegisterModal();
+  if (isReactPaymentRegisterEnabled()) syncReactPaymentRegisterBridge();
 }
 
 function closePaymentRegisterModal() {
   const modal = document.getElementById("payment-register-modal");
   if (modal) modal.style.display = "none";
+  _reactPaymentRegisterState.visible = false;
+  if (isReactPaymentRegisterEnabled()) syncReactPaymentRegisterBridge();
 }
 
 function renderPaymentRegisterModal() {
@@ -2133,6 +2164,7 @@ function renderPaymentRegisterModal() {
       .join("");
   }
   lucide.createIcons({ nodes: [document.getElementById("payment-register-modal")] });
+  if (isReactPaymentRegisterEnabled()) syncReactPaymentRegisterBridge();
 }
 
 async function createPaymentRegisterFromFilters() {

@@ -6,6 +6,7 @@ import { DependencyListModal } from "./components/dependency-list-modal";
 import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surface";
 import { NotesModal } from "./components/notes-modal";
 import { ContractorSurface } from "./components/contractor-surface";
+import { PaymentRegisterModal } from "./components/payment-register-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
@@ -179,6 +180,16 @@ function mountReactHost() {
       </StrictMode>,
     );
     (window as ReactRuntimeWindow).renderContractors?.();
+  }
+
+  const paymentRegisterModal = document.querySelector<HTMLElement>("[data-payment-register-root] .modal");
+  if (paymentRegisterModal) {
+    document.body.dataset.reactTransitionPaymentRegister = "enabled";
+    createRoot(paymentRegisterModal).render(
+      <StrictMode>
+        <PaymentRegisterModal />
+      </StrictMode>,
+    );
   }
 }
 
