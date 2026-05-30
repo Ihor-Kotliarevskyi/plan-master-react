@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
+import { openContractorEntryModal } from "../bridge/contractor-entry";
 import { readContractorSurfaceSnapshot, subscribeContractorSurfaceSync } from "../bridge/contractor-surface";
 import { openPaymentRegisterModal } from "../bridge/payment-register";
+import {
+  closeContractorToolsMenu,
+  deleteSelectedContractors,
+  deleteVisibleContractors,
+  exportContractorImportTemplate,
+  importContractorTable,
+  toggleContractorToolsMenu,
+} from "../bridge/contractor-tools";
 import type { ContractorSurfaceSnapshot } from "../types";
 
 declare global {
@@ -25,6 +34,19 @@ export function ContractorSurface() {
       nodes: Array.from(document.querySelectorAll("#pane-contractors [data-lucide]")),
     });
   }, [snapshot.capturedAt]);
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest("#contractor-tools-menu")) return;
+      closeContractorToolsMenu();
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+    };
+  }, []);
 
   return (
     <>
@@ -55,36 +77,40 @@ export function ContractorSurface() {
         <span dangerouslySetInnerHTML={{ __html: snapshot.resetFilterHtml }} id="contractor-reset-filter" />
         <div dangerouslySetInnerHTML={{ __html: snapshot.selectionActionsHtml }} id="contractor-selection-actions" />
         <span className="contractor-toolbar-spacer"></span>
-        <button className="btn btn-sm btn-acc" data-contractor-entry-action="open-modal">
+        <button className="btn btn-sm btn-acc" onClick={() => openContractorEntryModal()} type="button">
           <i data-lucide="plus"></i> Контрагент
         </button>
         <div className="tools-menu contractor-tools-menu" id="contractor-tools-menu">
           <button
             className="btn btn-icon tools-trigger"
-            data-contractor-tools-action="toggle-menu"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleContractorToolsMenu();
+            }}
             title="Імпорт та реєстри"
             type="button"
           >
             <i data-lucide="more-horizontal"></i>
           </button>
           <div className="tools-dropdown" id="contractor-tools-dropdown">
-            <button className="tools-item" data-contractor-tools-action="export-template" type="button">
+            <button className="tools-item" onClick={exportContractorImportTemplate} type="button">
               <i data-lucide="upload"></i> Шаблон
             </button>
             <label className="tools-item contractor-import-btn">
               <i data-lucide="download"></i> Імпорт оплат
               <input
                 accept=".xlsx,.xls,.csv"
-                data-contractor-tools-input="import-file"
                 style={{ display: "none" }}
                 type="file"
+                onChange={(event) => importContractorTable(event.nativeEvent)}
               />
             </label>
             <div className="tools-sep"></div>
-            <button className="tools-item" data-contractor-tools-action="delete-selected" type="button">
+            <button className="tools-item" onClick={() => void deleteSelectedContractors()} type="button">
               <i data-lucide="trash-2"></i> Видалити вибраних
             </button>
-            <button className="tools-item" data-contractor-tools-action="delete-visible" type="button">
+            <button className="tools-item" onClick={() => void deleteVisibleContractors()} type="button">
               <i data-lucide="trash"></i> Видалити всіх за фільтром
             </button>
             <div className="tools-sep"></div>

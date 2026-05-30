@@ -25,6 +25,9 @@ const snapshotSchema: z.ZodType<ChartSurfaceSnapshot> = z.object({
 
 type ChartSurfaceWindow = Window & {
   getChartSurfaceBridgeSnapshot?: () => unknown;
+  printChart?: (id: string) => void;
+  removeChart?: (id: string) => void;
+  removeAutoChart?: (id: string) => void;
 };
 
 function getChartSurfaceWindow(): ChartSurfaceWindow {
@@ -64,4 +67,16 @@ export function subscribeChartSurfaceSync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:chart-surface-sync", handler);
   return () => document.removeEventListener("plan-master:chart-surface-sync", handler);
+}
+
+export function printChart(chartId: string): void {
+  getChartSurfaceWindow().printChart?.(chartId);
+}
+
+export function removeChart(chartId: string): void {
+  getChartSurfaceWindow().removeChart?.(chartId);
+}
+
+export function removeAutoChart(chartId: string): void {
+  getChartSurfaceWindow().removeAutoChart?.(chartId);
 }

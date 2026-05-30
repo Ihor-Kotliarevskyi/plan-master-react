@@ -51,6 +51,11 @@ const snapshotSchema: z.ZodType<PrintDialogSnapshot> = z.object({
 
 type PrintDialogWindow = Window & {
   getPrintDialogBridgeSnapshot?: () => unknown;
+  closePrintDialog?: () => void;
+  changePrintPreviewPage?: (delta: number) => void;
+  doPrint?: () => Promise<void> | void;
+  doExportPDF?: () => Promise<void> | void;
+  _schedulePrintPreview?: () => void;
 };
 
 function getPrintDialogWindow(): PrintDialogWindow {
@@ -116,4 +121,24 @@ export function subscribePrintDialogSync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:print-dialog-sync", handler);
   return () => document.removeEventListener("plan-master:print-dialog-sync", handler);
+}
+
+export function closePrintDialog(): void {
+  getPrintDialogWindow().closePrintDialog?.();
+}
+
+export function changePrintPreviewPage(delta: number): void {
+  getPrintDialogWindow().changePrintPreviewPage?.(delta);
+}
+
+export async function doPrint(): Promise<void> {
+  await Promise.resolve(getPrintDialogWindow().doPrint?.());
+}
+
+export async function doExportPDF(): Promise<void> {
+  await Promise.resolve(getPrintDialogWindow().doExportPDF?.());
+}
+
+export function schedulePrintPreview(): void {
+  getPrintDialogWindow()._schedulePrintPreview?.();
 }

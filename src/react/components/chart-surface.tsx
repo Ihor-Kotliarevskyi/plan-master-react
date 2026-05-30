@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { readChartSurfaceSnapshot, subscribeChartSurfaceSync } from "../bridge/chart-surface";
+import { printChart, readChartSurfaceSnapshot, removeAutoChart, removeChart, subscribeChartSurfaceSync } from "../bridge/chart-surface";
 import { addCustomChart, openChartEdit } from "../bridge/chart-edit";
 import type { ChartSurfaceSnapshot } from "../types";
 
@@ -83,9 +83,29 @@ export function ChartSurface() {
   }, [snapshot.capturedAt]);
 
   function handleChartGridClick(event: React.MouseEvent<HTMLElement>) {
-    const actionElement = (event.target as HTMLElement).closest<HTMLElement>("[data-chart-action='open-edit']");
-    if (!actionElement) return;
-    openChartEdit(actionElement.dataset.chartId || "");
+    const target = event.target as HTMLElement;
+    const editAction = target.closest<HTMLElement>("[data-chart-action='open-edit']");
+    if (editAction) {
+      openChartEdit(editAction.dataset.chartId || "");
+      return;
+    }
+
+    const surfaceAction = target.closest<HTMLElement>("[data-chart-surface-action]");
+    if (!surfaceAction) return;
+    const chartId = surfaceAction.dataset.chartId || "";
+    const action = surfaceAction.dataset.chartSurfaceAction || "";
+
+    if (action === "print-chart") {
+      printChart(chartId);
+      return;
+    }
+    if (action === "remove-chart") {
+      removeChart(chartId);
+      return;
+    }
+    if (action === "remove-auto-chart") {
+      removeAutoChart(chartId);
+    }
   }
 
   return (

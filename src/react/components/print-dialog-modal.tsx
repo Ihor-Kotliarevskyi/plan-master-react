@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { readPrintDialogSnapshot, subscribePrintDialogSync } from "../bridge/print-dialog";
+import {
+  changePrintPreviewPage,
+  closePrintDialog,
+  doExportPDF,
+  doPrint,
+  readPrintDialogSnapshot,
+  schedulePrintPreview,
+  subscribePrintDialogSync,
+} from "../bridge/print-dialog";
 import type { PrintDialogSnapshot } from "../types";
 
 declare global {
@@ -87,6 +95,28 @@ export function PrintDialogModal() {
     });
   }, [snapshot.capturedAt]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("print-modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closePrintDialog();
+    };
+
+    const handlePreviewSchedule = () => {
+      schedulePrintPreview();
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    modalRoot.addEventListener("change", handlePreviewSchedule);
+    modalRoot.addEventListener("input", handlePreviewSchedule);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+      modalRoot.removeEventListener("change", handlePreviewSchedule);
+      modalRoot.removeEventListener("input", handlePreviewSchedule);
+    };
+  }, []);
+
   return (
     <div className="print-modal-layout">
       <div className="print-preview-panel">
@@ -94,9 +124,10 @@ export function PrintDialogModal() {
           <button
             className="btn btn-sm btn-icon"
             id="print-prev-page"
-            data-print-action="prev-page"
+            onClick={() => changePrintPreviewPage(-1)}
             title={snapshot.labels.prevTitle}
             disabled={snapshot.navigation.prevDisabled}
+            type="button"
           >
             &lsaquo;
           </button>
@@ -106,9 +137,10 @@ export function PrintDialogModal() {
           <button
             className="btn btn-sm btn-icon"
             id="print-next-page"
-            data-print-action="next-page"
+            onClick={() => changePrintPreviewPage(1)}
             title={snapshot.labels.nextTitle}
             disabled={snapshot.navigation.nextDisabled}
+            type="button"
           >
             &rsaquo;
           </button>
@@ -146,7 +178,6 @@ export function PrintDialogModal() {
               <input
                 type="checkbox"
                 id="print-charts"
-                data-print-action="toggle-chart-picker"
                 defaultChecked={snapshot.controls.charts}
               />
               {" "}
@@ -204,9 +235,9 @@ export function PrintDialogModal() {
         </div>
         <input type="hidden" id="print-range" defaultValue={snapshot.controls.range} />
         <div className="print-actions">
-          <button className="btn" data-print-action="close-dialog">{snapshot.labels.cancelButton}</button>
-          <button className="btn" data-print-action="do-print"><i data-lucide="printer"></i> {snapshot.labels.printButton}</button>
-          <button className="btn btn-acc" data-print-action="export-pdf">
+          <button className="btn" onClick={closePrintDialog} type="button">{snapshot.labels.cancelButton}</button>
+          <button className="btn" onClick={() => void doPrint()} type="button"><i data-lucide="printer"></i> {snapshot.labels.printButton}</button>
+          <button className="btn btn-acc" onClick={() => void doExportPDF()} type="button">
             <i data-lucide="file-text"></i> {snapshot.labels.exportButton}
           </button>
         </div>
