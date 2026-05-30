@@ -581,6 +581,43 @@ export interface ContractorDialogSnapshot {
   capturedAt: string;
 }
 
+export interface ContractorImportMappingFieldState {
+  field: string;
+  label: string;
+  column: string;
+  examplesHtml: string;
+}
+
+export interface ContractorImportMappingSubmitPayload {
+  defaultTaskId: string;
+  fields: Array<{
+    field: string;
+    column: string;
+  }>;
+}
+
+export interface ContractorImportMappingSnapshot {
+  visible: boolean;
+  fields: ContractorImportMappingFieldState[];
+  columns: string[];
+  defaultTaskId: string;
+  defaultTaskOptions: Array<{
+    value: string;
+    label: string;
+  }>;
+  labels: {
+    title: string;
+    defaultTaskLabel: string;
+    projectFieldHeader: string;
+    fileColumnHeader: string;
+    examplesHeader: string;
+    continueButton: string;
+    cancelButton: string;
+    noImportOption: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

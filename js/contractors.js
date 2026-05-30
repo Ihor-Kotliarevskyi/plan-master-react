@@ -97,6 +97,15 @@ let _reactContractorDialogState = {
   note: "",
   contracts: [],
 };
+let _reactContractorImportMappingState = {
+  visible: false,
+  rows: [],
+  fields: [],
+  columns: [],
+  defaultTaskOptions: [],
+  defaultTaskId: "",
+};
+let _reactContractorImportMappingResolver = null;
 
 function isReactContractorSurfaceEnabled() {
   return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
@@ -122,12 +131,20 @@ function isReactContractorDialogEnabled() {
   return document.body?.dataset?.reactTransitionContractorDialog === "enabled";
 }
 
+function isReactContractorImportMappingEnabled() {
+  return document.body?.dataset?.reactTransitionContractorImportMapping === "enabled";
+}
+
 function syncReactContractorEntryBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-entry-sync"));
 }
 
 function syncReactContractorDialogBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-dialog-sync"));
+}
+
+function syncReactContractorImportMappingBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:contractor-import-mapping-sync"));
 }
 
 function getContractorSurfaceBridgeSnapshot() {
@@ -217,6 +234,53 @@ function getContractorDialogBridgeSnapshot() {
     actTypeOptions: Object.entries(CONTRACTOR_ACT_TYPES).map(([value, label]) => ({ value, label })),
     capturedAt: new Date().toISOString(),
   };
+}
+
+function getContractorImportMappingBridgeSnapshot() {
+  return {
+    visible: _reactContractorImportMappingState.visible,
+    fields: _reactContractorImportMappingState.fields,
+    columns: _reactContractorImportMappingState.columns,
+    defaultTaskId: _reactContractorImportMappingState.defaultTaskId,
+    defaultTaskOptions: _reactContractorImportMappingState.defaultTaskOptions,
+    labels: {
+      title: CONTRACTOR_UI.importMappingTitle,
+      defaultTaskLabel: CONTRACTOR_UI.importMappingDefaultTaskLabel,
+      projectFieldHeader: CONTRACTOR_UI.importProjectFieldHeader,
+      fileColumnHeader: CONTRACTOR_UI.importFileColumnHeader,
+      examplesHeader: CONTRACTOR_UI.importExamplesHeader,
+      continueButton: CONTRACTOR_UI.importContinueLabel,
+      cancelButton: CONTRACTOR_UI.cancelLabel,
+      noImportOption: CONTRACTOR_UI.noImportOptionLabel,
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function closeReactContractorImportMapping(result = null) {
+  _reactContractorImportMappingState = {
+    visible: false,
+    rows: [],
+    fields: [],
+    columns: [],
+    defaultTaskOptions: [],
+    defaultTaskId: "",
+  };
+  _ctCloseImportMappingSession();
+  syncReactContractorImportMappingBridge();
+  if (_reactContractorImportMappingResolver) {
+    _reactContractorImportMappingResolver(result);
+    _reactContractorImportMappingResolver = null;
+  }
+}
+
+function submitReactContractorImportMapping(payload) {
+  const next = {};
+  (payload?.fields || []).forEach((field) => {
+    if (field?.column) next[field.field] = field.column;
+  });
+  if (payload?.defaultTaskId) next.defaultTaskId = payload.defaultTaskId;
+  closeReactContractorImportMapping(next);
 }
 
 function _contractorReactDialogContractData(entry) {
@@ -2877,6 +2941,32 @@ function _ctHeaderRowScore(line, nextRows = []) {
 }
 
 async function _confirmContractorImportMapping(rows) {
+  if (isReactContractorImportMappingEnabled()) {
+    const columns = _ctImportColumns(rows);
+    const fields = CONTRACTOR_IMPORT_FIELD_ORDER.map((field) => ({
+      field,
+      label: CONTRACTOR_IMPORT_FIELD_LABELS[field] || field,
+      column: "",
+      examplesHtml: '<span class="muted">-</span>',
+    }));
+    const defaultTaskOptions = [{ value: "", label: CONTRACTOR_UI.noImportOptionLabel }]
+      .concat((tasks || []).map((task) => ({ value: String(task.id || String(task.n)), label: `#${task.n} ${task.name || ""}` })));
+
+    _reactContractorImportMappingState = {
+      visible: true,
+      rows,
+      fields,
+      columns,
+      defaultTaskOptions,
+      defaultTaskId: "",
+    };
+    _ctOpenImportMappingSession(rows);
+    syncReactContractorImportMappingBridge();
+    return await new Promise((resolve) => {
+      _reactContractorImportMappingResolver = resolve;
+    });
+  }
+
   const columns = _ctImportColumns(rows);
   const mapping = {};
   const body = CONTRACTOR_IMPORT_FIELD_ORDER.map((field) => {

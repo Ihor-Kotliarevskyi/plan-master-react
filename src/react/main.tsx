@@ -11,6 +11,7 @@ import { ContractorSurface } from "./components/contractor-surface";
 import { ContractorEntryModal } from "./components/contractor-entry-modal";
 import { ContractorDialogModal } from "./components/contractor-dialog-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
+import { ContractorImportMappingModal } from "./components/contractor-import-mapping-modal";
 import { FinanceFiltersShell, FinanceSummaryShell, FinanceTableShell } from "./components/finance-surface";
 import { PrintDialogModal } from "./components/print-dialog-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
@@ -250,6 +251,16 @@ function mountReactHost() {
   createRoot(contractorDialogHost).render(
     <StrictMode>
       <ContractorDialogModal />
+    </StrictMode>,
+  );
+
+  const contractorImportMappingHost = document.createElement("div");
+  contractorImportMappingHost.id = "react-contractor-import-mapping-root";
+  document.body.appendChild(contractorImportMappingHost);
+  document.body.dataset.reactTransitionContractorImportMapping = "enabled";
+  createRoot(contractorImportMappingHost).render(
+    <StrictMode>
+      <ContractorImportMappingModal />
     </StrictMode>,
   );
 
