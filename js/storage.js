@@ -66,6 +66,21 @@ function saveAll() {
   }
 }
 
+function _isValidBufferedProjectSnapshot(snapshot) {
+  return !!(
+    snapshot &&
+    snapshot.proj &&
+    Array.isArray(snapshot.cats) &&
+    Array.isArray(snapshot.tasks)
+  );
+}
+
+function _repairBufferedProjects(projectMap) {
+  return Object.fromEntries(
+    Object.entries(projectMap || {}).filter(([, snapshot]) => _isValidBufferedProjectSnapshot(snapshot)),
+  );
+}
+
 function loadAll() {
   // UI-налаштування (зум, фільтри) — незмінно
   try {
@@ -95,7 +110,7 @@ function loadAll() {
   try {
     const d = JSON.parse(localStorage.getItem(SK_BUF));
     if (d?.allProjects && Object.keys(d.allProjects).length) {
-      allProjects = d.allProjects;
+      allProjects = _repairBufferedProjects(d.allProjects);
       if (typeof normalizeRuntimeBufferedProjectRoles === "function") {
         normalizeRuntimeBufferedProjectRoles(allProjects);
       } else if (typeof normalizeProjectRole === "function") {
@@ -105,7 +120,18 @@ function loadAll() {
           }
         });
       }
-      currentId   = d.currentId || Object.keys(d.allProjects)[0];
+      const projectIds = Object.keys(allProjects || {});
+      if (!projectIds.length) {
+        initDefaultProject();
+      } else {
+        currentId = allProjects[d.currentId] ? d.currentId : projectIds[0];
+        try {
+          const payload = typeof buildRuntimeStorageBufferPayload === "function"
+            ? buildRuntimeStorageBufferPayload(allProjects, currentId, d._userId || null)
+            : { allProjects, currentId, _userId: d._userId || null };
+          localStorage.setItem(SK_BUF, JSON.stringify(payload));
+        } catch (_) {}
+      }
     } else {
       initDefaultProject();
     }
