@@ -8,6 +8,7 @@ import { NotesModal } from "./components/notes-modal";
 import { ContractorSurface } from "./components/contractor-surface";
 import { ContractorEntryModal } from "./components/contractor-entry-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
+import { FinanceFiltersShell, FinanceSummaryShell, FinanceTableShell } from "./components/finance-surface";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
@@ -199,6 +200,34 @@ function mountReactHost() {
     createRoot(contractorEntryModal).render(
       <StrictMode>
         <ContractorEntryModal />
+      </StrictMode>,
+    );
+  }
+
+  const financeFilters = document.getElementById("fin-filters");
+  if (financeFilters) {
+    document.body.dataset.reactTransitionFinanceSurface = "enabled";
+    createRoot(financeFilters).render(
+      <StrictMode>
+        <FinanceFiltersShell />
+      </StrictMode>,
+    );
+  }
+
+  const financeSummary = document.getElementById("fin-summary");
+  if (financeSummary) {
+    createRoot(financeSummary).render(
+      <StrictMode>
+        <FinanceSummaryShell />
+      </StrictMode>,
+    );
+  }
+
+  const financeTable = document.getElementById("fin-tbl");
+  if (financeTable) {
+    createRoot(financeTable).render(
+      <StrictMode>
+        <FinanceTableShell />
       </StrictMode>,
     );
   }

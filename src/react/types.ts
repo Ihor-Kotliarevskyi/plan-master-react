@@ -417,6 +417,13 @@ export interface ContractorEntrySnapshot {
   capturedAt: string;
 }
 
+export interface FinanceSurfaceSnapshot {
+  filtersHtml: string;
+  summaryHtml: string;
+  tableHtml: string;
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

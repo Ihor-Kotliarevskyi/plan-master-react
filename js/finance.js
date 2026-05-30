@@ -4,6 +4,23 @@ let weeklyCostChart = null;
 let _finResize = null;
 let showWeeklyCostBars = false;
 let financeChartHeight = 260;
+
+function isReactFinanceSurfaceEnabled() {
+  return document.body?.dataset?.reactTransitionFinanceSurface === "enabled";
+}
+
+function syncReactFinanceSurfaceBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:finance-surface-sync"));
+}
+
+function getFinanceSurfaceBridgeSnapshot() {
+  return {
+    filtersHtml: document.getElementById("fin-filters")?.innerHTML || "",
+    summaryHtml: document.getElementById("fin-summary")?.innerHTML || "",
+    tableHtml: document.getElementById("fin-tbl")?.innerHTML || "",
+    capturedAt: new Date().toISOString(),
+  };
+}
 const FINANCE_UI = typeof buildRuntimeFinanceUiModel === "function"
   ? buildRuntimeFinanceUiModel()
   : {
@@ -168,6 +185,8 @@ function switchFinTab(tab) {
   document.getElementById("fin-pane-overview")?.classList.toggle("active", finActiveTab === "overview");
   document.getElementById("fin-pane-table")?.classList.toggle("active", finActiveTab === "table");
   if (finActiveTab === "overview") requestAnimationFrame(renderSCurve);
+  if (isReactFinanceSurfaceEnabled()) syncReactFinanceSurfaceBridge();
+  if (isReactFinanceSurfaceEnabled()) syncReactFinanceSurfaceBridge();
 }
 
 function renderFinFilters() {
@@ -224,6 +243,7 @@ function renderFinFilters() {
       </button>
     </div>`;
   lucide.createIcons({ nodes: [document.getElementById("fin-filters")] });
+  if (isReactFinanceSurfaceEnabled()) syncReactFinanceSurfaceBridge();
 }
 
 function _hasFinanceFilters() {
@@ -485,6 +505,7 @@ function renderFinance() {
   _renderFinanceOverview();
   _renderFinanceTable();
   switchFinTab(finActiveTab);
+  if (isReactFinanceSurfaceEnabled()) syncReactFinanceSurfaceBridge();
 }
 
 function _renderFinanceOverview() {
@@ -600,6 +621,7 @@ function _renderFinanceTable() {
          <td colspan="2"></td>
        </tr>
      </tfoot>`;
+  if (isReactFinanceSurfaceEnabled()) syncReactFinanceSurfaceBridge();
 }
 
 function _renderFinanceRow(t) {
