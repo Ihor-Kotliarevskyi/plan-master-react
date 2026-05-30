@@ -339,6 +339,35 @@ export interface TaskModalSnapshot {
   capturedAt: string;
 }
 
+export interface NotesModalSnapshot {
+  visible: boolean;
+  canEdit: boolean;
+  title: string;
+  notesHtml: string;
+  labels: {
+    placeholder: string;
+    closeButton: string;
+    addButton: string;
+  };
+  capturedAt: string;
+}
+
+export interface DependencyListSnapshot {
+  visible: boolean;
+  filter: string;
+  countText: string;
+  bodyHtml: string;
+  labels: {
+    title: string;
+    closeButton: string;
+    allFilter: string;
+    fsFilter: string;
+    ssFilter: string;
+    ffFilter: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

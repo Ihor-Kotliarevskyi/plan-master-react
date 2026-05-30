@@ -8,6 +8,12 @@ let _reactTaskModalState = {
   visible: false,
   activeTab: "general",
 };
+let _reactNotesModalState = {
+  visible: false,
+};
+let _reactDependencyListState = {
+  visible: false,
+};
 let _reactProjectManagerState = {
   visible: false,
 };
@@ -37,6 +43,22 @@ function isReactTaskModalEnabled() {
 
 function syncReactTaskModalBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:task-modal-sync"));
+}
+
+function isReactNotesModalEnabled() {
+  return document.body?.dataset?.reactTransitionNotesModal === "enabled";
+}
+
+function syncReactNotesModalBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:notes-modal-sync"));
+}
+
+function isReactDependencyListEnabled() {
+  return document.body?.dataset?.reactTransitionDependencyList === "enabled";
+}
+
+function syncReactDependencyListBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:dependency-list-sync"));
 }
 
 function _getTaskRangeWarningModel() {
@@ -362,6 +384,40 @@ function getTaskModalBridgeSnapshot() {
   return _getTaskModalBridgeState();
 }
 
+function getNotesModalBridgeSnapshot() {
+  const notesModal = _getNotesModalModel();
+  return {
+    visible: _reactNotesModalState.visible,
+    canEdit: _canMutateTaskModal(),
+    title: document.getElementById("notes-modal-title")?.textContent || notesModal.defaultTitle,
+    notesHtml: document.getElementById("notes-list")?.innerHTML || "",
+    labels: {
+      placeholder: "Додати нотатку...",
+      closeButton: "Закрити",
+      addButton: "+",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function getDependencyListBridgeSnapshot() {
+  return {
+    visible: _reactDependencyListState.visible,
+    filter: _dlFilter,
+    countText: document.getElementById("dl-count")?.textContent || "",
+    bodyHtml: document.getElementById("dl-body")?.innerHTML || "",
+    labels: {
+      title: "Залежності проєкту",
+      closeButton: "Закрити",
+      allFilter: document.querySelector('.dl-filter-btn[data-f="all"]')?.textContent || "Всі",
+      fsFilter: document.querySelector('.dl-filter-btn[data-f="FS"]')?.textContent || "FS",
+      ssFilter: document.querySelector('.dl-filter-btn[data-f="SS"]')?.textContent || "SS",
+      ffFilter: document.querySelector('.dl-filter-btn[data-f="FF"]')?.textContent || "FF",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 function _getDemoProjectSeedModel() {
   if (typeof buildRuntimeDemoProjectSeedModel === "function") return buildRuntimeDemoProjectSeedModel();
   return {
@@ -597,6 +653,7 @@ function _applyNotesModalPermissions() {
   document.querySelectorAll("#notes-modal .note-actions, #notes-modal .note-edit-actions").forEach((el) => {
     el.style.display = editable ? "" : "none";
   });
+  if (isReactNotesModalEnabled()) syncReactNotesModalBridge();
 }
 
 /** Зважений загальний прогрес фаз з урахуванням тривалості кожної. */
@@ -1398,17 +1455,21 @@ function openNotesModal(ti) {
       };
   if (!session.exists) return;
   _notesSession = session;
+  _reactNotesModalState.visible = session.visible;
   document.getElementById("notes-modal-title").textContent = session.title;
   renderNotes(session.notes);
   document.getElementById("notes-modal").style.display = session.visible ? "flex" : "none";
   _applyNotesModalPermissions();
+  if (isReactNotesModalEnabled()) syncReactNotesModalBridge();
 }
 
 function closeNotesModal() {
+  _reactNotesModalState.visible = false;
   document.getElementById("notes-modal").style.display = "none";
   _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
     ? buildRuntimeCloseTaskNotesSession()
     : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
+  if (isReactNotesModalEnabled()) syncReactNotesModalBridge();
 }
 
 function renderNotes(notes) {
@@ -1417,6 +1478,7 @@ function renderNotes(notes) {
   if (!el) return;
   if (!notes || !notes.length) {
     el.innerHTML = `<div class="note-empty">${notesModal.emptyStateText}</div>`;
+    if (isReactNotesModalEnabled()) syncReactNotesModalBridge();
     return;
   }
   el.innerHTML = notes
@@ -1458,6 +1520,7 @@ function renderNotes(notes) {
   lucide.createIcons({ nodes: [el] });
   el.scrollTop = el.scrollHeight;
   _applyNotesModalPermissions();
+  if (isReactNotesModalEnabled()) syncReactNotesModalBridge();
 }
 
 function _getNotes() {
@@ -1606,6 +1669,7 @@ async function deleteNote(i) {
 function toggleNoteHistory(i) {
   const el = document.getElementById(`note-hist-${i}`);
   if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+  if (isReactNotesModalEnabled()) syncReactNotesModalBridge();
 }
 
 function _escHtml(s) {
@@ -1805,12 +1869,16 @@ function openDepList() {
     ? buildRuntimeDependencyListOpenSession()
     : { filter: "all", visible: true };
   _dlFilter = session.filter;
+  _reactDependencyListState.visible = session.visible;
   _renderDepList();
   document.getElementById("dep-list-modal").style.display = session.visible ? "flex" : "none";
+  if (isReactDependencyListEnabled()) syncReactDependencyListBridge();
 }
 
 function closeDepList() {
+  _reactDependencyListState.visible = false;
   document.getElementById("dep-list-modal").style.display = "none";
+  if (isReactDependencyListEnabled()) syncReactDependencyListBridge();
 }
 
 function setDepListFilter(f) {
@@ -1820,6 +1888,7 @@ function setDepListFilter(f) {
   document.querySelectorAll(".dl-filter-btn").forEach(b =>
     b.classList.toggle("on", b.dataset.f === f));
   _renderDepList();
+  if (isReactDependencyListEnabled()) syncReactDependencyListBridge();
 }
 
 function _renderDepList() {
@@ -1886,6 +1955,7 @@ function _renderDepList() {
     <tbody>${rows}</tbody>
   </table>`;
   lucide.createIcons({ nodes: [body] });
+  if (isReactDependencyListEnabled()) syncReactDependencyListBridge();
 }
 
 function depListGo(fromTi) {

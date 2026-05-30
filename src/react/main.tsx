@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
+import { DependencyListModal } from "./components/dependency-list-modal";
+import { NotesModal } from "./components/notes-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
@@ -110,6 +112,26 @@ function mountReactHost() {
     createRoot(taskModal).render(
       <StrictMode>
         <TaskModal />
+      </StrictMode>,
+    );
+  }
+
+  const notesModal = document.querySelector<HTMLElement>("[data-notes-modal-root] .modal");
+  if (notesModal) {
+    document.body.dataset.reactTransitionNotesModal = "enabled";
+    createRoot(notesModal).render(
+      <StrictMode>
+        <NotesModal />
+      </StrictMode>,
+    );
+  }
+
+  const dependencyListModal = document.querySelector<HTMLElement>("[data-dep-list-root] .modal");
+  if (dependencyListModal) {
+    document.body.dataset.reactTransitionDependencyList = "enabled";
+    createRoot(dependencyListModal).render(
+      <StrictMode>
+        <DependencyListModal />
       </StrictMode>,
     );
   }
