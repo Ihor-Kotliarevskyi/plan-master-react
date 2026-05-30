@@ -28,12 +28,7 @@ async function handleChartAction(action: string, element: HTMLElement): Promise<
 
 function initChartEditIsland(): void {
   const modal = document.getElementById("chart-edit-modal");
-  const addButton = document.querySelector<HTMLElement>("[data-chart-action='add-custom-chart']");
   const grid = document.getElementById("chart-grid");
-
-  addButton?.addEventListener("click", async () => {
-    await handleChartAction("add-custom-chart", addButton);
-  });
 
   modal?.addEventListener("click", async (event) => {
     const target = event.target as HTMLElement | null;
@@ -53,6 +48,13 @@ function initChartEditIsland(): void {
     const actionElement = target.closest<HTMLElement>("[data-chart-action='open-edit']");
     if (!actionElement) return;
     await handleChartAction("open-edit", actionElement);
+  });
+
+  document.addEventListener("click", async (event) => {
+    const target = event.target as HTMLElement | null;
+    const actionElement = target?.closest<HTMLElement>("[data-chart-action='add-custom-chart']");
+    if (!actionElement) return;
+    await handleChartAction("add-custom-chart", actionElement);
   });
 }
 

@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
 import { ChartEditModal } from "./components/chart-edit-modal";
+import { ChartSurface } from "./components/chart-surface";
 import { DependencyListModal } from "./components/dependency-list-modal";
 import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surface";
 import { NotesModal } from "./components/notes-modal";
@@ -23,6 +24,8 @@ import "./react-host.css";
 
 type ReactRuntimeWindow = Window & {
   renderContractors?: () => void;
+  updateCbCatFilter?: () => void;
+  renderAutoCharts?: () => void;
 };
 
 function mountReactHost() {
@@ -115,6 +118,19 @@ function mountReactHost() {
         <ChartEditModal />
       </StrictMode>,
     );
+  }
+
+  const chartPane = document.getElementById("pane-charts");
+  if (chartPane) {
+    document.body.dataset.reactTransitionChartSurface = "enabled";
+    createRoot(chartPane).render(
+      <StrictMode>
+        <ChartSurface />
+      </StrictMode>,
+    );
+    const runtimeWindow = window as ReactRuntimeWindow;
+    runtimeWindow.updateCbCatFilter?.();
+    runtimeWindow.renderAutoCharts?.();
   }
 
   const projectSettingsModal = document.querySelector<HTMLElement>("[data-project-settings-root] .modal");

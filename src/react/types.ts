@@ -496,6 +496,28 @@ export interface ChartEditSnapshot {
   capturedAt: string;
 }
 
+export interface ChartSurfaceSnapshot {
+  mounted: boolean;
+  form: {
+    type: string;
+    xKey: string;
+    yKey: string;
+    category: string;
+    status: string;
+  };
+  categoryOptionsHtml: string;
+  chartCount: number;
+  labels: {
+    typeLabel: string;
+    xAxisLabel: string;
+    yAxisLabel: string;
+    categoryLabel: string;
+    statusLabel: string;
+    buildButton: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

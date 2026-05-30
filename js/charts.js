@@ -44,8 +44,16 @@ function isReactChartEditEnabled() {
   return document.body?.dataset?.reactTransitionChartEdit === "enabled";
 }
 
+function isReactChartSurfaceEnabled() {
+  return document.body?.dataset?.reactTransitionChartSurface === "enabled";
+}
+
 function syncReactChartEditBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:chart-edit-sync"));
+}
+
+function syncReactChartSurfaceBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:chart-surface-sync"));
 }
 
 function getChartEditBridgeSnapshot() {
@@ -74,12 +82,37 @@ function getChartEditBridgeSnapshot() {
   };
 }
 
+function getChartSurfaceBridgeSnapshot() {
+  return {
+    mounted: isReactChartSurfaceEnabled(),
+    form: {
+      type: document.getElementById("cb-type")?.value || "bar",
+      xKey: document.getElementById("cb-x")?.value || "cat",
+      yKey: document.getElementById("cb-y")?.value || "count",
+      category: document.getElementById("cb-fcat")?.value || "",
+      status: document.getElementById("cb-fstat")?.value || "",
+    },
+    categoryOptionsHtml: document.getElementById("cb-fcat")?.innerHTML || '<option value="">Усі</option>',
+    chartCount: document.querySelectorAll("#chart-grid .chart-card").length,
+    labels: {
+      typeLabel: "Тип",
+      xAxisLabel: "Вісь X / групування",
+      yAxisLabel: "Показник Y",
+      categoryLabel: "Категорія",
+      statusLabel: "Статус",
+      buildButton: "+ Побудувати",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 function updateCbCatFilter() {
   const select = document.getElementById("cb-fcat");
   if (!select) return;
   select.innerHTML =
     `<option value="">${CHARTS_UI.actionLabels.allCategoriesLabel}</option>` +
     cats.map((category, index) => `<option value="${index}">${category.name}</option>`).join("");
+  if (isReactChartSurfaceEnabled()) syncReactChartSurfaceBridge();
 }
 
 function getChartData(xKey, yKey, catF, statF) {
@@ -212,6 +245,7 @@ function addCustomChart() {
   const chart = buildChartDefinition(`cc_${Date.now()}`, type, xKey, yKey, catF, statF, labels, values, colors);
   customCharts.push(chart);
   renderCustomChart(chart);
+  if (isReactChartSurfaceEnabled()) syncReactChartSurfaceBridge();
 }
 
 function renderCustomChart(chart) {
@@ -232,6 +266,7 @@ function renderCustomChart(chart) {
 
   const inst = createChartInstance(card.querySelector("canvas"), chart);
   chartInstances.push({ id: chart.id, inst });
+  if (isReactChartSurfaceEnabled()) syncReactChartSurfaceBridge();
 }
 
 let removedAutoCharts = new Set();
@@ -246,6 +281,7 @@ function removeAutoChart(id) {
   }
   chartInstances = chartInstances.filter((chart) => chart.id !== id);
   document.getElementById(id)?.remove();
+  if (isReactChartSurfaceEnabled()) syncReactChartSurfaceBridge();
 }
 
 function removeChart(id) {
@@ -258,6 +294,7 @@ function removeChart(id) {
   chartInstances = chartInstances.filter((chart) => chart.id !== id);
   customCharts = customCharts.filter((chart) => chart.id !== id);
   document.getElementById(id)?.remove();
+  if (isReactChartSurfaceEnabled()) syncReactChartSurfaceBridge();
 }
 
 function openChartEdit(id) {
@@ -410,4 +447,5 @@ function renderAutoCharts() {
     const inst = createChartInstance(card.querySelector("canvas"), chart);
     chartInstances.push({ id: chart.id, inst });
   });
+  if (isReactChartSurfaceEnabled()) syncReactChartSurfaceBridge();
 }
