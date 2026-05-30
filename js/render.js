@@ -44,6 +44,7 @@ function updateProjSel() {
   const ownMarkup = selectState.own.length ? `<optgroup label="${selectLabels.ownGroupLabel}">${renderOptions(selectState.own)}</optgroup>` : "";
   const sharedMarkup = selectState.shared.length ? `<optgroup label="${selectLabels.sharedGroupLabel}">${renderOptions(selectState.shared)}</optgroup>` : "";
   sel.innerHTML = ownMarkup + sharedMarkup;
+  if (typeof syncReactProjectManagerBridge === "function") syncReactProjectManagerBridge();
 }
 
 function renderLegend() {

@@ -199,3 +199,53 @@ export interface ShareModalSnapshot {
   }>;
   capturedAt: string;
 }
+
+export interface ProjectManagerRow {
+  id: string;
+  name: string;
+  role: string;
+  roleLabel: string;
+  tasksCount: number;
+  sharedMetaLine: string;
+  canManageProject: boolean;
+  isActive: boolean;
+}
+
+export interface ProjectManagerSnapshot {
+  visible: boolean;
+  labels: {
+    title: string;
+    createButton: string;
+    loadDemoButton: string;
+    closeButton: string;
+    ownGroupTitle: string;
+    sharedGroupTitle: string;
+    ownProjectMeta: string;
+    deleteTitle: string;
+    createDialog: {
+      title: string;
+      inputLabel: string;
+      inputValue: string;
+      confirmButtonText: string;
+      cancelButtonText: string;
+      inputRequiredMessage: string;
+    };
+    demoDialog: {
+      title: string;
+      html: string;
+      confirmButtonText: string;
+      cancelButtonText: string;
+      loadedToastTitle: string;
+    };
+    cannotDelete: {
+      title: string;
+      text: string;
+    };
+  };
+  groups: {
+    own: ProjectManagerRow[];
+    shared: ProjectManagerRow[];
+  };
+  canDeleteMultipleProjects: boolean;
+  capturedAt: string;
+}

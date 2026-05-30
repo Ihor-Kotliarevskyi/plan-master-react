@@ -4,6 +4,17 @@ let _editingDepId = null;
 let _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
   ? buildRuntimeCloseTaskNotesSession()
   : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
+let _reactProjectManagerState = {
+  visible: false,
+};
+
+function isReactProjectManagerEnabled() {
+  return document.body?.dataset?.reactTransitionProjectManager === "enabled";
+}
+
+function syncReactProjectManagerBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:project-manager-sync"));
+}
 
 function _getTaskRangeWarningModel() {
   if (typeof buildRuntimeTaskRangeWarningModel === "function") return buildRuntimeTaskRangeWarningModel();
@@ -72,6 +83,51 @@ function _getDeleteProjectDialogModel(projectName) {
     confirmButtonText: "Видалити",
     confirmButtonColor: "#c42b2b",
     cancelButtonText: "Скасувати",
+  };
+}
+
+function _getProjectManagerBridgeState() {
+  const projectManagerList = _getProjectManagerListModel();
+  const getManagePermission = (projectId) => {
+    if (typeof getProjectPermissions !== "function") return true;
+    const role = typeof getStoredProjectRole === "function"
+      ? getStoredProjectRole(projectId, "owner")
+      : allProjects?.[projectId]?._role || (projectId === currentId ? _projectRole : "owner");
+    return getProjectPermissions(role).canManageProject;
+  };
+  const roleLabels = typeof PROJECT_ROLE_LABELS !== "undefined" ? PROJECT_ROLE_LABELS : {};
+  const groups = typeof buildRuntimeProjectManagerGroupModel === "function"
+    ? buildRuntimeProjectManagerGroupModel({
+        projects: allProjects || {},
+        currentId,
+        canManageProject: (projectId) => getManagePermission(projectId),
+        getRoleLabel: (role) => typeof getRuntimeProjectRoleLabel === "function"
+          ? getRuntimeProjectRoleLabel(role)
+          : (roleLabels[role] || role),
+        getSharedMetaLine: (access) => typeof buildRuntimeSharedProjectMetaLine === "function"
+          ? buildRuntimeSharedProjectMetaLine(access || null)
+          : projectManagerList.ownProjectMeta,
+      })
+    : { own: [], shared: [] };
+
+  return {
+    visible: _reactProjectManagerState.visible,
+    labels: {
+      title: "Управління проєктами",
+      createButton: "+ Новий проєкт",
+      loadDemoButton: "Завантажити демо-проєкт",
+      closeButton: "Закрити",
+      ownGroupTitle: projectManagerList.ownGroupTitle,
+      sharedGroupTitle: projectManagerList.sharedGroupTitle,
+      ownProjectMeta: projectManagerList.ownProjectMeta,
+      deleteTitle: projectManagerList.deleteTitle,
+      createDialog: _getCreateProjectDialogModel(),
+      demoDialog: _getDemoProjectDialogModel(),
+      cannotDelete: _getCannotDeleteLastProjectModel(),
+    },
+    groups,
+    canDeleteMultipleProjects: _canDeleteProjectCount(Object.keys(allProjects || {}).length),
+    capturedAt: new Date().toISOString(),
   };
 }
 
@@ -317,6 +373,7 @@ function renameProjectFromManager(id, name) {
   if (id === currentId && proj) proj.name = renameResult.nextName;
   if (renameResult.changed) saveAll();
   updateProjSel();
+  if (isReactProjectManagerEnabled()) syncReactProjectManagerBridge();
   return renameResult.nextName;
 }
 
@@ -1765,6 +1822,12 @@ async function saveProjSettings() {
 }
 
 function openProjManager() {
+  if (isReactProjectManagerEnabled()) {
+    _reactProjectManagerState.visible = true;
+    document.getElementById("projmgr-modal").style.display = "flex";
+    syncReactProjectManagerBridge();
+    return;
+  }
   const projectManagerList = _getProjectManagerListModel();
   const getManagePermission = (projectId) => {
     if (typeof getProjectPermissions !== "function") return true;
@@ -1824,20 +1887,24 @@ function openProjManager() {
 
 function closeProjMgr() {
   document.getElementById("projmgr-modal").style.display = "none";
+  _reactProjectManagerState.visible = false;
+  if (isReactProjectManagerEnabled()) syncReactProjectManagerBridge();
 }
 
-async function loadDemoProject() {
+async function loadDemoProject(skipConfirm = false) {
   const demoProjectDialog = _getDemoProjectDialogModel();
   const demoProjectSeed = _getDemoProjectSeedModel();
-  const { isConfirmed } = await Swal.fire({
-    icon: "info",
-    title: demoProjectDialog.title,
-    html: demoProjectDialog.html,
-    showCancelButton: true,
-    confirmButtonText: demoProjectDialog.confirmButtonText,
-    cancelButtonText: demoProjectDialog.cancelButtonText,
-  });
-  if (!isConfirmed) return;
+  if (!skipConfirm) {
+    const { isConfirmed } = await Swal.fire({
+      icon: "info",
+      title: demoProjectDialog.title,
+      html: demoProjectDialog.html,
+      showCancelButton: true,
+      confirmButtonText: demoProjectDialog.confirmButtonText,
+      cancelButtonText: demoProjectDialog.cancelButtonText,
+    });
+    if (!isConfirmed) return;
+  }
 
   const id = "p_" + Date.now();
   const snapshot = _buildDemoProjectSnapshot(demoProjectSeed.projectName, new Date().getFullYear());
@@ -1857,22 +1924,29 @@ async function loadDemoProject() {
     title: demoProjectDialog.loadedToastTitle,
     showConfirmButton: false, timer: 2500,
   });
+  if (isReactProjectManagerEnabled()) syncReactProjectManagerBridge();
 }
 
-async function createProject() {
+async function createProject(nameFromReact = null) {
   const createProjectDialog = _getCreateProjectDialogModel();
-  const { value: name } = await Swal.fire({
-    title: createProjectDialog.title,
-    input: "text",
-    inputLabel: createProjectDialog.inputLabel,
-    inputValue: createProjectDialog.inputValue,
-    inputAttributes: { maxlength: 80 },
-    showCancelButton: true,
-    confirmButtonText: createProjectDialog.confirmButtonText,
-    cancelButtonText: createProjectDialog.cancelButtonText,
-    inputValidator: (v) => !v.trim() && createProjectDialog.inputRequiredMessage,
-  });
-  if (!name) return;
+  let name = nameFromReact;
+  if (name == null) {
+    const result = await Swal.fire({
+      title: createProjectDialog.title,
+      input: "text",
+      inputLabel: createProjectDialog.inputLabel,
+      inputValue: createProjectDialog.inputValue,
+      inputAttributes: { maxlength: 80 },
+      showCancelButton: true,
+      confirmButtonText: createProjectDialog.confirmButtonText,
+      cancelButtonText: createProjectDialog.cancelButtonText,
+      inputValidator: (v) => !v.trim() && createProjectDialog.inputRequiredMessage,
+    });
+    name = result.value;
+  }
+  if (!String(name || "").trim()) {
+    return { ok: false, error: createProjectDialog.inputRequiredMessage };
+  }
   const id = "p_" + Date.now();
   const defaults = typeof buildRuntimeResolveProjectDefaults === "function"
     ? buildRuntimeResolveProjectDefaults(userProfile?.defaults || null, DEF_PROJ)
@@ -1881,7 +1955,7 @@ async function createProject() {
         sy: userProfile?.defaults?.sy ?? DEF_PROJ.sy,
         nm: userProfile?.defaults?.nm ?? DEF_PROJ.nm,
       };
-  const snapshot = _buildEmptyProjectSnapshot(name, {
+  const snapshot = _buildEmptyProjectSnapshot(String(name).trim(), {
     sm: defaults.sm,
     sy: defaults.sy,
     nm: defaults.nm,
@@ -1892,9 +1966,11 @@ async function createProject() {
   saveAll();
   switchProject(id);
   openProjManager();
+  if (isReactProjectManagerEnabled()) syncReactProjectManagerBridge();
+  return { ok: true };
 }
 
-async function deleteProject(id) {
+async function deleteProject(id, skipConfirm = false) {
   const role = typeof getStoredProjectRole === "function"
     ? getStoredProjectRole(id, "owner")
     : allProjects?.[id]?._role || (id === currentId ? _projectRole : "owner");
@@ -1902,20 +1978,22 @@ async function deleteProject(id) {
 
   if (!_canDeleteProjectCount(Object.keys(allProjects).length)) {
     const cannotDelete = _getCannotDeleteLastProjectModel();
-    Swal.fire({ icon: "info", title: cannotDelete.title, text: cannotDelete.text });
-    return;
+    if (!skipConfirm) Swal.fire({ icon: "info", title: cannotDelete.title, text: cannotDelete.text });
+    return { ok: false, error: cannotDelete.text };
   }
   const deleteProjectDialog = _getDeleteProjectDialogModel(allProjects[id]?.proj?.name || "");
-  const res = await Swal.fire({
-    icon: "warning",
-    title: deleteProjectDialog.title,
-    html: deleteProjectDialog.html,
-    showCancelButton: true,
-    confirmButtonText: deleteProjectDialog.confirmButtonText,
-    confirmButtonColor: deleteProjectDialog.confirmButtonColor,
-    cancelButtonText: deleteProjectDialog.cancelButtonText,
-  });
-  if (!res.isConfirmed) return;
+  if (!skipConfirm) {
+    const res = await Swal.fire({
+      icon: "warning",
+      title: deleteProjectDialog.title,
+      html: deleteProjectDialog.html,
+      showCancelButton: true,
+      confirmButtonText: deleteProjectDialog.confirmButtonText,
+      confirmButtonColor: deleteProjectDialog.confirmButtonColor,
+      cancelButtonText: deleteProjectDialog.cancelButtonText,
+    });
+    if (!res.isConfirmed) return { ok: false, cancelled: true };
+  }
   if (typeof apiDeleteProject === "function" && typeof isLoggedIn === "function" && isLoggedIn()) {
     await apiDeleteProject(id);
   }
@@ -1940,6 +2018,28 @@ async function deleteProject(id) {
   saveAll();
   render();
   openProjManager();
+  if (isReactProjectManagerEnabled()) syncReactProjectManagerBridge();
+  return { ok: true };
+}
+
+function closeReactProjectManager() {
+  closeProjMgr();
+}
+
+async function createProjectFromReact(name) {
+  return createProject(name);
+}
+
+async function loadDemoProjectFromReact() {
+  return loadDemoProject(true);
+}
+
+async function deleteProjectFromReact(id) {
+  return deleteProject(id, true);
+}
+
+function getProjectManagerBridgeSnapshot() {
+  return _getProjectManagerBridgeState();
 }
 
 function openPhaseEditor(ti) { openEdit(ti); }

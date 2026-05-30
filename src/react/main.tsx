@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
+import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ReactHostShell } from "./components/react-host-shell";
 import { ShareModal } from "./components/share-modal";
 import { UserCabinetShell } from "./components/user-cabinet-shell";
@@ -50,6 +51,16 @@ function mountReactHost() {
       <ShareModal />
     </StrictMode>,
   );
+
+  const projectManagerModal = document.querySelector<HTMLElement>("[data-project-manager-root] .modal");
+  if (projectManagerModal) {
+    document.body.dataset.reactTransitionProjectManager = "enabled";
+    createRoot(projectManagerModal).render(
+      <StrictMode>
+        <ProjectManagerModal />
+      </StrictMode>,
+    );
+  }
 }
 
 function mountReactRoots() {

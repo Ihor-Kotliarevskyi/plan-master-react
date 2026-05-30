@@ -300,3 +300,55 @@
 .react-share-modal__footer {
   margin-top: 16px;
 }
+
+.react-project-manager-modal {
+  display: grid;
+  gap: 14px;
+}
+
+.react-project-manager-modal h3,
+.react-project-manager-confirm p,
+.react-project-manager-error {
+  margin: 0;
+}
+
+.react-project-manager-create {
+  display: grid;
+  gap: 8px;
+}
+
+.react-project-manager-create__row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.react-project-manager-create__row input {
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.react-project-manager-list {
+  max-height: 48vh;
+  overflow: auto;
+}
+
+.react-project-manager-error {
+  color: #b91c1c;
+}
+
+.react-project-manager-confirm {
+  background: rgba(248, 250, 252, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 14px;
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.react-project-manager-confirm__actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
