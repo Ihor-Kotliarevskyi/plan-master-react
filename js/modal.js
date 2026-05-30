@@ -7,6 +7,9 @@ let _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
 let _reactProjectManagerState = {
   visible: false,
 };
+let _reactProjectSettingsState = {
+  visible: false,
+};
 
 function isReactProjectManagerEnabled() {
   return document.body?.dataset?.reactTransitionProjectManager === "enabled";
@@ -14,6 +17,14 @@ function isReactProjectManagerEnabled() {
 
 function syncReactProjectManagerBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:project-manager-sync"));
+}
+
+function isReactProjectSettingsEnabled() {
+  return document.body?.dataset?.reactTransitionProjectSettings === "enabled";
+}
+
+function syncReactProjectSettingsBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:project-settings-sync"));
 }
 
 function _getTaskRangeWarningModel() {
@@ -127,6 +138,36 @@ function _getProjectManagerBridgeState() {
     },
     groups,
     canDeleteMultipleProjects: _canDeleteProjectCount(Object.keys(allProjects || {}).length),
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function _getProjectSettingsBridgeState() {
+  const canManage = typeof canManageProject === "function" ? canManageProject() : true;
+  const formState = typeof buildRuntimeProjectSettingsFormState === "function"
+    ? buildRuntimeProjectSettingsFormState({ project: proj, canManage })
+    : {
+        name: proj.name,
+        sm: proj.sm,
+        sy: proj.sy,
+        nm: proj.nm,
+        canManage,
+      };
+
+  return {
+    visible: _reactProjectSettingsState.visible,
+    labels: {
+      title: "Налаштування проєкту",
+      nameLabel: "Назва",
+      startMonthLabel: "Початок місяць",
+      yearLabel: "Рік",
+      durationLabel: "Тривалість (міс.)",
+      categoriesButton: "Редагувати категорії",
+      cancelButton: "Скасувати",
+      saveButton: "Зберегти",
+    },
+    formState,
+    monthOptions: MN.map((name, index) => ({ value: index, label: name })),
     capturedAt: new Date().toISOString(),
   };
 }
@@ -1755,6 +1796,12 @@ function openProj() {
         nm: proj.nm,
         canManage,
       };
+  if (isReactProjectSettingsEnabled()) {
+    _reactProjectSettingsState.visible = true;
+    document.getElementById("proj-modal").style.display = "flex";
+    syncReactProjectSettingsBridge();
+    return;
+  }
   const sel = document.getElementById("p-sm");
   sel.innerHTML = MN.map((m, i) => `<option value="${i}">${m}</option>`).join("");
   sel.value = String(formState.sm);
@@ -1789,9 +1836,11 @@ function openProj() {
 
 function closeProjModal() {
   document.getElementById("proj-modal").style.display = "none";
+  _reactProjectSettingsState.visible = false;
+  if (isReactProjectSettingsEnabled()) syncReactProjectSettingsBridge();
 }
 
-async function saveProjSettings() {
+async function saveProjSettings(nextState = null) {
   if (typeof canManageProject === "function" && !canManageProject()) return;
 
   const updated = _buildProjectSettingsUpdate(
@@ -1802,10 +1851,10 @@ async function saveProjSettings() {
       nextN,
     },
     {
-      name: document.getElementById("p-name").value,
-      sm: +document.getElementById("p-sm").value,
-      sy: +document.getElementById("p-sy").value,
-      nm: +document.getElementById("p-nm").value,
+      name: nextState?.name ?? document.getElementById("p-name").value,
+      sm: +(nextState?.sm ?? document.getElementById("p-sm").value),
+      sy: +(nextState?.sy ?? document.getElementById("p-sy").value),
+      nm: +(nextState?.nm ?? document.getElementById("p-nm").value),
     },
   );
 
@@ -1819,6 +1868,20 @@ async function saveProjSettings() {
     after: updated.after,
     shiftedTasks: updated.shiftedTasks,
   });
+  if (isReactProjectSettingsEnabled()) syncReactProjectSettingsBridge();
+  return { ok: true };
+}
+
+function getProjectSettingsBridgeSnapshot() {
+  return _getProjectSettingsBridgeState();
+}
+
+function closeReactProjectSettings() {
+  closeProjModal();
+}
+
+async function saveProjectSettingsFromReact(nextState) {
+  return saveProjSettings(nextState);
 }
 
 function openProjManager() {

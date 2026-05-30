@@ -249,3 +249,29 @@ export interface ProjectManagerSnapshot {
   canDeleteMultipleProjects: boolean;
   capturedAt: string;
 }
+
+export interface ProjectSettingsSnapshot {
+  visible: boolean;
+  labels: {
+    title: string;
+    nameLabel: string;
+    startMonthLabel: string;
+    yearLabel: string;
+    durationLabel: string;
+    categoriesButton: string;
+    cancelButton: string;
+    saveButton: string;
+  };
+  formState: {
+    name: string;
+    sm: number;
+    sy: number;
+    nm: number;
+    canManage: boolean;
+  };
+  monthOptions: Array<{
+    value: number;
+    label: string;
+  }>;
+  capturedAt: string;
+}
