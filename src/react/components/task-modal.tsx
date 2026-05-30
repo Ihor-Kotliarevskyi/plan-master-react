@@ -1,5 +1,27 @@
 import { useEffect, useState } from "react";
-import { readTaskModalSnapshot, subscribeTaskModalSync } from "../bridge/task-modal";
+import {
+  addTaskModalCostItem,
+  addTaskModalDependency,
+  addTaskModalPhase,
+  adjustTaskModalDependencyThreshold,
+  adjustTaskModalNumber,
+  closeTaskModal,
+  editTaskModalDependency,
+  filterTaskModalDependencies,
+  notifyTaskModalPhaseChange,
+  notifyTaskModalProgressChange,
+  pickTaskModalCategory,
+  readTaskModalSnapshot,
+  removeTaskModalDependency,
+  removeTaskModalPhase,
+  saveTaskModal,
+  setTaskModalDependencyThreshold,
+  setTaskModalDependencyType,
+  showTaskModalDependencyDropdown,
+  subscribeTaskModalSync,
+  switchTaskModalTab,
+  updateTaskModalCalc,
+} from "../bridge/task-modal";
 import type { TaskModalSnapshot } from "../types";
 
 export function TaskModal() {
@@ -17,9 +39,145 @@ export function TaskModal() {
     });
   }, [snapshot.capturedAt]);
 
+  useEffect(() => {
+    const modalRoot = document.getElementById("modal");
+    if (!modalRoot) return;
+
+    const handleBackdropClick = (event: MouseEvent) => {
+      if (event.target === modalRoot) closeTaskModal();
+    };
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest(".dep-tag-panel")) return;
+      const dropdown = document.getElementById("dep-dropdown");
+      if (dropdown) dropdown.style.display = "none";
+    };
+
+    modalRoot.addEventListener("click", handleBackdropClick);
+    document.addEventListener("click", handleDocumentClick);
+    return () => {
+      modalRoot.removeEventListener("click", handleBackdropClick);
+      document.removeEventListener("click", handleDocumentClick);
+    };
+  }, []);
+
+  async function handleTaskAction(event: React.MouseEvent<HTMLElement>) {
+    const target = event.target as HTMLElement;
+    const actionElement = target.closest<HTMLElement>("[data-task-modal-action]");
+    if (!actionElement) return;
+
+    const action = actionElement.dataset.taskModalAction || "";
+    if (action === "remove-dependency") {
+      event.stopPropagation();
+    }
+
+    switch (action) {
+      case "close-modal":
+        closeTaskModal();
+        return;
+      case "save-task":
+        await saveTaskModal();
+        return;
+      case "switch-tab":
+        switchTaskModalTab(actionElement.dataset.taskTab || "general");
+        return;
+      case "add-phase":
+        addTaskModalPhase();
+        return;
+      case "remove-phase":
+        removeTaskModalPhase(Number(actionElement.dataset.phaseIndex || -1));
+        return;
+      case "num-step":
+        adjustTaskModalNumber(actionElement.dataset.targetId || "", Number(actionElement.dataset.delta || 0));
+        return;
+      case "add-cost-item":
+        addTaskModalCostItem(actionElement.dataset.costType || "material");
+        return;
+      case "add-dependency":
+        addTaskModalDependency(actionElement.dataset.dependencyId || "");
+        return;
+      case "remove-dependency":
+        removeTaskModalDependency(actionElement.dataset.dependencyId || "");
+        return;
+      case "edit-dependency":
+        editTaskModalDependency(actionElement.dataset.dependencyId || "");
+        return;
+      case "set-dependency-type":
+        setTaskModalDependencyType(
+          actionElement.dataset.dependencyId || "",
+          actionElement.dataset.dependencyType || "FS",
+        );
+        return;
+      case "adjust-dependency-threshold":
+        adjustTaskModalDependencyThreshold(
+          actionElement.dataset.dependencyId || "",
+          Number(actionElement.dataset.delta || 0),
+        );
+        return;
+      case "pick-category":
+        pickTaskModalCategory(Number(actionElement.dataset.categoryIndex || -1));
+        return;
+      default:
+        return;
+    }
+  }
+
+  function handleTaskChange(event: React.FormEvent<HTMLElement>) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const inputElement = target.closest<HTMLElement>("[data-task-modal-input]");
+    if (!inputElement) return;
+
+    const inputType = inputElement.dataset.taskModalInput || "";
+    if (inputType === "phase-date") {
+      notifyTaskModalPhaseChange();
+      return;
+    }
+
+    if (inputType === "contracts-override-budget") {
+      updateTaskModalCalc();
+      return;
+    }
+
+    if (inputType === "dependency-threshold") {
+      const input = inputElement as HTMLInputElement;
+      setTaskModalDependencyThreshold(input.dataset.dependencyId || "", input.value);
+    }
+  }
+
+  function handleTaskInput(event: React.FormEvent<HTMLElement>) {
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    const inputElement = target.closest<HTMLElement>("[data-task-modal-input]");
+    if (inputElement) {
+      const inputType = inputElement.dataset.taskModalInput || "";
+      if (inputType === "phase-progress") {
+        const input = inputElement as HTMLInputElement;
+        notifyTaskModalProgressChange(Number(input.dataset.phaseIndex || -1), input.value);
+        return;
+      }
+
+      if (inputType === "budget" || inputType === "spent") {
+        updateTaskModalCalc();
+      }
+    }
+
+    const input = target as HTMLInputElement | null;
+    if (input?.id === "dep-search") {
+      filterTaskModalDependencies(input.value);
+    }
+  }
+
   return (
-    <>
-      <div className="task-modal-header" aria-hidden={!snapshot.visible}>
+    <div
+      onClick={(event) => void handleTaskAction(event)}
+      onChange={handleTaskChange}
+      onInput={handleTaskInput}
+    >
+      <div className="task-modal-header" aria-hidden={!snapshot.visible} onClick={(event) => void handleTaskAction(event)}>
         <h3 id="m-title">{snapshot.title}</h3>
         <div className="task-tabs">
           <div
@@ -86,7 +244,7 @@ export function TaskModal() {
                 <div className="dep-search-row">
                   <div className="dep-search-wrap">
                     <i data-lucide="search" className="dep-search-icon"></i>
-                    <input id="dep-search" autoComplete="off" disabled={!snapshot.canEdit} type="text" />
+                    <input id="dep-search" autoComplete="off" disabled={!snapshot.canEdit} onFocus={showTaskModalDependencyDropdown} type="text" />
                   </div>
                 </div>
                 <div
@@ -195,7 +353,7 @@ export function TaskModal() {
         className="task-pane"
         style={{ display: snapshot.activeTab === "costs" ? "flex" : "none" }}
       >
-        <div className="cost-toolbar">
+        <div className="cost-toolbar" onClick={(event) => void handleTaskAction(event)}>
           <button className="btn btn-sm" data-task-modal-action="add-cost-item" data-cost-type="material" disabled={!snapshot.canEdit}>
             <i data-lucide="layers"></i> {snapshot.labels.costTypeMaterial}
           </button>
@@ -238,7 +396,7 @@ export function TaskModal() {
         <div dangerouslySetInnerHTML={{ __html: snapshot.sections.costFooterHtml }} className="cost-footer" id="cost-footer" />
       </div>
 
-      <div className="m-btns m-btns-sep">
+      <div className="m-btns m-btns-sep" onClick={(event) => void handleTaskAction(event)}>
         <button className="btn" data-task-modal-action="close-modal" type="button">
           {snapshot.labels.cancelButton}
         </button>
@@ -246,6 +404,6 @@ export function TaskModal() {
           {snapshot.labels.saveButton}
         </button>
       </div>
-    </>
+    </div>
   );
 }

@@ -66,6 +66,25 @@ const snapshotSchema: z.ZodType<TaskModalSnapshot> = z.object({
 
 type TaskModalWindow = Window & {
   getTaskModalBridgeSnapshot?: () => unknown;
+  closeModal?: () => void;
+  saveTask?: () => Promise<void> | void;
+  switchTaskTab?: (tab: string) => void;
+  modalAddPhase?: () => void;
+  modalRemovePhase?: (phaseIndex: number) => void;
+  onModalPhaseChange?: () => void;
+  onModalProgChange?: (phaseIndex: number, value: string) => void;
+  adjNum?: (id: string, delta: number) => void;
+  filterDepSearch?: (query: string) => void;
+  showDepDropdown?: () => void;
+  addDepTag?: (id: string) => void;
+  removeDepTag?: (id: string) => void;
+  editDepTag?: (id: string) => void;
+  setDepType?: (id: string, type: string) => void;
+  setDepThreshold?: (id: string, value: string | number) => void;
+  adjDepThr?: (id: string, delta: number) => void;
+  pickCat?: (index: number) => void;
+  updCalc?: () => void;
+  addCostItem?: (type: string) => void;
 };
 
 function getTaskModalWindow(): TaskModalWindow {
@@ -146,4 +165,80 @@ export function subscribeTaskModalSync(onSync: () => void): () => void {
   const handler = () => onSync();
   document.addEventListener("plan-master:task-modal-sync", handler);
   return () => document.removeEventListener("plan-master:task-modal-sync", handler);
+}
+
+export function closeTaskModal(): void {
+  getTaskModalWindow().closeModal?.();
+}
+
+export async function saveTaskModal(): Promise<void> {
+  await Promise.resolve(getTaskModalWindow().saveTask?.());
+}
+
+export function switchTaskModalTab(tab: string): void {
+  getTaskModalWindow().switchTaskTab?.(tab);
+}
+
+export function addTaskModalPhase(): void {
+  getTaskModalWindow().modalAddPhase?.();
+}
+
+export function removeTaskModalPhase(phaseIndex: number): void {
+  getTaskModalWindow().modalRemovePhase?.(phaseIndex);
+}
+
+export function notifyTaskModalPhaseChange(): void {
+  getTaskModalWindow().onModalPhaseChange?.();
+}
+
+export function notifyTaskModalProgressChange(phaseIndex: number, value: string): void {
+  getTaskModalWindow().onModalProgChange?.(phaseIndex, value);
+}
+
+export function adjustTaskModalNumber(id: string, delta: number): void {
+  getTaskModalWindow().adjNum?.(id, delta);
+}
+
+export function filterTaskModalDependencies(query: string): void {
+  getTaskModalWindow().filterDepSearch?.(query);
+}
+
+export function showTaskModalDependencyDropdown(): void {
+  getTaskModalWindow().showDepDropdown?.();
+}
+
+export function addTaskModalDependency(id: string): void {
+  getTaskModalWindow().addDepTag?.(id);
+}
+
+export function removeTaskModalDependency(id: string): void {
+  getTaskModalWindow().removeDepTag?.(id);
+}
+
+export function editTaskModalDependency(id: string): void {
+  getTaskModalWindow().editDepTag?.(id);
+}
+
+export function setTaskModalDependencyType(id: string, type: string): void {
+  getTaskModalWindow().setDepType?.(id, type);
+}
+
+export function setTaskModalDependencyThreshold(id: string, value: string | number): void {
+  getTaskModalWindow().setDepThreshold?.(id, value);
+}
+
+export function adjustTaskModalDependencyThreshold(id: string, delta: number): void {
+  getTaskModalWindow().adjDepThr?.(id, delta);
+}
+
+export function pickTaskModalCategory(index: number): void {
+  getTaskModalWindow().pickCat?.(index);
+}
+
+export function updateTaskModalCalc(): void {
+  getTaskModalWindow().updCalc?.();
+}
+
+export function addTaskModalCostItem(type: string): void {
+  getTaskModalWindow().addCostItem?.(type);
 }
