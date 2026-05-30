@@ -724,7 +724,7 @@ function finGoToGanttSearch(ti) {
         searchDisplayName: t.name,
       };
   if (navPlan.shouldActivateGantt) {
-    document.querySelector('.tab[data-app-shell-action="switch-tab"][data-tab-id="gantt"]')?.click();
+    switchTab("gantt");
   }
   taskSearch = navPlan.searchQuery;
   renderTable();

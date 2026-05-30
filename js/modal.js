@@ -1969,7 +1969,7 @@ function depListGo(fromTi) {
         taskIndex: fromTi,
       };
   if (navPlan.shouldActivateGantt) {
-    document.querySelector('[data-app-shell-action="switch-tab"][data-tab-id="gantt"]')?.click();
+    switchTab("gantt");
   }
   requestAnimationFrame(() => {
     highlightDepChain(navPlan.taskIndex);
