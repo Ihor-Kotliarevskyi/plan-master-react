@@ -1,0 +1,169 @@
+#react-transition-host {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1100;
+}
+
+.react-host-panel {
+  width: min(380px, calc(100vw - 32px));
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(241, 245, 249, 0.96)),
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.14), transparent 44%);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+  color: #0f172a;
+  font: 14px/1.45 "Segoe UI", sans-serif;
+  backdrop-filter: blur(18px);
+}
+
+.react-host-panel__header,
+.react-host-panel__section,
+.react-host-panel__nav {
+  padding: 16px 18px;
+}
+
+.react-host-panel__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.react-host-panel__header h2,
+.react-host-panel__eyebrow,
+.react-host-panel__lead,
+.react-host-panel__meta,
+.react-host-panel__empty,
+.react-host-panel__stats dt,
+.react-host-panel__stats dd {
+  margin: 0;
+}
+
+.react-host-panel__eyebrow {
+  color: #0369a1;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.react-host-panel__badge {
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.18);
+  color: #475569;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.react-host-panel__badge.is-live {
+  background: rgba(16, 185, 129, 0.16);
+  color: #047857;
+}
+
+.react-host-panel__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.react-host-panel__nav-btn,
+.react-host-panel__action,
+.react-host-panel__project-item {
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.react-host-panel__nav-btn {
+  background: rgba(226, 232, 240, 0.9);
+  color: #334155;
+  padding: 8px 10px;
+}
+
+.react-host-panel__nav-btn.is-active {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.react-host-panel__section {
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.react-host-panel__lead {
+  margin-bottom: 12px;
+}
+
+.react-host-panel__meta {
+  color: #475569;
+  margin-top: 6px;
+}
+
+.react-host-panel__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.react-host-panel__stats dt {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.react-host-panel__stats dd {
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.react-host-panel__action {
+  width: 100%;
+  background: #0f172a;
+  color: #f8fafc;
+  margin-top: 12px;
+  padding: 10px 12px;
+}
+
+.react-host-panel__action--secondary {
+  background: rgba(226, 232, 240, 0.9);
+  color: #0f172a;
+}
+
+.react-host-panel__project-list {
+  display: grid;
+  gap: 8px;
+}
+
+.react-host-panel__project-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(248, 250, 252, 0.92);
+  color: #0f172a;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.react-host-panel__project-item.is-current {
+  background: rgba(14, 165, 233, 0.14);
+}
+
+.react-host-panel__empty {
+  color: #64748b;
+}
+
+@media (max-width: 640px) {
+  #react-transition-host {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .react-host-panel {
+    width: auto;
+  }
+}
