@@ -7,6 +7,7 @@ import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
 import { ReactHostShell } from "./components/react-host-shell";
 import { ShareModal } from "./components/share-modal";
+import { TaskModal } from "./components/task-modal";
 import { UserCabinetShell } from "./components/user-cabinet-shell";
 import { ReactHostProvider } from "./providers/react-host-provider";
 import "./react-host.css";
@@ -99,6 +100,16 @@ function mountReactHost() {
     createRoot(projectSettingsModal).render(
       <StrictMode>
         <ProjectSettingsModal />
+      </StrictMode>,
+    );
+  }
+
+  const taskModal = document.querySelector<HTMLElement>("[data-task-modal-root] .modal");
+  if (taskModal) {
+    document.body.dataset.reactTransitionTaskModal = "enabled";
+    createRoot(taskModal).render(
+      <StrictMode>
+        <TaskModal />
       </StrictMode>,
     );
   }

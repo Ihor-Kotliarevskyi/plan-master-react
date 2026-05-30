@@ -111,6 +111,7 @@ function renderCostTable() {
   if (typeof updCalc === "function") updCalc();
   lucide.createIcons({ nodes: [document.getElementById("cost-tbody")] });
   if (typeof _applyTaskModalPermissions === "function") _applyTaskModalPermissions();
+  if (typeof isReactTaskModalEnabled === "function" && isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function _renderCostRow(it) {
@@ -224,6 +225,7 @@ function _refreshTotals() {
     </div>`;
   if (typeof _updateAutoBadges === "function") _updateAutoBadges(_costItems.length > 0);
   if (typeof updCalc === "function") updCalc();
+  if (typeof isReactTaskModalEnabled === "function" && isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function addCostItem(type = "material") {

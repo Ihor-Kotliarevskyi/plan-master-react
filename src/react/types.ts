@@ -276,6 +276,69 @@ export interface ProjectSettingsSnapshot {
   capturedAt: string;
 }
 
+export interface TaskModalSnapshot {
+  visible: boolean;
+  activeTab: string;
+  canEdit: boolean;
+  title: string;
+  form: {
+    name: string;
+    budget: string;
+    spent: string;
+    contractsOverrideBudget: boolean;
+  };
+  autoBadges: {
+    budget: boolean;
+    spent: boolean;
+  };
+  sections: {
+    categoryHtml: string;
+    phasesHtml: string;
+    dependencyTagsHtml: string;
+    dependencyDropdownHtml: string;
+    dependencyDropdownVisible: boolean;
+    dependencyEditorHtml: string;
+    dependencyEditorVisible: boolean;
+    dependencyWarningHtml: string;
+    dependencyWarningVisible: boolean;
+    calcInfoHtml: string;
+    networkHtml: string;
+    networkVisible: boolean;
+    costTableHtml: string;
+    costFooterHtml: string;
+  };
+  labels: {
+    generalTab: string;
+    costsTab: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    categoryLabel: string;
+    phasesLabel: string;
+    addPhaseButton: string;
+    dependenciesLabel: string;
+    budgetLabel: string;
+    budgetAutoLabel: string;
+    contractsOverrideBudgetLabel: string;
+    spentLabel: string;
+    spentAutoLabel: string;
+    networkLabel: string;
+    costTypeMaterial: string;
+    costTypeWork: string;
+    costTypeEquipment: string;
+    costTypeService: string;
+    costTypeOther: string;
+    cancelButton: string;
+    saveButton: string;
+    tableTypeHeader: string;
+    tableContractHeader: string;
+    tableSupplierHeader: string;
+    tableBudgetHeader: string;
+    tableNoteHeader: string;
+    tableTotalHeader: string;
+  };
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

@@ -1,0 +1,149 @@
+import { z } from "zod";
+import type { TaskModalSnapshot } from "../types";
+
+const snapshotSchema: z.ZodType<TaskModalSnapshot> = z.object({
+  visible: z.boolean(),
+  activeTab: z.string(),
+  canEdit: z.boolean(),
+  title: z.string(),
+  form: z.object({
+    name: z.string(),
+    budget: z.string(),
+    spent: z.string(),
+    contractsOverrideBudget: z.boolean(),
+  }),
+  autoBadges: z.object({
+    budget: z.boolean(),
+    spent: z.boolean(),
+  }),
+  sections: z.object({
+    categoryHtml: z.string(),
+    phasesHtml: z.string(),
+    dependencyTagsHtml: z.string(),
+    dependencyDropdownHtml: z.string(),
+    dependencyDropdownVisible: z.boolean(),
+    dependencyEditorHtml: z.string(),
+    dependencyEditorVisible: z.boolean(),
+    dependencyWarningHtml: z.string(),
+    dependencyWarningVisible: z.boolean(),
+    calcInfoHtml: z.string(),
+    networkHtml: z.string(),
+    networkVisible: z.boolean(),
+    costTableHtml: z.string(),
+    costFooterHtml: z.string(),
+  }),
+  labels: z.object({
+    generalTab: z.string(),
+    costsTab: z.string(),
+    nameLabel: z.string(),
+    namePlaceholder: z.string(),
+    categoryLabel: z.string(),
+    phasesLabel: z.string(),
+    addPhaseButton: z.string(),
+    dependenciesLabel: z.string(),
+    budgetLabel: z.string(),
+    budgetAutoLabel: z.string(),
+    contractsOverrideBudgetLabel: z.string(),
+    spentLabel: z.string(),
+    spentAutoLabel: z.string(),
+    networkLabel: z.string(),
+    costTypeMaterial: z.string(),
+    costTypeWork: z.string(),
+    costTypeEquipment: z.string(),
+    costTypeService: z.string(),
+    costTypeOther: z.string(),
+    cancelButton: z.string(),
+    saveButton: z.string(),
+    tableTypeHeader: z.string(),
+    tableContractHeader: z.string(),
+    tableSupplierHeader: z.string(),
+    tableBudgetHeader: z.string(),
+    tableNoteHeader: z.string(),
+    tableTotalHeader: z.string(),
+  }),
+  capturedAt: z.string(),
+});
+
+type TaskModalWindow = Window & {
+  getTaskModalBridgeSnapshot?: () => unknown;
+};
+
+function getTaskModalWindow(): TaskModalWindow {
+  return window as TaskModalWindow;
+}
+
+function buildFallbackSnapshot(): TaskModalSnapshot {
+  return {
+    visible: false,
+    activeTab: "general",
+    canEdit: true,
+    title: "Нова робота",
+    form: {
+      name: "",
+      budget: "",
+      spent: "",
+      contractsOverrideBudget: false,
+    },
+    autoBadges: {
+      budget: false,
+      spent: false,
+    },
+    sections: {
+      categoryHtml: "",
+      phasesHtml: "",
+      dependencyTagsHtml: "",
+      dependencyDropdownHtml: "",
+      dependencyDropdownVisible: false,
+      dependencyEditorHtml: "",
+      dependencyEditorVisible: false,
+      dependencyWarningHtml: "",
+      dependencyWarningVisible: false,
+      calcInfoHtml: "",
+      networkHtml: "",
+      networkVisible: false,
+      costTableHtml: "",
+      costFooterHtml: "",
+    },
+    labels: {
+      generalTab: "Загальне",
+      costsTab: "Кошторис",
+      nameLabel: "Назва",
+      namePlaceholder: "Введіть назву...",
+      categoryLabel: "Категорія",
+      phasesLabel: "Фази та терміни",
+      addPhaseButton: "+ Фаза",
+      dependenciesLabel: "Залежить від",
+      budgetLabel: "Вартість (грн)",
+      budgetAutoLabel: "авто",
+      contractsOverrideBudgetLabel: "Договори формують суму роботи",
+      spentLabel: "Витрачено (грн)",
+      spentAutoLabel: "авто",
+      networkLabel: "Граф залежностей",
+      costTypeMaterial: "Матеріали",
+      costTypeWork: "Роботи",
+      costTypeEquipment: "Техніка",
+      costTypeService: "Послуги",
+      costTypeOther: "Інше",
+      cancelButton: "Скасувати",
+      saveButton: "Зберегти",
+      tableTypeHeader: "Тип",
+      tableContractHeader: "Номер договору",
+      tableSupplierHeader: "Контрагент",
+      tableBudgetHeader: "Вартість договору",
+      tableNoteHeader: "Примітки",
+      tableTotalHeader: "Сума / дії",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+export function readTaskModalSnapshot(): TaskModalSnapshot {
+  const parsed = snapshotSchema.safeParse(getTaskModalWindow().getTaskModalBridgeSnapshot?.());
+  return parsed.success ? parsed.data : buildFallbackSnapshot();
+}
+
+export function subscribeTaskModalSync(onSync: () => void): () => void {
+  const handler = () => onSync();
+  document.addEventListener("plan-master:task-modal-sync", handler);
+  return () => document.removeEventListener("plan-master:task-modal-sync", handler);
+}

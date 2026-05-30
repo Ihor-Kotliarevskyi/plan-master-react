@@ -4,6 +4,10 @@ let _editingDepId = null;
 let _notesSession = typeof buildRuntimeCloseTaskNotesSession === "function"
   ? buildRuntimeCloseTaskNotesSession()
   : { taskIndex: null, title: "", notes: [], exists: false, visible: false };
+let _reactTaskModalState = {
+  visible: false,
+  activeTab: "general",
+};
 let _reactProjectManagerState = {
   visible: false,
 };
@@ -25,6 +29,14 @@ function isReactProjectSettingsEnabled() {
 
 function syncReactProjectSettingsBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:project-settings-sync"));
+}
+
+function isReactTaskModalEnabled() {
+  return document.body?.dataset?.reactTransitionTaskModal === "enabled";
+}
+
+function syncReactTaskModalBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:task-modal-sync"));
 }
 
 function _getTaskRangeWarningModel() {
@@ -260,6 +272,96 @@ function _getTaskFormPanelModel() {
   };
 }
 
+function _readTaskModalFieldValue(id, fallback = "") {
+  const field = document.getElementById(id);
+  return field ? field.value || "" : fallback;
+}
+
+function _readTaskModalSectionHtml(id) {
+  return document.getElementById(id)?.innerHTML || "";
+}
+
+function _readTaskModalSectionVisible(id) {
+  const element = document.getElementById(id);
+  return !!element && element.style.display !== "none";
+}
+
+function _getTaskModalBridgeState() {
+  const taskFormPanel = _getTaskFormPanelModel();
+  const hasItems = Array.isArray(_costItems) && _costItems.length > 0;
+  const currentBudget = +_readTaskModalFieldValue("f-budget", "") || 0;
+  const overrideBudget = !!document.getElementById("f-contracts-override-budget")?.checked;
+
+  return {
+    visible: _reactTaskModalState.visible,
+    activeTab: _reactTaskModalState.activeTab || "general",
+    canEdit: _canMutateTaskModal(),
+    title:
+      document.getElementById("m-title")?.textContent ||
+      (editIdx === null ? taskFormPanel.newTaskTitle : _readTaskModalFieldValue("f-name", taskFormPanel.editTaskFallbackTitle)),
+    form: {
+      name: _readTaskModalFieldValue("f-name", ""),
+      budget: _readTaskModalFieldValue("f-budget", ""),
+      spent: _readTaskModalFieldValue("f-spent", ""),
+      contractsOverrideBudget: overrideBudget,
+    },
+    autoBadges: {
+      budget: hasItems && (overrideBudget || currentBudget <= 0),
+      spent: hasItems,
+    },
+    sections: {
+      categoryHtml: _readTaskModalSectionHtml("cat-chips"),
+      phasesHtml: _readTaskModalSectionHtml("modal-phases"),
+      dependencyTagsHtml: _readTaskModalSectionHtml("dep-tags"),
+      dependencyDropdownHtml: _readTaskModalSectionHtml("dep-dropdown"),
+      dependencyDropdownVisible: _readTaskModalSectionVisible("dep-dropdown"),
+      dependencyEditorHtml: _readTaskModalSectionHtml("dep-type-editor"),
+      dependencyEditorVisible: _readTaskModalSectionVisible("dep-type-editor"),
+      dependencyWarningHtml: _readTaskModalSectionHtml("dep-warn"),
+      dependencyWarningVisible: document.getElementById("dep-warn")?.classList.contains("show") || false,
+      calcInfoHtml: document.getElementById("calc-info")?.innerHTML || taskFormPanel.fillCostHint,
+      networkHtml: _readTaskModalSectionHtml("modal-net-graph"),
+      networkVisible: _readTaskModalSectionVisible("modal-net-section"),
+      costTableHtml: _readTaskModalSectionHtml("cost-tbody"),
+      costFooterHtml: _readTaskModalSectionHtml("cost-footer"),
+    },
+    labels: {
+      generalTab: "Загальне",
+      costsTab: "Кошторис",
+      nameLabel: "Назва",
+      namePlaceholder: "Введіть назву...",
+      categoryLabel: "Категорія",
+      phasesLabel: "Фази та терміни",
+      addPhaseButton: "+ Фаза",
+      dependenciesLabel: "Залежить від",
+      budgetLabel: "Вартість (грн)",
+      budgetAutoLabel: "авто",
+      contractsOverrideBudgetLabel: "Договори формують суму роботи",
+      spentLabel: "Витрачено (грн)",
+      spentAutoLabel: "авто",
+      networkLabel: "Граф залежностей",
+      costTypeMaterial: "Матеріали",
+      costTypeWork: "Роботи",
+      costTypeEquipment: "Техніка",
+      costTypeService: "Послуги",
+      costTypeOther: "Інше",
+      cancelButton: "Скасувати",
+      saveButton: "Зберегти",
+      tableTypeHeader: "Тип",
+      tableContractHeader: "Номер договору",
+      tableSupplierHeader: "Контрагент",
+      tableBudgetHeader: "Вартість договору",
+      tableNoteHeader: "Примітки",
+      tableTotalHeader: "Сума / дії",
+    },
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function getTaskModalBridgeSnapshot() {
+  return _getTaskModalBridgeState();
+}
+
 function _getDemoProjectSeedModel() {
   if (typeof buildRuntimeDemoProjectSeedModel === "function") return buildRuntimeDemoProjectSeedModel();
   return {
@@ -460,6 +562,7 @@ function buildChips(sel) {
           data-task-modal-action="pick-category" data-category-index="${i}" type="button"><span class="chip-dot"></span>${c.name}</button>`,
     )
     .join("");
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function pickCat(i) {
@@ -548,6 +651,7 @@ function renderModalPhases() {
   lucide.createIcons({ nodes: [document.getElementById("modal-phases")] });
   _syncModalPhasesToHidden();
   _applyTaskModalPermissions();
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 /** Повертає індекс активної фази (остання з prog > 0, або перша). */
@@ -655,7 +759,11 @@ function renderModalNet() {
         })
     : [];
 
-  if (!preds.length && !succs.length) { sec.style.display = 'none'; return; }
+  if (!preds.length && !succs.length) {
+    sec.style.display = 'none';
+    if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
+    return;
+  }
   sec.style.display = 'block';
 
   const NW = 150, NH = 46, GX = 62, GY = 10, PAD = 14;
@@ -746,6 +854,7 @@ function renderModalNet() {
       style="min-height:${svgH}px;display:block;max-width:100%">
     ${defs}${edgesHtml}${nodesHtml}
   </svg>`;
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 /** Рендерить чіпи залежностей. */
@@ -779,6 +888,7 @@ function renderDepTags() {
 
   renderModalNet();
   _applyTaskModalPermissions();
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 /** Показує dropdown з фільтрацією задач. */
@@ -802,6 +912,7 @@ function filterDepSearch(q) {
 
   if (!dropdownState.visible) {
     dd.style.display = "none";
+    if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
     return;
   }
   dd.style.display = "block";
@@ -813,6 +924,7 @@ function filterDepSearch(q) {
          </div>`,
     )
     .join("");
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function addDepTag(id) {
@@ -863,6 +975,7 @@ function renderDepTypeEditor() {
     : { visible: false, dependency: null, taskNumber: "?", taskName: "" };
   if (!editorState.visible || !editorState.dependency) {
     el.style.display = "none";
+    if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
     return;
   }
   const dep = editorState.dependency;
@@ -902,6 +1015,7 @@ function renderDepTypeEditor() {
       </div>
     </div>`;
   _applyTaskModalPermissions();
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function setDepType(id, type) {
@@ -934,12 +1048,14 @@ function adjDepThr(id, delta) {
 }
 
 function switchTaskTab(tab) {
+  _reactTaskModalState.activeTab = tab;
   ["general", "costs"].forEach((t) => {
     document.getElementById(`ttab-${t}`)?.classList.toggle("active", t === tab);
     const pane = document.getElementById(`task-pane-${t}`);
     if (pane) pane.style.display = t === tab ? (t === "costs" ? "flex" : "block") : "none";
   });
   if (tab === "costs") renderCostTable();
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 /** Показує або ховає «авто» бейджи на полях бюджету. */
@@ -982,9 +1098,12 @@ function updCalc() {
     : { remainder: b - s, weeks: 0, weeklyRate: 0 };
   document.getElementById("calc-info").innerHTML =
     `${taskFormPanel.budgetRemainderLabel}: <b>${fmtM(calc.remainder)} грн</b> · ${taskFormPanel.weeksLabel}: <b>${calc.weeks}</b> · ${taskFormPanel.weeklyRateLabel}: <b>${calc.weeks > 0 ? fmtM(calc.weeklyRate) + " " + taskFormPanel.weeklyRateUnit : "—"}</b>`;
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function _applyTaskModalUiState(state) {
+  _reactTaskModalState.visible = true;
+  _reactTaskModalState.activeTab = state.activeTab || "general";
   editIdx = state.editIdx;
   _editingDepId = state.editingDepId;
   _modalDeps = state.modalDeps;
@@ -1019,6 +1138,7 @@ function _applyTaskModalUiState(state) {
   if (_canMutateTaskModal() && state.focusField === "name") {
     setTimeout(() => document.getElementById("f-name").focus(), 50);
   }
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 function openAdd() {
@@ -1117,8 +1237,10 @@ function openEdit(ti) {
 }
 
 function closeModal() {
+  _reactTaskModalState.visible = false;
   document.getElementById("modal").style.display = "none";
   document.getElementById("dep-dropdown").style.display = "none";
+  if (isReactTaskModalEnabled()) syncReactTaskModalBridge();
 }
 
 /** Зберігає задачу (нову або відредаговану). */
