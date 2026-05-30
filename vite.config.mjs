@@ -1,3 +1,4 @@
+import react from "@vitejs/plugin-react";
 import { createLogger, defineConfig } from "vite";
 
 const viteLogger = createLogger();
@@ -12,4 +13,5 @@ viteLogger.warn = (msg, options) => {
 
 export default defineConfig({
   customLogger: viteLogger,
+  plugins: [react()],
 });
