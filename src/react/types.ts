@@ -634,6 +634,19 @@ export interface ContractorImportReviewSnapshot {
   capturedAt: string;
 }
 
+export interface ContractorConfirmSnapshot {
+  visible: boolean;
+  title: string;
+  messageHtml: string;
+  confirmButtonText: string;
+  cancelButtonText: string;
+  inputLabel: string;
+  inputValue: string;
+  expectedValue: string;
+  errorText: string;
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

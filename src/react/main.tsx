@@ -13,6 +13,7 @@ import { ContractorDialogModal } from "./components/contractor-dialog-modal";
 import { PaymentRegisterModal } from "./components/payment-register-modal";
 import { ContractorImportMappingModal } from "./components/contractor-import-mapping-modal";
 import { ContractorImportReviewModal } from "./components/contractor-import-review-modal";
+import { ContractorConfirmModal } from "./components/contractor-confirm-modal";
 import { FinanceFiltersShell, FinanceSummaryShell, FinanceTableShell } from "./components/finance-surface";
 import { PrintDialogModal } from "./components/print-dialog-modal";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
@@ -272,6 +273,16 @@ function mountReactHost() {
   createRoot(contractorImportReviewHost).render(
     <StrictMode>
       <ContractorImportReviewModal />
+    </StrictMode>,
+  );
+
+  const contractorConfirmHost = document.createElement("div");
+  contractorConfirmHost.id = "react-contractor-confirm-root";
+  document.body.appendChild(contractorConfirmHost);
+  document.body.dataset.reactTransitionContractorConfirm = "enabled";
+  createRoot(contractorConfirmHost).render(
+    <StrictMode>
+      <ContractorConfirmModal />
     </StrictMode>,
   );
 

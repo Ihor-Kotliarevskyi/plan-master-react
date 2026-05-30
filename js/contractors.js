@@ -111,6 +111,18 @@ let _reactContractorImportReviewState = {
   preview: null,
 };
 let _reactContractorImportReviewResolver = null;
+let _reactContractorConfirmState = {
+  visible: false,
+  title: "",
+  messageHtml: "",
+  confirmButtonText: "",
+  cancelButtonText: "",
+  inputLabel: "",
+  inputValue: "",
+  expectedValue: "",
+  errorText: "",
+};
+let _reactContractorConfirmResolver = null;
 
 function isReactContractorSurfaceEnabled() {
   return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
@@ -144,6 +156,10 @@ function isReactContractorImportReviewEnabled() {
   return document.body?.dataset?.reactTransitionContractorImportReview === "enabled";
 }
 
+function isReactContractorConfirmEnabled() {
+  return document.body?.dataset?.reactTransitionContractorConfirm === "enabled";
+}
+
 function syncReactContractorEntryBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-entry-sync"));
 }
@@ -158,6 +174,10 @@ function syncReactContractorImportMappingBridge() {
 
 function syncReactContractorImportReviewBridge() {
   document.dispatchEvent(new CustomEvent("plan-master:contractor-import-review-sync"));
+}
+
+function syncReactContractorConfirmBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:contractor-confirm-sync"));
 }
 
 function getContractorSurfaceBridgeSnapshot() {
@@ -289,6 +309,21 @@ function getContractorImportReviewBridgeSnapshot() {
   };
 }
 
+function getContractorConfirmBridgeSnapshot() {
+  return {
+    visible: _reactContractorConfirmState.visible,
+    title: _reactContractorConfirmState.title,
+    messageHtml: _reactContractorConfirmState.messageHtml,
+    confirmButtonText: _reactContractorConfirmState.confirmButtonText,
+    cancelButtonText: _reactContractorConfirmState.cancelButtonText,
+    inputLabel: _reactContractorConfirmState.inputLabel,
+    inputValue: _reactContractorConfirmState.inputValue,
+    expectedValue: _reactContractorConfirmState.expectedValue,
+    errorText: _reactContractorConfirmState.errorText,
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 function closeReactContractorImportMapping(result = null) {
   _reactContractorImportMappingState = {
     visible: false,
@@ -345,6 +380,52 @@ function submitReactContractorImportReview() {
     return { ok: false, error: CONTRACTOR_UI.importNoChangesValidation };
   }
   closeReactContractorImportReview({ ...preview, ...nextSummary, entries: updatedEntries });
+  return { ok: true };
+}
+
+function closeReactContractorConfirm(result = { confirmed: false }) {
+  _reactContractorConfirmState = {
+    visible: false,
+    title: "",
+    messageHtml: "",
+    confirmButtonText: "",
+    cancelButtonText: "",
+    inputLabel: "",
+    inputValue: "",
+    expectedValue: "",
+    errorText: "",
+  };
+  syncReactContractorConfirmBridge();
+  if (_reactContractorConfirmResolver) {
+    _reactContractorConfirmResolver(result);
+    _reactContractorConfirmResolver = null;
+  }
+}
+
+async function openReactContractorConfirm(config) {
+  _reactContractorConfirmState = {
+    visible: true,
+    title: config?.title || "",
+    messageHtml: config?.messageHtml || "",
+    confirmButtonText: config?.confirmButtonText || CONTRACTOR_UI.deleteLabel,
+    cancelButtonText: config?.cancelButtonText || CONTRACTOR_UI.cancelLabel,
+    inputLabel: config?.inputLabel || "",
+    inputValue: config?.inputValue || "",
+    expectedValue: config?.expectedValue || "",
+    errorText: config?.errorText || "",
+  };
+  syncReactContractorConfirmBridge();
+  return await new Promise((resolve) => {
+    _reactContractorConfirmResolver = resolve;
+  });
+}
+
+function submitReactContractorConfirm(payload) {
+  const value = String(payload?.inputValue || "").trim();
+  if (_reactContractorConfirmState.expectedValue && value.toUpperCase() !== _reactContractorConfirmState.expectedValue.toUpperCase()) {
+    return { ok: false, error: _reactContractorConfirmState.errorText || CONTRACTOR_UI.finalDeleteConfirmLabel };
+  }
+  closeReactContractorConfirm({ confirmed: true, value });
   return { ok: true };
 }
 
@@ -1775,15 +1856,24 @@ async function deleteContractorPayment(path) {
   const data = _decodeContractorPaymentPath(path);
   const found = _findContractorPayment(data);
   if (!found) return;
-  const result = await Swal.fire({
-    icon: "warning",
-    title: CONTRACTOR_UI.deletePaymentTitlePrompt,
-    showCancelButton: true,
-    confirmButtonText: CONTRACTOR_UI.deleteLabel,
-    cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    confirmButtonColor: "#dc2626",
-  });
-  if (!result.isConfirmed) return;
+  if (isReactContractorConfirmEnabled()) {
+    const result = await openReactContractorConfirm({
+      title: CONTRACTOR_UI.deletePaymentTitlePrompt,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    });
+    if (!result?.confirmed) return;
+  } else {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: CONTRACTOR_UI.deletePaymentTitlePrompt,
+      showCancelButton: true,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+      confirmButtonColor: "#dc2626",
+    });
+    if (!result.isConfirmed) return;
+  }
   const idx = found.item.payments.indexOf(found.payment);
   if (idx >= 0) found.item.payments.splice(idx, 1);
   _ctRecalcTaskTotals(found.task);
@@ -1921,42 +2011,69 @@ async function _bulkDeleteContractors(keys, scopeLabel) {
           return acc;
         }, { contractors: 0, items: 0, payments: 0, acts: 0 }));
 
-  const confirmOne = await Swal.fire({
-    icon: "warning",
-    title: CONTRACTOR_UI.bulkDeleteConfirmTitle,
-    html: `
-      <div style="text-align:left">
-        Буде видалено <b>${summary.contractors}</b> контрагентів.<br>
-        Позицій: <b>${summary.items}</b><br>
-        Платежів: <b>${summary.payments}</b><br>
-        Актів: <b>${summary.acts}</b><br><br>
-        Сценарій: <b>${_ctEsc(scopeLabel)}</b>
-      </div>`,
-    showCancelButton: true,
-    confirmButtonText: CONTRACTOR_UI.bulkDeleteContinueLabel,
-    cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    confirmButtonColor: "#dc2626",
-  });
-  if (!confirmOne.isConfirmed) return;
+  let confirmOneResult;
+  if (isReactContractorConfirmEnabled()) {
+    confirmOneResult = await openReactContractorConfirm({
+      title: CONTRACTOR_UI.bulkDeleteConfirmTitle,
+      messageHtml: `
+        <div style="text-align:left">
+          Буде видалено <b>${summary.contractors}</b> контрагентів.<br>
+          Позицій: <b>${summary.items}</b><br>
+          Платежів: <b>${summary.payments}</b><br>
+          Актів: <b>${summary.acts}</b><br><br>
+          Сценарій: <b>${_ctEsc(scopeLabel)}</b>
+        </div>`,
+      confirmButtonText: CONTRACTOR_UI.bulkDeleteContinueLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    });
+    if (!confirmOneResult?.confirmed) return;
+    const confirmTwoResult = await openReactContractorConfirm({
+      title: CONTRACTOR_UI.finalDeleteTitle,
+      inputLabel: CONTRACTOR_UI.finalDeleteInputLabel,
+      expectedValue: "ВИДАЛИТИ",
+      errorText: CONTRACTOR_UI.finalDeleteConfirmLabel,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    });
+    if (!confirmTwoResult?.confirmed) return;
+  } else {
+    const confirmOne = await Swal.fire({
+      icon: "warning",
+      title: CONTRACTOR_UI.bulkDeleteConfirmTitle,
+      html: `
+        <div style="text-align:left">
+          Буде видалено <b>${summary.contractors}</b> контрагентів.<br>
+          Позицій: <b>${summary.items}</b><br>
+          Платежів: <b>${summary.payments}</b><br>
+          Актів: <b>${summary.acts}</b><br><br>
+          Сценарій: <b>${_ctEsc(scopeLabel)}</b>
+        </div>`,
+      showCancelButton: true,
+      confirmButtonText: CONTRACTOR_UI.bulkDeleteContinueLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+      confirmButtonColor: "#dc2626",
+    });
+    if (!confirmOne.isConfirmed) return;
 
-  const confirmTwo = await Swal.fire({
-    icon: "warning",
-    title: CONTRACTOR_UI.finalDeleteTitle,
-    input: "text",
-    inputLabel: CONTRACTOR_UI.finalDeleteInputLabel,
-    showCancelButton: true,
-    confirmButtonText: CONTRACTOR_UI.deleteLabel,
-    cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    confirmButtonColor: "#dc2626",
-    preConfirm: (value) => {
-      if (String(value || "").trim().toUpperCase() !== "ВИДАЛИТИ") {
-        Swal.showValidationMessage(CONTRACTOR_UI.finalDeleteConfirmLabel);
-        return false;
-      }
-      return true;
-    },
-  });
-  if (!confirmTwo.isConfirmed) return;
+    const confirmTwo = await Swal.fire({
+      icon: "warning",
+      title: CONTRACTOR_UI.finalDeleteTitle,
+      input: "text",
+      inputLabel: CONTRACTOR_UI.finalDeleteInputLabel,
+      showCancelButton: true,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+      confirmButtonColor: "#dc2626",
+      preConfirm: (value) => {
+        if (String(value || "").trim().toUpperCase() !== "ВИДАЛИТИ") {
+          Swal.showValidationMessage(CONTRACTOR_UI.finalDeleteConfirmLabel);
+          return false;
+        }
+        return true;
+      },
+    });
+    if (!confirmTwo.isConfirmed) return;
+  }
 
   tasks.forEach((task) => {
     const items = taskCostItems(task);
@@ -2177,15 +2294,24 @@ async function deleteContractorAct(path) {
   if (!_canMutateContractors(true)) return;
   const found = _findContractorAct(path);
   if (!found) return;
-  const result = await Swal.fire({
-    icon: "warning",
-    title: CONTRACTOR_UI.deleteActTitlePrompt,
-    showCancelButton: true,
-    confirmButtonText: CONTRACTOR_UI.deleteLabel,
-    cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    confirmButtonColor: "#dc2626",
-  });
-  if (!result.isConfirmed) return;
+  if (isReactContractorConfirmEnabled()) {
+    const result = await openReactContractorConfirm({
+      title: CONTRACTOR_UI.deleteActTitlePrompt,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    });
+    if (!result?.confirmed) return;
+  } else {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: CONTRACTOR_UI.deleteActTitlePrompt,
+      showCancelButton: true,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+      confirmButtonColor: "#dc2626",
+    });
+    if (!result.isConfirmed) return;
+  }
   const idx = found.item.acts.indexOf(found.act);
   if (idx >= 0) found.item.acts.splice(idx, 1);
   (found.item.payments || []).forEach((payment) => {
@@ -2802,16 +2928,26 @@ function _printPaymentRegisterRows(name, rows, subtitle = "") {
 async function deletePaymentRegister(id) {
   const register = _findPaymentRegister(id);
   if (!register) return;
-  const result = await Swal.fire({
-    icon: "warning",
-    title: CONTRACTOR_UI.deleteRegisterTitle,
-    text: register.name,
-    showCancelButton: true,
-    confirmButtonText: CONTRACTOR_UI.deleteLabel,
-    cancelButtonText: CONTRACTOR_UI.cancelLabel,
-    confirmButtonColor: "#dc2626",
-  });
-  if (!result.isConfirmed) return;
+  if (isReactContractorConfirmEnabled()) {
+    const result = await openReactContractorConfirm({
+      title: CONTRACTOR_UI.deleteRegisterTitle,
+      messageHtml: _ctEsc(register.name),
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+    });
+    if (!result?.confirmed) return;
+  } else {
+    const result = await Swal.fire({
+      icon: "warning",
+      title: CONTRACTOR_UI.deleteRegisterTitle,
+      text: register.name,
+      showCancelButton: true,
+      confirmButtonText: CONTRACTOR_UI.deleteLabel,
+      cancelButtonText: CONTRACTOR_UI.cancelLabel,
+      confirmButtonColor: "#dc2626",
+    });
+    if (!result.isConfirmed) return;
+  }
   proj.paymentRegisters = _ensurePaymentRegisters().filter((item) => item.id !== id);
   saveAll();
   renderPaymentRegisterModal();
