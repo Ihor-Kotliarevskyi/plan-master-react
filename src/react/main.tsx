@@ -49,10 +49,10 @@ function mountReactHost() {
     );
   }
 
-  const userCabinetBody = document.getElementById("user-modal-body");
-  if (userCabinetBody) {
+  const userCabinetModal = document.querySelector<HTMLElement>("[data-user-cabinet-root] .modal");
+  if (userCabinetModal) {
     document.body.dataset.reactTransitionUserCabinet = "enabled";
-    createRoot(userCabinetBody).render(
+    createRoot(userCabinetModal).render(
       <StrictMode>
         <UserCabinetShell />
       </StrictMode>,
