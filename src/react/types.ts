@@ -164,3 +164,38 @@ export interface AuditViewerSnapshot {
   };
   capturedAt: string;
 }
+
+export interface ShareRoleGuideItem {
+  title: string;
+  description: string;
+}
+
+export interface ShareModalSnapshot {
+  visible: boolean;
+  loading: boolean;
+  error: string;
+  projectName: string;
+  items: Array<{
+    id: string;
+    displayLabel: string;
+    normalizedRole: string;
+    roleLabel: string;
+  }>;
+  labels: {
+    accessDeniedTitle: string;
+    emptyText: string;
+    modalTitle: string;
+    projectLabel: string;
+    grantSectionTitle: string;
+    emailPlaceholder: string;
+    confirmButtonText: string;
+    cancelButtonText: string;
+    emailRequiredMessage: string;
+    roleGuideItems: ShareRoleGuideItem[];
+  };
+  roleOptions: Array<{
+    value: string;
+    label: string;
+  }>;
+  capturedAt: string;
+}

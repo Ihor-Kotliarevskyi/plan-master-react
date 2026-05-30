@@ -248,3 +248,55 @@
   display: grid;
   gap: 12px;
 }
+
+.react-share-overlay {
+  align-items: center;
+  background: rgba(15, 23, 42, 0.44);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 24px;
+  position: fixed;
+  z-index: 1200;
+}
+
+.react-share-modal {
+  background: var(--panel, #fff);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+  color: var(--txt, #0f172a);
+  max-height: min(80vh, 760px);
+  overflow: auto;
+  padding: 20px;
+  width: min(760px, 100%);
+}
+
+.react-share-modal__header,
+.react-share-modal__footer {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.react-share-modal__header {
+  margin-bottom: 16px;
+}
+
+.react-share-modal__header h3,
+.react-share-modal__status,
+.react-share-modal__error {
+  margin: 0;
+}
+
+.react-share-modal__status {
+  color: var(--txt2, #64748b);
+}
+
+.react-share-modal__error {
+  color: #b91c1c;
+}
+
+.react-share-modal__footer {
+  margin-top: 16px;
+}

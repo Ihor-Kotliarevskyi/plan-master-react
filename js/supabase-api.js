@@ -38,6 +38,142 @@ let _sbProfile = null;
 let _projectRole = null;
 let _apiLoadProjectsSeq = 0;
 let _syncTimer = null;
+let _reactShareModalState = {
+  visible: false,
+  loading: false,
+  error: "",
+  items: [],
+  projectName: "",
+};
+
+function isReactShareModalEnabled() {
+  return document.body?.dataset?.reactTransitionUserCabinet === "enabled";
+}
+
+function syncReactShareModalBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:share-modal-sync"));
+}
+
+function getReactShareRoleLabel(role) {
+  return typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
+}
+
+function getShareDialogConfig() {
+  return typeof buildRuntimeSupabaseShareDialogModel === "function"
+    ? buildRuntimeSupabaseShareDialogModel()
+    : {
+        accessDeniedTitle: "You do not have permission to manage access.",
+        emptyText: "No shared users yet",
+        modalTitle: "Shared Access",
+        projectLabel: "Project",
+        grantSectionTitle: "Grant access:",
+        emailPlaceholder: "email@example.com",
+        confirmButtonText: "Grant access",
+        cancelButtonText: "Close",
+        emailRequiredMessage: "Enter email",
+      };
+}
+
+function getShareBridgeSnapshot() {
+  const dialog = getShareDialogConfig();
+  const roleGuideItems = typeof buildRuntimeSupabaseShareRoleGuide === "function"
+    ? buildRuntimeSupabaseShareRoleGuide()
+    : [
+        { title: "Manager", description: "manages access and project settings." },
+        { title: "Editor", description: "edits tasks but cannot manage access." },
+        { title: "Viewer", description: "read-only access." },
+      ];
+
+  return {
+    visible: _reactShareModalState.visible,
+    loading: _reactShareModalState.loading,
+    error: _reactShareModalState.error,
+    projectName: _reactShareModalState.projectName || proj?.name || "",
+    items: (_reactShareModalState.items || []).map((item) => ({
+      id: item.id,
+      displayLabel: item.displayLabel,
+      normalizedRole: item.normalizedRole || item.role || "viewer",
+      roleLabel: item.roleLabel || getReactShareRoleLabel(item.normalizedRole || item.role || "viewer"),
+    })),
+    labels: {
+      ...dialog,
+      roleGuideItems,
+    },
+    roleOptions: SHAREABLE_PROJECT_ROLES.map((role) => ({
+      value: role,
+      label: getReactShareRoleLabel(role),
+    })),
+    capturedAt: new Date().toISOString(),
+  };
+}
+
+function closeReactShareModal() {
+  _reactShareModalState.visible = false;
+  syncReactShareModalBridge();
+}
+
+async function loadReactShareModalState() {
+  const shareDialog = getShareDialogConfig();
+  if (!canManageShares()) {
+    _reactShareModalState = {
+      visible: true,
+      loading: false,
+      error: shareDialog.accessDeniedTitle,
+      items: [],
+      projectName: proj?.name || "",
+    };
+    syncReactShareModalBridge();
+    return null;
+  }
+
+  _reactShareModalState = {
+    visible: true,
+    loading: true,
+    error: "",
+    items: [],
+    projectName: proj?.name || "",
+  };
+  syncReactShareModalBridge();
+
+  try {
+    const shares = await apiGetShares();
+    const shareModalState = typeof buildRuntimeSupabaseShareModalState === "function"
+      ? buildRuntimeSupabaseShareModalState({
+          shares,
+          projectName: proj.name,
+          getRoleLabel: getReactShareRoleLabel,
+        })
+      : {
+          projectName: proj.name,
+          items: shares.map((share) => ({
+            id: share.id,
+            role: normalizeProjectRole(share.role),
+            normalizedRole: normalizeProjectRole(share.role),
+            roleLabel: getReactShareRoleLabel(share.role),
+            displayLabel: share.user?.email || share.user?.name || share.user?.id || "-",
+          })),
+        };
+
+    _reactShareModalState = {
+      visible: true,
+      loading: false,
+      error: "",
+      items: shareModalState.items || [],
+      projectName: shareModalState.projectName || proj?.name || "",
+    };
+  } catch (err) {
+    _reactShareModalState = {
+      visible: true,
+      loading: false,
+      error: err?.message || shareDialog.accessDeniedTitle,
+      items: [],
+      projectName: proj?.name || "",
+    };
+  }
+
+  syncReactShareModalBridge();
+  return _reactShareModalState;
+}
 
 function isLoggedIn() {
   return !!_sbUser;
@@ -828,7 +964,9 @@ async function handleShareRoleChange(shareId, role) {
       showConfirmButton: false,
       timer: toastModel.timer,
     });
-    await openShareModal();
+    if (isReactShareModalEnabled()) await loadReactShareModalState();
+    else await openShareModal();
+    syncReactShareModalBridge();
   } catch (err) {
     const errorMessages = typeof buildRuntimeSupabaseShareErrorMessages === "function"
       ? buildRuntimeSupabaseShareErrorMessages()
@@ -858,7 +996,9 @@ async function handleShareRemoval(shareId) {
       showConfirmButton: false,
       timer: toastModel.timer,
     });
-    await openShareModal();
+    if (isReactShareModalEnabled()) await loadReactShareModalState();
+    else await openShareModal();
+    syncReactShareModalBridge();
   } catch (err) {
     const errorMessages = typeof buildRuntimeSupabaseShareErrorMessages === "function"
       ? buildRuntimeSupabaseShareErrorMessages()
@@ -875,27 +1015,21 @@ async function handleShareRemoval(shareId) {
 }
 
 async function openShareModal() {
+  const shareDialog = getShareDialogConfig();
+
+  if (isReactShareModalEnabled()) {
+    await loadReactShareModalState();
+    return;
+  }
+
   const shares = await apiGetShares();
-  const shareDialog = typeof buildRuntimeSupabaseShareDialogModel === "function"
-    ? buildRuntimeSupabaseShareDialogModel()
-    : {
-        accessDeniedTitle: "You do not have permission to manage access.",
-        emptyText: "No shared users yet",
-        modalTitle: "Shared Access",
-        projectLabel: "Project",
-        grantSectionTitle: "Grant access:",
-        emailPlaceholder: "email@example.com",
-        confirmButtonText: "Grant access",
-        cancelButtonText: "Close",
-        emailRequiredMessage: "Enter email",
-      };
 
   if (!canManageShares()) {
     Swal.fire({ icon: "info", title: shareDialog.accessDeniedTitle });
     return;
   }
 
-  const getRoleLabel = (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : PROJECT_ROLE_LABELS[role];
+  const getRoleLabel = getReactShareRoleLabel;
   const roleOptions = typeof buildRuntimeSupabaseShareRoleOptions === "function"
     ? buildRuntimeSupabaseShareRoleOptions(SHAREABLE_PROJECT_ROLES, getRoleLabel, "viewer")
     : SHAREABLE_PROJECT_ROLES.map((role) => `<option value="${role}">${getRoleLabel(role)}</option>`).join("");
@@ -1029,6 +1163,42 @@ async function openShareModal() {
       }
     },
   });
+}
+
+async function grantShareFromReact(email, role) {
+  const trimmedEmail = String(email || "").trim();
+  const shareDialog = getShareDialogConfig();
+  if (!trimmedEmail) {
+    return { ok: false, error: shareDialog.emailRequiredMessage };
+  }
+  try {
+    const result = await apiShareProject(trimmedEmail, role);
+    const toastModel = typeof buildRuntimeSupabaseShareGrantedToast === "function"
+      ? buildRuntimeSupabaseShareGrantedToast(getReactShareRoleLabel(result.role), result.email)
+      : {
+          title: `Access granted: ${getReactShareRoleLabel(result.role)}`,
+          text: result.email,
+          timer: 2800,
+        };
+    Swal.fire({
+      toast: true,
+      position: "top-end",
+      icon: "success",
+      title: toastModel.title,
+      text: toastModel.text,
+      showConfirmButton: false,
+      timer: toastModel.timer,
+    });
+    await loadReactShareModalState();
+    return { ok: true };
+  } catch (err) {
+    syncReactShareModalBridge();
+    return { ok: false, error: err?.message || shareDialog.emailRequiredMessage };
+  }
+}
+
+async function reloadReactShareModal() {
+  await loadReactShareModalState();
 }
 
 function _showSyncIndicator() {

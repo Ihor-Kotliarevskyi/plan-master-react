@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
 import { ReactHostShell } from "./components/react-host-shell";
+import { ShareModal } from "./components/share-modal";
 import { UserCabinetShell } from "./components/user-cabinet-shell";
 import { ReactHostProvider } from "./providers/react-host-provider";
 import "./react-host.css";
@@ -38,6 +39,15 @@ function mountReactHost() {
   createRoot(auditHost).render(
     <StrictMode>
       <AuditViewerModal />
+    </StrictMode>,
+  );
+
+  const shareHost = document.createElement("div");
+  shareHost.id = "react-share-modal-root";
+  document.body.appendChild(shareHost);
+  createRoot(shareHost).render(
+    <StrictMode>
+      <ShareModal />
     </StrictMode>,
   );
 }
