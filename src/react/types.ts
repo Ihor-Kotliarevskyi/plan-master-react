@@ -375,6 +375,18 @@ export interface GanttSurfaceSnapshot {
   capturedAt: string;
 }
 
+export interface ContractorSurfaceSnapshot {
+  searchQuery: string;
+  summaryHtml: string;
+  statusFilterHtml: string;
+  typeFilterHtml: string;
+  categoryFilterHtml: string;
+  resetFilterHtml: string;
+  selectionActionsHtml: string;
+  tableHtml: string;
+  capturedAt: string;
+}
+
 export interface AppShellSnapshot {
   activeTab: string;
   tabs: Array<{

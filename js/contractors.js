@@ -76,6 +76,28 @@ let _contractorEntryEditPath = null;
 let _contractorEntryOriginalKey = "";
 let _contractorImportMapping = null;
 
+function isReactContractorSurfaceEnabled() {
+  return document.body?.dataset?.reactTransitionContractorSurface === "enabled";
+}
+
+function syncReactContractorSurfaceBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:contractor-surface-sync"));
+}
+
+function getContractorSurfaceBridgeSnapshot() {
+  return {
+    searchQuery: contractorFilters.q || "",
+    summaryHtml: document.getElementById("contractor-summary")?.innerHTML || "",
+    statusFilterHtml: document.getElementById("contractor-status-filter")?.innerHTML || "",
+    typeFilterHtml: document.getElementById("contractor-type-filter")?.innerHTML || "",
+    categoryFilterHtml: document.getElementById("contractor-cat-filter")?.innerHTML || "",
+    resetFilterHtml: document.getElementById("contractor-reset-filter")?.innerHTML || "",
+    selectionActionsHtml: document.getElementById("contractor-selection-actions")?.innerHTML || "",
+    tableHtml: document.getElementById("contractor-tbl")?.innerHTML || "",
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 const CONTRACTOR_COL_SK = "gantt_contractor_col_widths";
 const CONTRACTOR_COL_ORDER_SK = "gantt_contractor_col_order";
 const CONTRACTOR_COL_DEFAULTS = {
@@ -245,6 +267,7 @@ function renderContractors() {
   tbl.closest(".contractor-table-wrap")?.classList.toggle("contractor-selection-mode", contractorSelectionMode);
   lucide.createIcons({ nodes: [tbl, document.getElementById("pane-contractors")] });
   _syncContractorSelectionHeader(rows);
+  if (isReactContractorSurfaceEnabled()) syncReactContractorSurfaceBridge();
 }
 
 function _getContractorColumns() {
@@ -440,6 +463,7 @@ function clearContractorSearch() {
   if (input) input.value = "";
   document.getElementById("contractor-search-clear")?.classList.remove("show");
   renderContractors();
+  if (isReactContractorSurfaceEnabled()) syncReactContractorSurfaceBridge();
 }
 
 function _renderContractorSummary(rows) {

@@ -5,6 +5,7 @@ import { AuditViewerModal } from "./components/audit-viewer-modal";
 import { DependencyListModal } from "./components/dependency-list-modal";
 import { GanttLegend, GanttTable, GanttToolbar } from "./components/gantt-surface";
 import { NotesModal } from "./components/notes-modal";
+import { ContractorSurface } from "./components/contractor-surface";
 import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
@@ -14,6 +15,10 @@ import { TaskModal } from "./components/task-modal";
 import { UserCabinetShell } from "./components/user-cabinet-shell";
 import { ReactHostProvider } from "./providers/react-host-provider";
 import "./react-host.css";
+
+type ReactRuntimeWindow = Window & {
+  renderContractors?: () => void;
+};
 
 function mountReactHost() {
   if (!shouldMountReactHost()) return;
@@ -163,6 +168,17 @@ function mountReactHost() {
         <GanttTable />
       </StrictMode>,
     );
+  }
+
+  const contractorPage = document.querySelector<HTMLElement>("#pane-contractors .contractor-page");
+  if (contractorPage) {
+    document.body.dataset.reactTransitionContractorSurface = "enabled";
+    createRoot(contractorPage).render(
+      <StrictMode>
+        <ContractorSurface />
+      </StrictMode>,
+    );
+    (window as ReactRuntimeWindow).renderContractors?.();
   }
 }
 
