@@ -374,9 +374,14 @@ function _updateReadOnlyUI() {
   if (headerBanner) {
     headerBanner.style.display = bannerModel.shouldShow ? "flex" : "none";
     headerBanner.className = `project-access-banner${readonly ? " is-readonly" : " is-limited"}`;
-    headerBanner.innerHTML = bannerModel.shouldShow
-      ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
-      : "";
+    if (!(typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled())) {
+      headerBanner.innerHTML = bannerModel.shouldShow
+        ? `<span class="project-access-pill">${bannerModel.roleLabel}</span><span class="project-access-text">${bannerModel.roleHint}${bannerModel.sharedMetaText ? ` ${bannerModel.sharedMetaText}` : ""}</span>`
+        : "";
+    }
+  }
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
   }
 
   const gtbl = document.getElementById("gtbl-wrap");
@@ -389,7 +394,9 @@ function _updateReadOnlyUI() {
   if (addBtn) addBtn.style.display = readonly ? "none" : "";
 
   const shareBtn = document.getElementById("share-btn");
-  if (shareBtn) {
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
+  } else if (shareBtn) {
     shareBtn.style.display =
       isLoggedIn() && canManageShares() ? "" : "none";
   }

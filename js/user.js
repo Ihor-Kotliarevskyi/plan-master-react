@@ -368,6 +368,11 @@ function saveUser() {
 function applyTheme(theme) {
   document.documentElement.setAttribute("data-theme", theme === "dark" ? "dark" : "light");
   userProfile.theme = theme;
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    syncReactUserCabinetBridge();
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
+    return;
+  }
   const btn = document.getElementById("theme-toggle");
   if (btn) {
     const themeToggle =
@@ -397,7 +402,6 @@ function toggleTheme() {
 
 function updateUserBtn() {
   const btn = document.getElementById("user-btn");
-  if (!btn) return;
 
   const loggedIn = typeof isLoggedIn === "function" && isLoggedIn();
   const profile = loggedIn && typeof _sbProfile !== "undefined" ? _sbProfile : null;
@@ -420,6 +424,12 @@ function updateUserBtn() {
     : identity.initial;
 
   const status = getCurrentSyncBadge().status;
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    syncReactUserCabinetBridge();
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
+    return;
+  }
+  if (!btn) return;
   btn.innerHTML = `
     <div class="user-avatar-wrap">
       <div class="user-avatar">${avatarHTML}</div>

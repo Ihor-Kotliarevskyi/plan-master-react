@@ -10,14 +10,18 @@ function render() {
 
 function updateHeader() {
   const ml = getML();
-  document.getElementById("head-dates").textContent = typeof buildRuntimeHeaderDateText === "function"
+  const nextText = typeof buildRuntimeHeaderDateText === "function"
     ? buildRuntimeHeaderDateText(ml, proj.nm)
     : "";
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
+    return;
+  }
+  document.getElementById("head-dates").textContent = nextText;
 }
 
 function updateProjSel() {
   const sel = document.getElementById("proj-sel");
-  if (!sel) return;
   const selectLabels = typeof buildRuntimeProjectSelectLabels === "function"
     ? buildRuntimeProjectSelectLabels()
     : { ownGroupLabel: "Мої проєкти", sharedGroupLabel: "Розшарені", sharedRoleSeparator: " · " };
@@ -43,6 +47,12 @@ function updateProjSel() {
 
   const ownMarkup = selectState.own.length ? `<optgroup label="${selectLabels.ownGroupLabel}">${renderOptions(selectState.own)}</optgroup>` : "";
   const sharedMarkup = selectState.shared.length ? `<optgroup label="${selectLabels.sharedGroupLabel}">${renderOptions(selectState.shared)}</optgroup>` : "";
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
+    if (typeof syncReactProjectManagerBridge === "function") syncReactProjectManagerBridge();
+    return;
+  }
+  if (!sel) return;
   sel.innerHTML = ownMarkup + sharedMarkup;
   if (typeof syncReactProjectManagerBridge === "function") syncReactProjectManagerBridge();
 }

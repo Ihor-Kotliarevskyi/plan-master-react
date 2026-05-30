@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { shouldMountReactHost } from "./bridge/legacy-app";
 import { AuditViewerModal } from "./components/audit-viewer-modal";
+import { AppShellAccessBanner, AppShellHeader, AppShellTabs } from "./components/app-shell-main";
 import { ProjectManagerModal } from "./components/project-manager-modal";
 import { ProjectSettingsModal } from "./components/project-settings-modal";
 import { ReactHostShell } from "./components/react-host-shell";
@@ -12,6 +13,8 @@ import "./react-host.css";
 
 function mountReactHost() {
   if (!shouldMountReactHost()) return;
+
+  document.body.dataset.reactTransitionMainShell = "enabled";
 
   const host = document.querySelector<HTMLElement>("[data-react-transition-host]");
   if (host) {
@@ -52,6 +55,33 @@ function mountReactHost() {
       <ShareModal />
     </StrictMode>,
   );
+
+  const appHead = document.querySelector<HTMLElement>(".app-head");
+  if (appHead) {
+    createRoot(appHead).render(
+      <StrictMode>
+        <AppShellHeader />
+      </StrictMode>,
+    );
+  }
+
+  const tabs = document.querySelector<HTMLElement>(".tabs");
+  if (tabs) {
+    createRoot(tabs).render(
+      <StrictMode>
+        <AppShellTabs />
+      </StrictMode>,
+    );
+  }
+
+  const accessBanner = document.getElementById("project-access-banner");
+  if (accessBanner) {
+    createRoot(accessBanner).render(
+      <StrictMode>
+        <AppShellAccessBanner />
+      </StrictMode>,
+    );
+  }
 
   const projectManagerModal = document.querySelector<HTMLElement>("[data-project-manager-root] .modal");
   if (projectManagerModal) {

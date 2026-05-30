@@ -352,3 +352,14 @@
   gap: 10px;
   justify-content: flex-end;
 }
+
+.react-app-shell-header,
+.react-app-shell-tabs {
+  display: contents;
+}
+
+.react-app-shell-tabs .tab {
+  border: 0;
+  background: transparent;
+  font: inherit;
+}

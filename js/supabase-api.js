@@ -928,7 +928,12 @@ function _updateReadOnlyUI() {
   if (headerBanner) {
     headerBanner.style.display = uiState.headerBannerVisible ? "flex" : "none";
     headerBanner.className = uiState.headerBannerClassName;
-    headerBanner.innerHTML = uiState.headerBannerHtml;
+    if (!(typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled())) {
+      headerBanner.innerHTML = uiState.headerBannerHtml;
+    }
+  }
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
   }
 
   const ganttTable = document.getElementById("gtbl-wrap");
@@ -942,7 +947,11 @@ function _updateReadOnlyUI() {
   if (addBtn) addBtn.style.display = uiState.addButtonVisible ? "" : "none";
 
   const shareBtn = document.getElementById("share-btn");
-  if (shareBtn) shareBtn.style.display = uiState.shareButtonVisible ? "" : "none";
+  if (typeof isReactMainShellEnabled === "function" && isReactMainShellEnabled()) {
+    if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
+  } else if (shareBtn) {
+    shareBtn.style.display = uiState.shareButtonVisible ? "" : "none";
+  }
 }
 
 async function handleShareRoleChange(shareId, role) {

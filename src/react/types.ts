@@ -275,3 +275,58 @@ export interface ProjectSettingsSnapshot {
   }>;
   capturedAt: string;
 }
+
+export interface AppShellSnapshot {
+  activeTab: string;
+  tabs: Array<{
+    id: string;
+    label: string;
+    icon: string;
+    isActive: boolean;
+  }>;
+  projectSelect: {
+    labels: {
+      ownGroupLabel: string;
+      sharedGroupLabel: string;
+      sharedRoleSeparator: string;
+    };
+    state: {
+      own: Array<{
+        id: string;
+        name: string;
+        selected: boolean;
+        roleLabelSuffix: string;
+      }>;
+      shared: Array<{
+        id: string;
+        name: string;
+        selected: boolean;
+        roleLabelSuffix: string;
+      }>;
+    };
+  };
+  projectDates: string;
+  identity: {
+    displayName: string;
+    emailText: string;
+    initial: string;
+    avatarUrl: string | null;
+    themeToggle: {
+      theme: "light" | "dark";
+      icon: "moon" | "sun";
+      label: string;
+    };
+  };
+  syncBadge: {
+    status: string;
+    label: string;
+  };
+  shareVisible: boolean;
+  accessBanner: {
+    shouldShow: boolean;
+    roleLabel: string;
+    roleHint: string;
+    sharedMetaText: string;
+  };
+  capturedAt: string;
+}

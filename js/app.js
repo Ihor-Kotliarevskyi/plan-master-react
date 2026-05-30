@@ -45,6 +45,108 @@ const APP_UI = typeof buildRuntimeAppUiModel === "function"
       overdueCloseTitle: "Close",
     };
 
+const APP_SHELL_TABS = [
+  { id: "gantt", label: "Графік", icon: "gantt-chart" },
+  { id: "finance", label: "Фінанси", icon: "wallet" },
+  { id: "contractors", label: "Контрагенти", icon: "users-round" },
+  { id: "charts", label: "Аналітика", icon: "bar-chart-2" },
+];
+
+function isReactMainShellEnabled() {
+  return document.body?.dataset?.reactTransitionMainShell === "enabled";
+}
+
+function syncReactAppShellBridge() {
+  document.dispatchEvent(new CustomEvent("plan-master:app-shell-sync"));
+}
+
+function getActiveAppTabId() {
+  return document.querySelector(".pane.active")?.id?.replace("pane-", "") || "gantt";
+}
+
+function getAppShellProjectSelectState() {
+  const selectLabels = typeof buildRuntimeProjectSelectLabels === "function"
+    ? buildRuntimeProjectSelectLabels()
+    : { ownGroupLabel: "Мої проєкти", sharedGroupLabel: "Розшарені", sharedRoleSeparator: " В· " };
+  const entries = Object.entries(allProjects || {});
+  const grouped = typeof groupProjectEntriesByAccess === "function"
+    ? groupProjectEntriesByAccess(entries)
+    : { own: entries, shared: [] };
+  const selectState = typeof buildRuntimeProjectSelectState === "function"
+    ? buildRuntimeProjectSelectState({
+        ownEntries: grouped.own || [],
+        sharedEntries: grouped.shared || [],
+        currentId,
+        getRoleLabel: (role) => typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : role,
+        sharedRoleSeparator: selectLabels.sharedRoleSeparator,
+        normalizeRole: (role) => typeof normalizeProjectRole === "function" ? normalizeProjectRole(role) : role,
+      })
+    : { own: [], shared: [] };
+  return {
+    labels: selectLabels,
+    state: selectState,
+  };
+}
+
+function getAppShellBridgeSnapshot() {
+  const projectSelect = getAppShellProjectSelectState();
+  const activeTab = getActiveAppTabId();
+  const profile = typeof getActiveUserCabinetProfile === "function"
+    ? getActiveUserCabinetProfile()
+    : {
+        loggedIn: typeof isLoggedIn === "function" && isLoggedIn(),
+        profile: {
+          name: typeof userProfile !== "undefined" ? userProfile?.name : "Профіль",
+          email: typeof userProfile !== "undefined" ? userProfile?.email : "",
+          avatar: typeof userProfile !== "undefined" ? userProfile?.avatar : null,
+          theme: typeof userProfile !== "undefined" ? userProfile?.theme : "light",
+          defaults: typeof userProfile !== "undefined" ? userProfile?.defaults : null,
+        },
+      };
+  const identity = typeof buildRuntimeUserIdentityModel === "function"
+    ? buildRuntimeUserIdentityModel(profile.profile, "Профіль")
+    : {
+        displayName: profile.profile?.name || "Профіль",
+        emailText: profile.profile?.email || "",
+        initial: ((profile.profile?.name || "П")[0] || "П").toUpperCase(),
+        avatarUrl: profile.profile?.avatar || null,
+        themeToggle: typeof buildRuntimeThemeToggleModel === "function"
+          ? buildRuntimeThemeToggleModel(profile.profile?.theme)
+          : { theme: "light", icon: "moon", label: "Темна" },
+      };
+  const syncBadge = typeof getCurrentSyncBadge === "function"
+    ? getCurrentSyncBadge()
+    : { status: "offline", label: "" };
+  const role = typeof getStoredProjectRole === "function"
+    ? getStoredProjectRole(currentId, "owner")
+    : allProjects?.[currentId]?._role || "owner";
+  const accessMeta = allProjects?.[currentId]?._access || null;
+  const accessBanner = typeof buildRuntimeAccessBannerModel === "function"
+    ? buildRuntimeAccessBannerModel(role, accessMeta)
+    : {
+        shouldShow: role !== "owner",
+        roleLabel: typeof getRuntimeProjectRoleLabel === "function" ? getRuntimeProjectRoleLabel(role) : role,
+        roleHint: typeof getProjectRoleHint === "function" ? getProjectRoleHint(role) : "",
+        sharedMetaText: typeof buildRuntimeSharedProjectMetaText === "function"
+          ? buildRuntimeSharedProjectMetaText(accessMeta)
+          : "",
+      };
+
+  return {
+    activeTab,
+    tabs: APP_SHELL_TABS.map((tab) => ({ ...tab, isActive: tab.id === activeTab })),
+    projectSelect,
+    projectDates: typeof buildRuntimeHeaderDateText === "function"
+      ? buildRuntimeHeaderDateText(getML(), proj.nm)
+      : "",
+    identity,
+    syncBadge,
+    shareVisible: typeof isLoggedIn === "function" && isLoggedIn() && typeof canManageShares === "function" && canManageShares(),
+    accessBanner,
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 function _buildCopiedTask(task, nextTaskNumber) {
   if (typeof buildRuntimeCopiedTask === "function") {
     return buildRuntimeCopiedTask({
@@ -192,10 +294,11 @@ function _buildImportedProjectSnapshot(data, fallbackProjectName, resolvedName) 
     ...meta,
   };
 }
-function switchTab(id, el) {
+function switchTab(id, el = null) {
+  const tabElement = el || document.querySelector(`.tab[data-app-shell-action="switch-tab"][data-tab-id="${id}"]`);
   document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
   document.querySelectorAll(".pane").forEach((p) => p.classList.remove("active"));
-  el.classList.add("active");
+  tabElement?.classList.add("active");
   document.getElementById("pane-" + id).classList.add("active");
   document.body.classList.toggle("finance-active", id === "finance");
   document.body.classList.toggle("contractors-active", id === "contractors");
@@ -215,6 +318,7 @@ function switchTab(id, el) {
     updateCbCatFilter();
     renderAutoCharts();
   }
+  syncReactAppShellBridge();
 }
 
 function restoreActiveTab() {
@@ -222,8 +326,7 @@ function restoreActiveTab() {
   try {
     activeTab = JSON.parse(localStorage.getItem(UI_SK) || "{}").activeTab || "gantt";
   } catch (_) {}
-  const tab = document.querySelector(`.tab[data-app-shell-action="switch-tab"][data-tab-id="${activeTab}"]`);
-  if (tab) switchTab(activeTab, tab);
+  switchTab(activeTab);
 }
 
 function refreshActivePane() {
@@ -241,6 +344,7 @@ function refreshActivePane() {
     updateCbCatFilter();
     renderAutoCharts();
   }
+  syncReactAppShellBridge();
 }
 
 const ZOOM_LEVELS = [10, 15, 25];
@@ -320,9 +424,11 @@ function numStep(id, delta) {
 
 function toggleToolsMenu() {
   document.getElementById("tools-dropdown")?.classList.toggle("open");
+  syncReactAppShellBridge();
 }
 function closeToolsMenu() {
   document.getElementById("tools-dropdown")?.classList.remove("open");
+  syncReactAppShellBridge();
 }
 function toggleContractorToolsMenu() {
   document.getElementById("contractor-tools-dropdown")?.classList.toggle("open");

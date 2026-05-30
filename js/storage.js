@@ -259,5 +259,6 @@ function switchProject(id) {
       isLoggedIn()) {
     apiLoadProject(id);
   }
+  if (typeof syncReactAppShellBridge === "function") syncReactAppShellBridge();
   if (typeof syncReactProjectManagerBridge === "function") syncReactProjectManagerBridge();
 }
